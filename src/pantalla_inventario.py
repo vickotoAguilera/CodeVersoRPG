@@ -29,8 +29,12 @@ class PantallaInventario:
         # --- Lógica de Control y Estados ---
         self.modo = "seleccion_categoria" # "seleccion_categoria", "seleccion_item" o "seleccion_heroe"
         
-        # Categorías de items
-        self.categorias = ["Consumibles", "Especiales", "Equipos"]
+        # Categorías de items con iconos simples ASCII
+        self.categorias = [
+            {"nombre": "Consumibles", "icono": "[C]"},
+            {"nombre": "Especiales", "icono": "[*]"},
+            {"nombre": "Equipos", "icono": "[E]"}
+        ]
         self.categoria_actual = 0  # Índice de la categoría seleccionada
         
         self.heroe_seleccionado_idx = 0
@@ -101,7 +105,7 @@ class PantallaInventario:
         inventario_lider = self.grupo_heroes[0].inventario
         inventario_especiales = self.grupo_heroes[0].inventario_especiales
         
-        categoria_nombre = self.categorias[self.categoria_actual]
+        categoria_nombre = self.categorias[self.categoria_actual]["nombre"]
         
         if categoria_nombre == "Consumibles":
             # Mostrar solo consumibles del inventario normal
@@ -261,46 +265,37 @@ class PantallaInventario:
                 print("¡Cerrando Pantalla de Inventario!")
                 return "volver_al_menu"
         
-        # Cambiar categoría con TAB (solo en modo selección de categoría)
-        if tecla == pygame.K_TAB:
-            if self.modo == "seleccion_categoria":
-                self.categoria_actual = (self.categoria_actual + 1) % len(self.categorias)
-                self._construir_lista_inventario()
-                
-                # Ajustar scroll de pestañas
-                if self.categoria_actual >= self.scroll_offset_tabs + self.tabs_visibles_max:
-                    self.scroll_offset_tabs = self.categoria_actual - self.tabs_visibles_max + 1
-                elif self.categoria_actual < self.scroll_offset_tabs:
-                    self.scroll_offset_tabs = self.categoria_actual
-                
-                return None
+
         
         if tecla == pygame.K_RETURN:
             # [MODO 1: Seleccionando Ítem (Derecha)]
             if self.modo == "seleccion_item":
                 if self.lista_items_mostrados:
                     item_data = self.lista_items_mostrados[self.item_seleccionado_idx]
-                    categoria_actual_nombre = self.categorias[self.categoria_actual]
+                    categoria_actual_nombre = self.categorias[self.categoria_actual]["nombre"]
+                    
+                    # Si estamos en la categoría "Especiales", NO hacer nada (solo visualización)
+                    # Los items especiales aplican su efecto automáticamente
+                    if categoria_actual_nombre == "Especiales":
+                        print(f"Los items especiales no se usan manualmente. Su efecto es automático y global.")
+                        return None
                     
                     # Si estamos en la categoría "Equipos", no hacer nada (solo visualización)
                     if categoria_actual_nombre == "Equipos":
                         print(f"Los equipos se gestionan desde el menú de Equipo.")
                         return None
                     
-                    # Si es un ítem que requiere seleccionar héroe
+                    # Si es un ítem consumible que requiere seleccionar héroe
                     if item_data["target"] in ["Aliado", "Heroe"]:
                         self.item_seleccionado_data = item_data
                         self.modo = "seleccion_heroe" # Salta al panel de héroes
                         self.heroe_seleccionado_idx = 0
                         print(f"Seleccionado ítem: {item_data['nombre']}")
-                    elif item_data["target"] == "Ninguno":
-                        # Items especiales que no se usan (llaves, etc)
-                        print(f"El item {item_data['nombre']} no se puede usar directamente.")
                 return None
             
             # [MODO 2: Seleccionando Héroe (Izquierda)]
             elif self.modo == "seleccion_heroe":
-                # Solo si venimos de seleccionar un ítem
+                # Solo si venimos de seleccionar un ítem consumible
                 if self.item_seleccionado_data:
                     heroe_objetivo = self.grupo_heroes[self.heroe_seleccionado_idx]
                     item_data = self.item_seleccionado_data
@@ -316,24 +311,6 @@ class PantallaInventario:
                         # Consumir del inventario normal
                         self.grupo_heroes[0].usar_item(item_data['id_item'])
                         heroe_objetivo.recibir_curacion_mp(item_data['poder'])
-                    elif item_data['efecto'] == "AUMENTA_RANURAS_HABILIDAD":
-                        # Consumir desde el inventario correcto (puede estar en normal o especial)
-                        id_item = item_data['id_item']
-                        lider = self.grupo_heroes[0]
-                        
-                        # Intentar consumir del inventario normal primero
-                        if lider.tiene_item(id_item):
-                            lider.usar_item(id_item)
-                        # Si no está en el normal, consumir del especial
-                        elif lider.tiene_item_especial(id_item):
-                            # Reducir cantidad en inventario especial
-                            lider.inventario_especiales[id_item] -= 1
-                            if lider.inventario_especiales[id_item] <= 0:
-                                del lider.inventario_especiales[id_item]
-                        
-                        # Aplicar el efecto
-                        heroe_objetivo.usar_expansor_ranuras(item_data['poder'])
-                        print(f"¡{heroe_objetivo.nombre_en_juego} ahora tiene {heroe_objetivo.ranuras_habilidad_max} ranuras!")
                     
                     # Reconstruir inventario y volver
                     self._construir_lista_inventario()
@@ -444,8 +421,11 @@ class PantallaInventario:
             pygame.draw.rect(pantalla, color_tab, tab_rect, border_radius=8)
             pygame.draw.rect(pantalla, self.COLOR_BORDE, tab_rect, borde_grosor, border_radius=8)
             
-            # Texto de la categoría
-            tab_surf = self.fuente_datos.render(categoria, True, color_texto_tab)
+            # Icono + Texto de la categoría
+            icono = categoria["icono"]
+            nombre = categoria["nombre"]
+            tab_texto_completo = f"{icono} {nombre}"
+            tab_surf = self.fuente_datos.render(tab_texto_completo, True, color_texto_tab)
             tab_text_rect = tab_surf.get_rect(center=tab_rect.center)
             pantalla.blit(tab_surf, tab_text_rect)
             
@@ -497,10 +477,16 @@ class PantallaInventario:
                 idx_real = self.scroll_offset_items + idx_visual
                 
                 item_texto = item_data["nombre"]
-                # Agregar indicador visual para items especiales
-                categoria_actual_nombre = self.categorias[self.categoria_actual]
+                # Agregar indicador visual para items según categoría
+                categoria_actual_nombre = self.categorias[self.categoria_actual]["nombre"]
+                
+                # Iconos específicos por tipo de item (sin Unicode)
                 if categoria_actual_nombre == "Especiales":
-                    item_texto = f"★ {item_texto}"
+                    item_texto = f"{item_texto}"  # Items especiales sin icono
+                elif categoria_actual_nombre == "Consumibles":
+                    item_texto = f"{item_texto}"  # Items consumibles sin icono
+                elif categoria_actual_nombre == "Equipos":
+                    item_texto = f"{item_texto}"  # Equipos sin icono
                 
                 # Obtener cantidad desde el inventario correcto según el tipo
                 id_item_actual = item_data.get('id_item', item_data.get('id_equipo', ''))
@@ -550,7 +536,7 @@ class PantallaInventario:
 
         # 5. Dibujar Panel de Descripción (Arriba)
         if self.modo == "seleccion_categoria":
-            desc_texto = "[←→] Navegar categorías | [↓] Entrar | [TAB] Siguiente categoría"
+            desc_texto = "Navegar categorias: Flechas Izq/Der | Entrar: Flecha Abajo"
         elif self.modo == "seleccion_item" and self.lista_items_mostrados:
             item_actual = self.lista_items_mostrados[self.item_seleccionado_idx]
             desc_texto = item_actual.get("descripcion", "...")
@@ -560,7 +546,8 @@ class PantallaInventario:
         elif self.modo == "seleccion_heroe" and self.item_seleccionado_data:
             desc_texto = f"Usar {self.item_seleccionado_data['nombre']} en..."
         else:
-            desc_texto = f"Categoría: {self.categorias[self.categoria_actual]}"
+            categoria_info = self.categorias[self.categoria_actual]
+            desc_texto = f"Categoría: {categoria_info['icono']} {categoria_info['nombre']}"
             
         desc_surf = self.fuente_desc.render(desc_texto, True, self.COLOR_TEXTO)
         desc_rect = desc_surf.get_rect(midleft=(self.caja_desc_rect.x + 20, self.caja_desc_rect.centery))

@@ -1,8 +1,25 @@
 # 📊 Estado Completo del Proyecto RPG
 
-**Fecha:** 16 Noviembre 2025 - 14:10 UTC
+**Fecha:** 16 Noviembre 2025 - 15:40 UTC
 **Fase Actual:** Fase 7 - COMPLETADA ✅
-**Progreso Total:** ~75%
+**Progreso Total:** ~76%
+
+---
+
+## 🆕 ÚLTIMOS CAMBIOS (15:40)
+
+### Limpieza de Interfaz
+- ✅ **Removidos caracteres Unicode** que no se renderizaban bien
+- ✅ **Eliminada funcionalidad TAB** que confundía al usuario
+- ✅ Navegación simplificada (solo flechas LEFT/RIGHT entre categorías)
+- ✅ Interfaz más limpia y funcional
+
+### Problemas Resueltos
+- ✅ Items de ranuras ahora se ven correctamente en inventario
+- ✅ Sistema de categorías optimizado
+- ✅ Espacio liberado en UI
+
+---
 
 ---
 
@@ -305,6 +322,34 @@
 
 ---
 
-**Última actualización:** 16 Nov 2025 - 14:15 UTC
+**Última actualización:** 16 Nov 2025 - 15:40 UTC
 **Autor:** Sistema de documentación automática
 **Estado del proyecto:** 🟢 Excelente progreso
+
+---
+
+## 🎨 SOBRE ICONOS Y SPRITES
+
+### ❌ NO Usar Unicode
+Los caracteres Unicode especiales (🔥, ⚔️, 💚, etc.) NO funcionan bien en el sistema.
+**Razón:** Incompatibilidades de renderizado con pygame.font.Font(None, ...)
+
+### ✅ Alternativas Recomendadas
+1. **ASCII simple:** `[A]`, `[B]`, `[C]`, `[+]`, `[-]`, `[*]`
+2. **Sprites pequeños:** 16x16 o 24x24 píxeles en formato PNG
+3. **Texto descriptivo:** "Fuego", "Hielo", "Trueno" en lugar de iconos
+
+### 📦 Sprites Pendientes para Estados
+Necesitaremos crear sprites pequeños (16x16px) para:
+- Envenenado
+- Quemado
+- Paralizado
+- Dormido
+- Confundido
+- Cegado
+- Silenciado
+- Regeneración
+
+**Estilo:** Pixel art simple, 1-2 colores, fácil de reconocer
+
+---

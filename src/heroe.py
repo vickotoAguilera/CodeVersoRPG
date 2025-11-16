@@ -37,7 +37,7 @@ class Heroe:
         
         # --- ¡NUEVO! Sistema de Habilidades (Paso 7.14) ---
         self.clase = clase_data['clase']
-        self.ranuras_habilidad_max = clase_data['ranuras_habilidad_max']
+        self.ranuras_habilidad_max_base = clase_data['ranuras_habilidad_max']  # Ranuras base
         self.habilidades_activas = clase_data['habilidades_activas'].copy()
         self.inventario_habilidades = clase_data['inventario_habilidades'].copy()
 
@@ -435,14 +435,14 @@ class Heroe:
         """
         Expande las ranuras de habilidades del héroe.
         El expansor es acumulativo: +2, +4, +6...
-        Este método se llama automáticamente cuando se usa el item EXPANSOR_RANURAS.
-        El expansor se mueve a items especiales y no se consume.
+        Este método se llama cuando se selecciona el item EXPANSOR_RANURAS.
+        El expansor NO se consume porque está en items especiales.
         """
         self.ranuras_habilidad_max += cantidad
         print(f"¡{self.nombre_en_juego} ahora tiene {self.ranuras_habilidad_max} ranuras de habilidades!")
         
-        # Mover el expansor a items especiales (no se pierde)
-        self.agregar_item_especial("EXPANSOR_RANURAS", 1)
+        # Los items especiales NO se consumen, permanecen en el inventario
+        # No se debe agregar ni quitar nada del inventario especial aquí
         
         return True
     
@@ -541,11 +541,42 @@ class Heroe:
         """Verifica si el héroe tiene un item especial (llave, amuleto, etc.)"""
         return id_item in self.inventario_especiales and self.inventario_especiales[id_item] > 0
     
-    def agregar_item_especial(self, id_item, cantidad=1):
-        """Agrega un item especial (no consumible) al inventario"""
+    def agregar_item_especial(self, id_item, cantidad=1, items_db=None, grupo_heroes=None):
+        """
+        Agrega un item especial (no consumible) al inventario.
+        Si el item tiene efecto global (como expansores de ranuras),
+        aplica el efecto automáticamente a todos los héroes.
+        """
         self.inventario_especiales[id_item] = self.inventario_especiales.get(id_item, 0) + cantidad
         print(f"¡{self.nombre_clase} obtuvo {id_item} (Especial) x{cantidad}!")
+        
+        # Si tenemos la DB de items y el grupo de héroes, aplicar efectos automáticos
+        if items_db and grupo_heroes and id_item in items_db:
+            item_data = items_db[id_item]
+            self._aplicar_efecto_global_especial(item_data, grupo_heroes)
+        
         self.aplicar_efectos_especiales()
+    
+    def _aplicar_efecto_global_especial(self, item_data, grupo_heroes):
+        """Aplica efectos de items especiales a todos los héroes del grupo."""
+        efecto = item_data.get("efecto")
+        
+        if efecto == "AUMENTA_RANURAS_HABILIDAD":
+            # Calcular el total de ranuras según la cantidad de items
+            cantidad_item = self.inventario_especiales.get(item_data['id_item'], 0)
+            ranuras_totales = item_data['poder'] * cantidad_item
+            
+            print(f"\n=== EFECTO GLOBAL ACTIVADO ===")
+            print(f"Item: {item_data['nombre']} x{cantidad_item}")
+            print(f"Ranuras otorgadas: {item_data['poder']} x {cantidad_item} = {ranuras_totales}")
+            
+            # Aplicar a todos los héroes
+            for heroe in grupo_heroes:
+                ranuras_anteriores = heroe.ranuras_habilidad_max
+                heroe.usar_expansor_ranuras(ranuras_totales)
+                print(f"  -> {heroe.nombre_en_juego}: {ranuras_anteriores} -> {heroe.ranuras_habilidad_max} ranuras")
+            
+            print("=== FIN EFECTO GLOBAL ===\n")
     
     def obtener_items_especiales(self):
         """Retorna lista de items especiales activos"""
@@ -688,3 +719,13 @@ class Heroe:
                 return True
 
         return False
+    
+    # --- SISTEMA DE EXPANSIÓN DE RANURAS ---
+    def usar_expansor_ranuras(self, cantidad_ranuras):
+        """
+        Aumenta permanentemente las ranuras de habilidad del héroe.
+        Esta función NO acumula, sino que ESTABLECE el valor total.
+        """
+        # Establecer el nuevo máximo de ranuras
+        self.ranuras_habilidad_max = cantidad_ranuras
+        print(f"{self.nombre_en_juego} ahora tiene {self.ranuras_habilidad_max} ranuras de habilidad.")

@@ -605,13 +605,13 @@ class PantallaHabilidades:
                 pygame.draw.rect(pantalla, (100, 100, 255),
                                (scrollbar_x, thumb_y, 8, thumb_altura), border_radius=4)
             
-            # Indicadores de scroll
+            # Indicadores de scroll (sin Unicode)
             if self.scroll_inventario > 0:
-                flecha_arriba = self.fuente_pequeña.render("▲", True, self.COLOR_TEXTO)
+                flecha_arriba = self.fuente_pequeña.render("^", True, self.COLOR_TEXTO)
                 pantalla.blit(flecha_arriba, (self.caja_inventario_rect.centerx - flecha_arriba.get_width() // 2, self.caja_inventario_rect.top + 48))
             
             if fin < len(self.lista_inventario_habilidades):
-                flecha_abajo = self.fuente_pequeña.render("▼", True, self.COLOR_TEXTO)
+                flecha_abajo = self.fuente_pequeña.render("v", True, self.COLOR_TEXTO)
                 pantalla.blit(flecha_abajo, (self.caja_inventario_rect.centerx - flecha_abajo.get_width() // 2, self.caja_inventario_rect.bottom - 30))
 
     # --- 11. PANEL 3: DESCRIPCIÓN ---
@@ -732,8 +732,13 @@ class PantallaHabilidades:
             pygame.draw.rect(pantalla, (30, 30, 60), ranura_rect, border_radius=8)
             pygame.draw.rect(pantalla, color_borde, ranura_rect, grosor, border_radius=8)
             
-            # Número de ranura
-            numero_surf = self.fuente_pequeña.render(f"[{i + 1}]", True, self.COLOR_TEXTO)
+            # Icono y número de ranura
+            if ranura_info["id_habilidad"] is None:
+                icono_ranura = f"[{i + 1}]"  # Ranura vacía
+            else:
+                icono_ranura = f"[#{i + 1}]"  # Ranura ocupada
+            
+            numero_surf = self.fuente_pequeña.render(icono_ranura, True, self.COLOR_TEXTO)
             pantalla.blit(numero_surf, (ranura_rect.centerx - numero_surf.get_width() // 2, ranura_rect.top + 8))
             
             # Nombre de la habilidad
