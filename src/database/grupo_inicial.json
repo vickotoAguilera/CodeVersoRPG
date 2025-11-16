@@ -1,0 +1,14 @@
+{
+    "miembros": [
+        {
+            "nombre_en_juego": "Cloud",
+            "id_clase_db": "HEROE_1",
+            "id_coords_db": "COORDS_CLOUD"
+        },
+        {
+            "nombre_en_juego": "Terra",
+            "id_clase_db": "HEROE_2",
+            "id_coords_db": "COORDS_TERRA"
+        }
+    ]
+}

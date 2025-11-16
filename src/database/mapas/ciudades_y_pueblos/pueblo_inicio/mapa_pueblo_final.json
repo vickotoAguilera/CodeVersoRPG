@@ -1,0 +1,42 @@
+{
+  "muros": [],
+  "zonas_batalla": [],
+  "portales": [
+    {
+      "caja": { "x": 455, "y": 900, "w": 30, "h": 30 },
+      "mapa_destino": "mapa_pradera.jpg",
+      "categoria_destino": "mundo",
+      "pos_destino": [563, 617]
+    },
+    {
+      "caja": { "x": 427, "y": 399, "w": 30, "h": 30 },
+      "mapa_destino": "mapa_posada.png",
+      "categoria_destino": "ciudades_y_pueblos/pueblo_inicio",
+      "pos_destino": [144, 391]
+    },
+    {
+      "caja": { "x": 668, "y": 665, "w": 30, "h": 30 },
+      "mapa_destino": "mapa_tienda_items.png",
+      "categoria_destino": "ciudades_y_pueblos/pueblo_inicio",
+      "pos_destino": [380, 425]
+    },
+    {
+      "caja": { "x": 569, "y": 391, "w": 30, "h": 30 },
+      "mapa_destino": "mapa_tienda_magia.png",
+      "categoria_destino": "ciudades_y_pueblos/pueblo_inicio",
+      "pos_destino": [363, 412]
+    },
+    {
+      "caja": { "x": 290, "y": 832, "w": 30, "h": 30 },
+      "mapa_destino": "mapa_herrero.png",
+      "categoria_destino": "ciudades_y_pueblos/pueblo_inicio",
+      "pos_destino": [380, 459]
+    },
+    {
+        "caja": { "x": 307, "y": 509, "w": 30, "h": 30 },
+        "mapa_destino": "mapa_taberna.png",
+        "categoria_destino": "ciudades_y_pueblos/pueblo_inicio",
+        "pos_destino": [375, 390]
+    }
+  ]
+}

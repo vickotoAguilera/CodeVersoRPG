@@ -1,0 +1,62 @@
+================================================================================
+                        CODE VERSO RPG - INICIO RÁPIDO
+================================================================================
+
+PARA JUGAR:
+
+    1. Abre VS Code en esta carpeta
+    2. Presiona F5 o escribe en terminal:
+       
+       python main.py
+
+    3. ¡Juega!
+
+
+SI DA ERROR "No module named pygame":
+
+    En la terminal de VS Code escribe:
+    
+    pip install pygame
+    
+    Luego ejecuta de nuevo: python main.py
+
+
+DOCUMENTACIÓN:
+
+    Toda la documentación está en la carpeta docs/
+    
+    Lee primero: docs/LEEME_PRIMERO.txt
+
+
+ESTRUCTURA:
+
+    RPG/
+    ├── main.py              ← ¡EJECUTA ESTE!
+    ├── settings.json        ← Configuración
+    ├── INICIO.txt          ← Este archivo
+    │
+    ├── docs/                ← Documentación completa
+    │   ├── LEEME_PRIMERO.txt
+    │   ├── GUIA_RAPIDA_VSCODE.md
+    │   └── ... más guías
+    │
+    ├── src/                 ← Código del juego
+    ├── database/            ← Datos (JSON)
+    ├── assets/              ← Gráficos
+    ├── saves/               ← Partidas guardadas
+    └── logs/                ← Archivos de log
+
+
+CONTROLES:
+
+    Flechas = Movimiento / Navegación
+    Enter   = Confirmar / Interactuar
+    ESC     = Menú de pausa
+    D       = Ver detalles
+
+
+¿PREGUNTAS?
+
+    Lee docs/GUIA_RAPIDA_VSCODE.md para más ayuda
+
+================================================================================

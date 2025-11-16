@@ -1,0 +1,349 @@
+====================================
+📂 ESTRUCTURA COMPLETA DEL PROYECTO
+====================================
+
+RPG/
+│
+├── 📄 main.py                           ⭐ ARCHIVO PRINCIPAL - EJECUTAR ESTE
+│   └── Gestiona el flujo del juego, carga recursos, maneja eventos
+│
+├── 📄 requirements.txt                  📦 Dependencias del proyecto
+│   └── pygame==2.5.2
+│
+├── 📄 COMO_EMPEZAR.txt                 📘 Guía rápida de inicio
+├── 📄 GUIA_INICIO_RAPIDO.md            📘 Guía detallada
+├── 📄 RESUMEN_SESION_2025_11_15.md     📘 Resumen de la sesión
+├── 📄 TAREAS_PENDIENTES.md             📋 Lista de tareas y bugs
+├── 📄 ESTRUCTURA_PROYECTO.txt          📋 Este archivo
+│
+├── 📁 src/                             💻 CÓDIGO FUENTE PRINCIPAL
+│   │
+│   ├── 📁 database/                    🗄️ BASES DE DATOS JSON
+│   │   ├── heroes_db.json              → Datos de héroes (Cloud, Terra)
+│   │   ├── items_db.json               → Datos de ítems (pociones, armas)
+│   │   ├── habilidades_db.json         → Datos de habilidades ⭐NUEVO
+│   │   ├── enemigos_db.json            → Datos de enemigos
+│   │   └── mapas_db.json               → Datos de mapas
+│   │
+│   ├── 📄 heroe.py                     👤 Clase Heroe
+│   │   └── Gestiona estadísticas, habilidades, inventario, equipo
+│   │
+│   ├── 📄 enemigo.py                   👾 Clase Enemigo
+│   │   └── Gestiona estadísticas y comportamiento de enemigos
+│   │
+│   ├── 📄 mapa.py                      🗺️ Clase Mapa
+│   │   └── Gestiona tiles, colisiones, movimiento del jugador
+│   │
+│   ├── 📄 menu_pausa.py                ⏸️ Menú de Pausa
+│   │   └── Estado, Habilidades, Objetos, Equipo, Guardar, Salir
+│   │
+│   ├── 📄 pantalla_inventario.py       🎒 Pantalla de Objetos
+│   │   └── Ver y usar ítems del inventario
+│   │
+│   ├── 📄 pantalla_equipo.py           ⚔️ Pantalla de Equipo
+│   │   └── Equipar/desequipar armas y armaduras
+│   │
+│   ├── 📄 pantalla_habilidades.py      ✨ Pantalla de Habilidades ⭐NUEVO
+│   │   └── Equipar/desequipar habilidades con 4 paneles
+│   │       ├── Panel Izquierdo: Sprite del héroe
+│   │       ├── Panel Derecho: Inventario de habilidades (scroll)
+│   │       ├── Panel Central: Descripción (scroll)
+│   │       └── Panel Inferior: Ranuras activas (scroll)
+│   │
+│   ├── 📄 pantalla_estado.py           📊 Pantalla de Estado
+│   │   └── Muestra estadísticas completas del héroe
+│   │
+│   ├── 📄 pantalla_batalla.py          ⚔️ Sistema de Batalla
+│   │   └── Gestiona turnos, ataques, animaciones, victoria/derrota
+│   │
+│   └── 📄 menu_batalla.py              🎮 Menú de Combate
+│       └── Atacar, Habilidades, Objetos, Huir
+│
+├── 📁 assets/                          🎨 RECURSOS GRÁFICOS
+│   │
+│   ├── 📁 sprites/                     🧍 Sprites de personajes
+│   │   ├── heroe_cloud.png             → Sprite de Cloud
+│   │   ├── heroe_terra.png             → Sprite de Terra
+│   │   ├── enemigo_slime.png           → Sprite de Slime
+│   │   └── ...
+│   │
+│   └── 📁 tilesets/                    🗺️ Tiles de mapas
+│       ├── tileset_overworld.png       → Tiles del mundo
+│       └── ...
+│
+├── 📁 saves/                           💾 ARCHIVOS DE GUARDADO
+│   ├── slot_1.json                     → Partida guardada 1
+│   ├── slot_2.json                     → Partida guardada 2
+│   └── slot_3.json                     → Partida guardada 3
+│
+└── 📁 docs/                            📚 DOCUMENTACIÓN ADICIONAL
+    ├── ARQUITECTURA.md
+    ├── DATABASE.md
+    └── ...
+
+
+====================================
+🔗 RELACIONES ENTRE ARCHIVOS
+====================================
+
+main.py
+├── Importa → heroe.py
+├── Importa → enemigo.py
+├── Importa → mapa.py
+├── Importa → menu_pausa.py
+├── Importa → pantalla_inventario.py
+├── Importa → pantalla_equipo.py
+├── Importa → pantalla_habilidades.py    ⭐NUEVO
+├── Importa → pantalla_estado.py
+├── Importa → pantalla_batalla.py
+├── Importa → menu_batalla.py
+│
+├── Carga → database/heroes_db.json
+├── Carga → database/items_db.json
+├── Carga → database/habilidades_db.json ⭐NUEVO
+├── Carga → database/enemigos_db.json
+├── Carga → database/mapas_db.json
+│
+└── Gestiona → saves/*.json
+
+
+====================================
+💾 BASES DE DATOS (JSON)
+====================================
+
+📄 heroes_db.json
+{
+  "cloud": {
+    "nombre": "Cloud",
+    "clase": "Guerrero",                 ⭐NUEVO
+    "nivel": 1,
+    "hp_max": 100,
+    "mp_max": 30,
+    "atk": 15,
+    "def": 8,
+    "mag": 5,
+    "res": 6,
+    "vel": 10,
+    "ranuras_habilidad_max": 4,          ⭐NUEVO
+    "habilidades_activas": [...],        ⭐NUEVO
+    "inventario_habilidades": [...],     ⭐NUEVO
+    "inventario": [...],
+    "equipo": {...}
+  }
+}
+
+📄 items_db.json
+{
+  "pocion": {
+    "nombre": "Poción",
+    "tipo": "consumible",
+    "categoria": "Consumibles",           ⭐NUEVO (pendiente)
+    "descripcion": "Recupera 50 HP",
+    "efecto": "curar",
+    "potencia": 50,
+    "precio": 50,
+    "vendible": true
+  },
+  "expansor_ranuras": {                   ⭐NUEVO
+    "nombre": "Expansor de Ranuras",
+    "tipo": "especial",
+    "categoria": "Especiales",
+    "descripcion": "Aumenta las ranuras de habilidad en +2",
+    "efecto": "expandir_ranuras",
+    "cantidad_ranuras": 2,
+    "precio": 500,
+    "vendible": false
+  }
+}
+
+📄 habilidades_db.json ⭐NUEVO
+{
+  "corte_cruzado": {
+    "id": "corte_cruzado",
+    "nombre": "Corte Cruzado",
+    "clase": "Guerrero",
+    "tipo": "fisico",
+    "descripcion": "Ataque físico de daño moderado...",
+    "costo_mp": 10,
+    "potencia": 50,
+    "aoe": false,
+    "dot": null,
+    "hot": null
+  },
+  "quemadura": {
+    "id": "quemadura",
+    "nombre": "Quemadura",
+    "clase": "Mago",
+    "tipo": "magico",
+    "descripcion": "Inflige daño de fuego...",
+    "costo_mp": 15,
+    "potencia": 30,
+    "aoe": false,
+    "dot": {                               ⭐DOT
+      "tipo": "daño",
+      "potencia": 15,
+      "duracion_turnos": 3
+    },
+    "hot": null
+  },
+  "revitalizar": {
+    "id": "revitalizar",
+    "nombre": "Revitalizar",
+    "clase": "Mago",
+    "tipo": "curacion",
+    "descripcion": "Cura HP gradualmente...",
+    "costo_mp": 20,
+    "potencia": 40,
+    "aoe": false,
+    "dot": null,
+    "hot": {                               ⭐HOT
+      "tipo": "hp",
+      "potencia": 20,
+      "duracion_turnos": 3
+    }
+  }
+}
+
+
+====================================
+⚙️ FLUJO DEL JUEGO
+====================================
+
+1. INICIO
+   ├── main.py ejecuta
+   ├── Carga bases de datos JSON
+   ├── Muestra menú principal
+   └── Usuario elige: Nueva Partida o Cargar
+
+2. EXPLORACIÓN (mapa.py)
+   ├── Jugador camina con flechas
+   ├── ESC → menu_pausa.py
+   ├── Colisión con enemigo → pantalla_batalla.py
+   └── ENTER en objeto → Evento especial
+
+3. MENÚ DE PAUSA (menu_pausa.py)
+   ├── Estado → pantalla_estado.py
+   ├── Habilidades → pantalla_habilidades.py  ⭐NUEVO
+   ├── Objetos → pantalla_inventario.py
+   ├── Equipo → pantalla_equipo.py
+   ├── Guardar → Guardar en saves/
+   └── Salir → Volver a menú principal
+
+4. BATALLA (pantalla_batalla.py)
+   ├── Turno del héroe
+   │   └── menu_batalla.py
+   │       ├── Atacar → Daño físico
+   │       ├── Habilidades → Elegir habilidad ⭐NUEVO
+   │       ├── Objetos → Usar ítem
+   │       └── Huir → Intentar escapar
+   ├── Turno del enemigo
+   │   └── Enemigo ataca automáticamente
+   ├── Procesar DOT/HOT ⭐NUEVO
+   └── Victoria o Derrota
+
+5. PANTALLA DE HABILIDADES (pantalla_habilidades.py) ⭐NUEVO
+   ├── Panel Izquierdo: Ver sprite del héroe
+   ├── Panel Derecho: Inventario de habilidades (scroll)
+   │   └── Habilidades disponibles filtradas por clase
+   ├── Panel Central: Descripción detallada (scroll)
+   │   └── Info completa de la habilidad seleccionada
+   ├── Panel Inferior: Ranuras activas (scroll)
+   │   └── Hasta 4 ranuras base (expandible)
+   ├── Navegar con ←→↑↓
+   ├── ENTER para equipar/desequipar
+   └── ESC o botón Volver para regresar
+
+
+====================================
+🎮 MECÁNICAS PRINCIPALES
+====================================
+
+✅ SISTEMA DE HABILIDADES (Fase 7 - COMPLETO)
+   ├── Cada héroe tiene una clase (Guerrero, Mago)
+   ├── Inventario de habilidades filtrado por clase
+   ├── Ranuras activas (4 base, expandible)
+   ├── Equipar/desequipar habilidades
+   ├── Usar habilidades en batalla
+   ├── DOT (Damage Over Time) - Daño por turno
+   ├── HOT (Heal Over Time) - Cura por turno
+   ├── AoE (Area of Effect) - Ataca a todos
+   └── Expansor de ranuras (+2 ranuras permanentes)
+
+✅ SISTEMA DE COMBATE (Fase 3 - COMPLETO)
+   ├── Turnos basados en velocidad
+   ├── Atacar (físico)
+   ├── Habilidades (especiales) ⭐MEJORADO
+   ├── Objetos (consumibles)
+   ├── Huir (probabilidad basada en nivel)
+   ├── Experiencia y subida de nivel
+   └── Botín al ganar
+
+✅ SISTEMA DE INVENTARIO (Fase 4 - COMPLETO)
+   ├── Objetos consumibles
+   ├── Equipamiento
+   ├── Ítems especiales
+   └── Sistema de uso en batalla y menú
+
+✅ SISTEMA DE EQUIPO (Fase 5 - COMPLETO)
+   ├── Armas
+   ├── Armaduras
+   ├── Accesorios
+   └── Bonificaciones de stats
+
+⏳ SISTEMA DE GRUPO (Fase 8 - PENDIENTE)
+   ├── Grupo activo (4 héroes)
+   ├── Banco (2 héroes en reserva)
+   ├── Cambiar líder
+   └── Intercambiar miembros
+
+⏸️ MUNDO Y NPCS (Fase 9 - PENDIENTE)
+   ├── Diálogos
+   ├── Tiendas
+   ├── Misiones
+   └── Ciudades
+
+
+====================================
+📊 ESTADO ACTUAL
+====================================
+
+Progreso del Proyecto: ~65%
+
+Fase 1: Sistema Base                ✅ 100%
+Fase 2: Mapas y Movimiento          ✅ 100%
+Fase 3: Sistema de Combate          ✅ 100%
+Fase 4: Inventario y Objetos        ✅ 100%
+Fase 5: Sistema de Equipo           ✅ 100%
+Fase 6: Menú de Pausa               ✅ 100%
+Fase 7: Sistema de Habilidades      ⏳ 95%  ← ESTAMOS AQUÍ
+Fase 8: Gestión de Grupo            ⏸️ 0%
+Fase 9: NPCs y Mundo                ⏸️ 0%
+Fase 10: Opciones y Game Over       ⏸️ 0%
+Fase 11: Soporte Adicional          ⏸️ 0%
+
+
+====================================
+🎯 PRÓXIMOS PASOS
+====================================
+
+1. ✅ Probar expansor de ranuras
+2. ⏳ Organizar inventario por categorías
+3. ⏳ Agregar scroll a todas las pantallas
+4. ⏸️ Iniciar Fase 8 (Gestión de Grupo)
+
+
+====================================
+📝 NOTAS FINALES
+====================================
+
+- El proyecto está bien estructurado y modular
+- Cada archivo tiene un propósito claro
+- Las bases de datos JSON son fáciles de editar
+- El sistema de habilidades es robusto y escalable
+- La navegación por teclado es consistente
+- El código está bien comentado
+- Listo para seguir expandiendo
+
+
+Última actualización: 2025-11-15
+Versión: Fase 7 - v0.95 (Beta)
