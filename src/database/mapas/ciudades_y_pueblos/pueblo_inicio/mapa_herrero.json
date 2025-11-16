@@ -1,0 +1,18 @@
+{
+  "muros": [
+    { "x": 0, "y": 0, "w": 800, "h": 150 },
+    { "x": 0, "y": 150, "w": 100, "h": 450 },
+    { "x": 700, "y": 150, "w": 100, "h": 450 },
+    { "x": 100, "y": 500, "w": 250, "h": 100 },
+    { "x": 450, "y": 500, "w": 250, "h": 100 }
+  ],
+  "zonas_batalla": [],
+  "portales": [
+    {
+      "caja": { "x": 350, "y": 500, "w": 100, "h": 50 },
+      "mapa_destino": "mapa_pueblo_final.png",
+      "categoria_destino": "ciudades_y_pueblos/pueblo_inicio",
+      "pos_destino": [307, 509]
+    }
+  ]
+}

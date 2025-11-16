@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+.venv/
+venv/
+ENV/
+build/
+dist/
+*.egg-info/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Juego
+logs/*.log
+saves/*.json
+!saves/.gitkeep
+
+# OS
+Thumbs.db
+desktop.ini
+
+# Temporal
+*.tmp
+*.bak
+check_errors.py
+crear_estructura_completa.py
+setup_structure.py
+
+# Configuración local (mantener settings.json en repo como template)
+# settings.json

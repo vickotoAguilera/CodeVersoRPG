@@ -1,0 +1,240 @@
+====================================
+ 🎮 CÓMO EMPEZAR CON EL PROYECTO RPG
+====================================
+
+📌 INICIO RÁPIDO (1 minuto)
+====================================
+
+1. Abrir terminal/CMD en la carpeta del proyecto
+2. Ejecutar: python main.py
+3. Elegir "Nueva Partida" o "Cargar Partida"
+4. ¡Jugar!
+
+
+📦 INSTALACIÓN (Primera vez - 2 minutos)
+====================================
+
+Si es la primera vez que ejecutas el proyecto:
+
+1. Verificar que tienes Python instalado:
+   python --version
+   
+   (Debe ser Python 3.8 o superior)
+
+2. Instalar dependencias:
+   pip install -r requirements.txt
+   
+   (Solo instala pygame)
+
+3. Ejecutar el juego:
+   python main.py
+
+
+🎯 QUÉ PUEDO HACER EN EL JUEGO?
+====================================
+
+✅ EXPLORACIÓN:
+- Caminar por el mapa con las flechas (↑↓←→)
+- Entrar en batallas aleatorias
+- Interactuar con objetos (ENTER)
+
+✅ SISTEMA DE PAUSA (ESC):
+- Estado → Ver stats de héroes
+- Habilidades → Equipar/desequipar habilidades ⭐NUEVO
+- Objetos → Usar ítems (pociones, expansores)
+- Equipo → Cambiar armas/armaduras
+- Guardar → Guardar tu progreso
+- Salir → Salir al menú principal
+
+✅ SISTEMA DE BATALLA:
+- Atacar → Ataque físico básico
+- Habilidades → Usar habilidades especiales ⭐NUEVO
+  - DOT (Quemadura, Veneno) - Daño por turno
+  - HOT (Revitalizar, Éter) - Cura por turno
+  - AoE (Ataca a todos los enemigos)
+- Objetos → Usar pociones en batalla
+- Huir → Escapar del combate
+
+✅ GESTIÓN DE HABILIDADES (NUEVO):
+- Cada héroe tiene un inventario de habilidades
+- Puedes equipar hasta 4 habilidades activas (base)
+- Usa "Expansor de Ranuras" para tener más ranuras
+- Las habilidades se filtran según la clase del héroe
+
+
+🔧 PROBANDO EL NUEVO SISTEMA
+====================================
+
+PASO 1: Probar Habilidades en Batalla
+1. Ejecutar: python main.py
+2. Crear nueva partida
+3. Caminar hasta encontrar un enemigo
+4. En batalla → Habilidades
+5. Seleccionar una habilidad
+6. Ver el efecto (daño, DOT, HOT, etc.)
+
+PASO 2: Equipar/Desequipar Habilidades
+1. En el mapa → ESC (menú de pausa)
+2. Habilidades
+3. Seleccionar héroe (Cloud o Terra)
+4. Navegar entre paneles (←→)
+5. Equipar/Desequipar con ENTER
+
+PASO 3: Probar Expansor de Ranuras
+1. ESC → Objetos
+2. Buscar "Expansor de Ranuras" (los héroes tienen 2)
+3. Seleccionar y aplicar a un héroe
+4. Ir a Habilidades → Verificar que ahora hay 6 ranuras
+5. Equipar más habilidades
+6. Guardar y recargar para verificar que persiste
+
+
+🎮 CONTROLES
+====================================
+
+NAVEGACIÓN GENERAL:
+- Flechas (↑↓←→) → Mover/Navegar menús
+- ENTER → Confirmar/Seleccionar
+- ESC → Volver/Cancelar/Menú de pausa
+
+EN BATALLA:
+- ↑↓ → Seleccionar acción/objetivo
+- ENTER → Confirmar
+- ESC → Volver al menú anterior
+
+EN PANTALLA DE HABILIDADES:
+- ↑↓ → Navegar en panel actual
+- ←→ → Cambiar entre paneles
+- ENTER → Equipar/Desequipar
+- ESC o Botón "Volver" → Regresar
+
+
+📁 ESTRUCTURA DEL PROYECTO
+====================================
+
+RPG/
+├── main.py                      ← EJECUTAR ESTE ARCHIVO
+├── requirements.txt             ← Dependencias (pygame)
+│
+├── src/                         ← Código fuente
+│   ├── database/                ← Bases de datos JSON
+│   │   ├── heroes_db.json
+│   │   ├── items_db.json
+│   │   ├── habilidades_db.json  ← NUEVO
+│   │   ├── enemigos_db.json
+│   │   └── mapas_db.json
+│   │
+│   ├── heroe.py
+│   ├── enemigo.py
+│   ├── mapa.py
+│   ├── menu_pausa.py
+│   ├── pantalla_inventario.py
+│   ├── pantalla_equipo.py
+│   ├── pantalla_habilidades.py  ← NUEVO ⭐
+│   ├── pantalla_estado.py
+│   ├── pantalla_batalla.py
+│   └── menu_batalla.py
+│
+├── assets/                      ← Gráficos
+│   ├── sprites/
+│   └── tilesets/
+│
+├── saves/                       ← Archivos de guardado
+│
+└── docs/                        ← Documentación
+    ├── TAREAS_PENDIENTES.md
+    ├── GUIA_INICIO_RAPIDO.md
+    ├── RESUMEN_SESION.md
+    └── COMO_EMPEZAR.txt         ← ESTE ARCHIVO
+
+
+🐛 RESOLUCIÓN DE PROBLEMAS
+====================================
+
+❌ ERROR: "pygame no está instalado"
+✅ SOLUCIÓN: pip install pygame
+
+❌ ERROR: "No se encuentra main.py"
+✅ SOLUCIÓN: Asegúrate de estar en la carpeta RPG
+   cd c:\Users\vicko\Documents\RPG
+
+❌ ERROR: "RUTA_ITEMS_DB not defined"
+✅ SOLUCIÓN: Ya está arreglado en la versión actual
+   Asegúrate de tener el main.py actualizado
+
+❌ El expansor de ranuras no funciona
+✅ SOLUCIÓN: Usa el expansor desde Objetos (no desde Habilidades)
+   Selecciona el ítem y aplícalo a un héroe específico
+
+❌ El scroll no aparece
+✅ SOLUCIÓN: El scroll solo aparece si hay más elementos de los visibles
+   Ej: Si hay espacio para 6 ítems y solo tienes 4, no hay scroll
+
+
+💡 CONSEJOS
+====================================
+
+PARA JUGADORES:
+✓ Experimenta con diferentes combinaciones de habilidades
+✓ Los expansores de ranuras son valiosos - úsalos bien
+✓ Las habilidades DOT/HOT son útiles en batallas largas
+✓ Guarda frecuentemente (el juego es estable)
+
+PARA DESARROLLADORES:
+✓ El código está bien comentado
+✓ Cada pantalla es independiente y modular
+✓ Las bases de datos JSON son fáciles de modificar
+✓ El sistema de scroll es reutilizable en otras pantallas
+
+
+📊 ESTADO DEL PROYECTO
+====================================
+
+Fase 7 (Sistema de Habilidades): 95% COMPLETO ✅
+
+✅ LO QUE FUNCIONA:
+- Sistema de habilidades completo
+- Equipar/Desequipar habilidades
+- Habilidades en batalla
+- DOT/HOT (daño y cura por turno)
+- AoE (ataque a todos)
+- Scroll visual elegante
+- Navegación fluida por teclado
+
+⏳ LO QUE FALTA:
+- Probar expansor de ranuras
+- Organizar inventario por categorías
+- Agregar scroll a más pantallas
+
+
+🎯 PRÓXIMOS PASOS
+====================================
+
+1. Probar el expansor de ranuras
+2. Organizar inventario en categorías
+3. Mejorar scroll en todas las pantallas
+4. Iniciar Fase 8 (Gestión de Grupo)
+
+
+📞 SOPORTE
+====================================
+
+Si encuentras bugs o tienes dudas:
+1. Revisa este archivo (COMO_EMPEZAR.txt)
+2. Revisa GUIA_INICIO_RAPIDO.md (más detallado)
+3. Revisa TAREAS_PENDIENTES.md (lista de bugs conocidos)
+4. Anota los pasos para reproducir el error
+
+
+====================================
+ ¡DISFRUTA EL JUEGO! 🎮
+====================================
+
+Fecha: 2025-11-15
+Versión: Fase 7 - v0.95 (Beta)
+Estado: Estable - Listo para jugar
+
+Para más información, consulta:
+- GUIA_INICIO_RAPIDO.md
+- RESUMEN_SESION_2025_11_15.md
+- TAREAS_PENDIENTES.md

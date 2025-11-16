@@ -1,0 +1,40 @@
+{
+    "slime": {
+        "nombre": "Slime",
+        "hp": 30,
+        "fuerza": 6,
+        "defensa": 2,
+        "sprite_archivo": "dragon_prueba.png",
+        "escala_sprite": 1.5,
+        "xp_otorgada": 10,
+        "oro_otorgado": 5,
+        "velocidad": 6,
+        "suerte": 5
+
+    },
+    "murcielago": {
+        "nombre": "Murciélago Gigante",
+        "hp": 45,
+        "fuerza": 8,
+        "defensa": 3,
+        "sprite_archivo": "dragon_prueba.png",
+        "escala_sprite": 1.5,
+        "xp_otorgada": 15,
+        "oro_otorgado": 8,
+        "velocidad": 9,
+        "suerte": 8
+    },
+    "lobo": {
+        "nombre": "Lobo Gris",
+        "hp": 60,
+        "fuerza": 10,
+        "defensa": 4,
+        "sprite_archivo": "dragon_prueba.png",
+        "escala_sprite": 1.5,
+        "xp_otorgada": 25,
+        "oro_otorgado": 12,
+        "velocidad": 4,
+        "suerte": 6
+    
+    }
+}

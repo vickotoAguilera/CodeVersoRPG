@@ -1,0 +1,56 @@
+{
+    "POCION_BASICA": {
+        "id_item": "POCION_BASICA",
+        "nombre": "Poción",
+        "descripcion": "Restaura 50 HP a un aliado.",
+        "tipo": "Consumible",
+        "efecto": "RESTAURA_HP",
+        "poder": 50,
+        "target": "Aliado"
+    },
+    "ETER_BASICO": {
+        "id_item": "ETER_BASICO",
+        "nombre": "Éter",
+        "descripcion": "Restaura 20 MP a un aliado.",
+        "tipo": "Consumible",
+        "efecto": "RESTAURA_MP",
+        "poder": 20,
+        "target": "Aliado"
+    },
+    "EXPANSOR_RANURAS": {
+        "id_item": "EXPANSOR_RANURAS",
+        "nombre": "Expansor de Ranuras",
+        "descripcion": "Aumenta permanentemente las ranuras de habilidades de TODOS los héroes en +2 por cada expansor. Efecto automático y acumulable.",
+        "tipo": "Especial",
+        "efecto": "AUMENTA_RANURAS_HABILIDAD",
+        "poder": 2,
+        "target": "Global"
+    },
+    "LLAVE_BRONCE": {
+        "id_item": "LLAVE_BRONCE",
+        "nombre": "Llave de Bronce",
+        "descripcion": "Una llave antigua de bronce. Puede abrir puertas cerradas con cerradura de bronce.",
+        "tipo": "Especial",
+        "efecto": "LLAVE",
+        "poder": 0,
+        "target": "Ninguno"
+    },
+    "LLAVE_PLATA": {
+        "id_item": "LLAVE_PLATA",
+        "nombre": "Llave de Plata",
+        "descripcion": "Una llave brillante de plata. Puede abrir puertas cerradas con cerradura de plata.",
+        "tipo": "Especial",
+        "efecto": "LLAVE",
+        "poder": 0,
+        "target": "Ninguno"
+    },
+    "LLAVE_ORO": {
+        "id_item": "LLAVE_ORO",
+        "nombre": "Llave de Oro",
+        "descripcion": "Una llave dorada especial. Puede abrir puertas cerradas con cerradura de oro.",
+        "tipo": "Especial",
+        "efecto": "LLAVE",
+        "poder": 0,
+        "target": "Ninguno"
+    }
+}
