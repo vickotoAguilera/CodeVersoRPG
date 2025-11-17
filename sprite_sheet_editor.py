@@ -6,11 +6,7 @@ Herramienta profesional para cortar y organizar sprites desde spritesheets.
 
 CARACTERÍSTICAS:
 ✓ Carga spritesheets completos
-✓ Drag & Drop - Arrastra imágenes desde tu explorador
-✓ ZOOM con rueda del mouse (centrado en cursor)
-✓ PAN/Arrastre con click medio o derecho
-✓ **NUEVO: Redimensionar selecciones** - Arrastra esquinas rojas
-✓ **NUEVO: Grid Automático** - Detecta dimensiones y aplica a siguientes
+✓ **NUEVO: Drag & Drop - Arrastra imágenes desde tu explorador**
 ✓ Selección de áreas con mouse (click y arrastrar)
 ✓ Múltiples selecciones
 ✓ Nombrar cada sprite cortado
@@ -21,13 +17,9 @@ CARACTERÍSTICAS:
 ✓ Deshacer/Rehacer
 
 CONTROLES:
-- **Rueda del Mouse**: Zoom in/out (centrado en cursor)
-- **Click Medio/Derecho + Arrastrar**: Mover cámara (pan)
-- **Arrastra imagen desde explorador**: Cargar spritesheet
+- **Arrastra imagen .png/.jpg/.bmp/.gif desde el explorador**: Cargar spritesheet
 - Click izquierdo + arrastrar: Seleccionar área
-- **Arrastra esquinas rojas**: Redimensionar selección
-- **A (Grid Auto)**: Activa grid automático con primera selección
-- **Click en grid**: Añade sprite con dimensiones del grid
+- Click derecho: Cancelar selección actual
 - CTRL + Click: Múltiples selecciones
 - N: Nombrar sprite seleccionado
 - S: Guardar sprite actual
@@ -99,20 +91,6 @@ class SeleccionSprite:
     def contiene_punto(self, px, py):
         """Verifica si un punto está dentro"""
         return self.get_rect().collidepoint(px, py)
-    
-    def get_handle_en_punto(self, px, py, tam_handle=10):
-        """Retorna qué handle (esquina) está en el punto dado"""
-        handles = {
-            'nw': (self.x, self.y),
-            'ne': (self.x + self.ancho, self.y),
-            'sw': (self.x, self.y + self.alto),
-            'se': (self.x + self.ancho, self.y + self.alto)
-        }
-        
-        for nombre, (hx, hy) in handles.items():
-            if abs(px - hx) <= tam_handle and abs(py - hy) <= tam_handle:
-                return nombre
-        return None
     
     def to_dict(self):
         """Convierte a diccionario para guardar"""
@@ -234,25 +212,11 @@ class SpriteSheetEditor:
         self.offset_x = 0
         self.offset_y = 0
         
-        # Pan/Arrastre de cámara
-        self.arrastrando_camara = False
-        self.mouse_anterior = (0, 0)
-        
         # Selecciones
         self.selecciones: List[SeleccionSprite] = []
         self.seleccion_actual: Optional[SeleccionSprite] = None
         self.seleccionando = False
         self.punto_inicio = (0, 0)
-        
-        # Redimensionamiento
-        self.redimensionando = False
-        self.handle_activo = None
-        
-        # Sistema de Grid Automático
-        self.grid_auto_activo = False
-        self.grid_auto_ancho = 0
-        self.grid_auto_alto = 0
-        self.grid_auto_origen = (0, 0)
         
         # Historial (deshacer/rehacer)
         self.historial = []
@@ -309,8 +273,6 @@ class SpriteSheetEditor:
             ("Cargar Spritesheet", self.cargar_spritesheet),
             ("Guardar Sprite (S)", self.guardar_sprite_actual),
             ("Exportar Todos (E)", self.exportar_todos),
-            ("Grid Auto (A)", self.toggle_grid_auto),
-            ("Resetear Grid", self.resetear_grid_auto),
             ("Limpiar Todo", self.limpiar_todo),
             ("Deshacer (Z)", self.deshacer),
             ("Rehacer (Y)", self.rehacer),
@@ -375,30 +337,18 @@ class SpriteSheetEditor:
         self.seleccion_actual.nombre = self.input_nombre.texto
         self.seleccion_actual.categoria = self.categoria_actual
         
-        # Validar que la selección esté dentro del spritesheet
-        if self.spritesheet_original:
-            ancho_max = self.spritesheet_original.get_width()
-            alto_max = self.spritesheet_original.get_height()
-            
-            # Ajustar coordenadas y tamaños si se salen
-            sel = self.seleccion_actual
-            sel.x = max(0, min(sel.x, ancho_max - 1))
-            sel.y = max(0, min(sel.y, alto_max - 1))
-            sel.ancho = max(1, min(sel.ancho, ancho_max - sel.x))
-            sel.alto = max(1, min(sel.alto, alto_max - sel.y))
-        
         # Extraer el sprite
         if self.spritesheet_original:
+            sprite_surface = self.spritesheet_original.subsurface(
+                self.seleccion_actual.get_rect()
+            ).copy()
+            
+            # Guardar
+            ruta_destino = Path(f"assets/sprites/{self.categoria_actual.value}")
+            ruta_destino.mkdir(parents=True, exist_ok=True)
+            ruta_archivo = ruta_destino / f"{self.input_nombre.texto}.png"
+            
             try:
-                sprite_surface = self.spritesheet_original.subsurface(
-                    self.seleccion_actual.get_rect()
-                ).copy()
-                
-                # Guardar
-                ruta_destino = Path(f"assets/sprites/{self.categoria_actual.value}")
-                ruta_destino.mkdir(parents=True, exist_ok=True)
-                ruta_archivo = ruta_destino / f"{self.input_nombre.texto}.png"
-                
                 pygame.image.save(sprite_surface, str(ruta_archivo))
                 self.seleccion_actual.guardado = True
                 self.mostrar_mensaje(f"✓ Guardado: {ruta_archivo.name}")
@@ -495,52 +445,6 @@ class SpriteSheetEditor:
                     guardado=sel_dict.get("guardado", False)
                 )
                 self.selecciones.append(sel)
-    
-    def toggle_grid_auto(self):
-        """Activa/desactiva el grid automático"""
-        if not self.grid_auto_activo:
-            # Activar: usar la primera selección como referencia
-            if self.selecciones:
-                primera = self.selecciones[0]
-                self.grid_auto_ancho = primera.ancho
-                self.grid_auto_alto = primera.alto
-                self.grid_auto_origen = (primera.x, primera.y)
-                self.grid_auto_activo = True
-                self.mostrar_mensaje(f"✓ Grid Auto: {self.grid_auto_ancho}x{self.grid_auto_alto}")
-            else:
-                self.mostrar_mensaje("⚠️ Selecciona un sprite primero para definir el grid")
-        else:
-            self.grid_auto_activo = False
-            self.mostrar_mensaje("Grid Auto desactivado")
-    
-    def resetear_grid_auto(self):
-        """Resetea el grid automático"""
-        self.grid_auto_activo = False
-        self.grid_auto_ancho = 0
-        self.grid_auto_alto = 0
-        self.grid_auto_origen = (0, 0)
-        self.mostrar_mensaje("✓ Grid reseteado")
-    
-    def seleccionar_siguiente_grid(self, x_actual, y_actual):
-        """Selecciona el siguiente sprite en el grid automático"""
-        if not self.grid_auto_activo:
-            return None
-        
-        # Calcular posición del siguiente sprite (a la derecha)
-        x_nuevo = x_actual + self.grid_auto_ancho
-        y_nuevo = y_actual
-        
-        # Si se sale del spritesheet, pasar a la siguiente fila
-        if x_nuevo + self.grid_auto_ancho > self.spritesheet_original.get_width():
-            x_nuevo = self.grid_auto_origen[0]
-            y_nuevo = y_actual + self.grid_auto_alto
-        
-        # Verificar que no se salga del spritesheet
-        if y_nuevo + self.grid_auto_alto > self.spritesheet_original.get_height():
-            self.mostrar_mensaje("⚠️ Fin del spritesheet")
-            return None
-        
-        return (x_nuevo, y_nuevo)
     
     def mostrar_mensaje(self, texto):
         """Muestra mensaje temporal"""
@@ -673,24 +577,6 @@ class SpriteSheetEditor:
         if sel.guardado:
             checkmark = self.fuente.render("✓", True, (0, 255, 0))
             surface.blit(checkmark, (x_pantalla + ancho - 25, y_pantalla + 5))
-        
-        # Dibujar handles de redimensionamiento si es la selección actual
-        if es_actual:
-            self.dibujar_handles_seleccion(surface, sel, x_pantalla, y_pantalla, ancho, alto)
-    
-    def dibujar_handles_seleccion(self, surface, sel, x_pantalla, y_pantalla, ancho, alto):
-        """Dibuja handles de redimensionamiento en una selección"""
-        tam_handle = max(6, int(8 * self.zoom))
-        handles = [
-            (x_pantalla, y_pantalla),  # NW
-            (x_pantalla + ancho, y_pantalla),  # NE
-            (x_pantalla, y_pantalla + alto),  # SW
-            (x_pantalla + ancho, y_pantalla + alto),  # SE
-        ]
-        
-        for hx, hy in handles:
-            pygame.draw.circle(surface, (255, 100, 100), (int(hx), int(hy)), tam_handle)
-            pygame.draw.circle(surface, (255, 255, 255), (int(hx), int(hy)), tam_handle, 2)
     
     def dibujar_grid(self, surface):
         """Dibuja grid sobre el spritesheet"""
@@ -717,36 +603,6 @@ class SpriteSheetEditor:
             if 0 <= y < ALTO:
                 pygame.draw.line(surface, COLOR_GRID, (0, y), (AREA_SPRITESHEET_ANCHO, y), 1)
             y += grid_size
-        
-        # Dibujar grid automático si está activo
-        if self.grid_auto_activo and self.grid_auto_ancho > 0 and self.grid_auto_alto > 0:
-            self.dibujar_grid_automatico(surface)
-    
-    def dibujar_grid_automatico(self, surface):
-        """Dibuja el grid automático sobre el spritesheet"""
-        ancho_grid_zoom = int(self.grid_auto_ancho * self.zoom)
-        alto_grid_zoom = int(self.grid_auto_alto * self.zoom)
-        
-        x_origen, y_origen = self.convertir_coords_sheet_a_pantalla(
-            self.grid_auto_origen[0], self.grid_auto_origen[1]
-        )
-        
-        ancho_sheet = int(self.spritesheet_original.get_width() * self.zoom)
-        alto_sheet = int(self.spritesheet_original.get_height() * self.zoom)
-        
-        # Líneas verticales del grid automático
-        x = x_origen
-        while x <= x_origen + ancho_sheet:
-            if 0 <= x < AREA_SPRITESHEET_ANCHO:
-                pygame.draw.line(surface, (255, 255, 0), (int(x), 0), (int(x), ALTO), 2)
-            x += ancho_grid_zoom
-        
-        # Líneas horizontales del grid automático
-        y = y_origen
-        while y <= y_origen + alto_sheet:
-            if 0 <= y < ALTO:
-                pygame.draw.line(surface, (255, 255, 0), (0, int(y)), (AREA_SPRITESHEET_ANCHO, int(y)), 2)
-            y += alto_grid_zoom
     
     def dibujar_panel_control(self, surface):
         """Dibuja panel de control derecho"""
@@ -774,24 +630,6 @@ class SpriteSheetEditor:
         # Botones de categoría
         for boton in self.botones_categoria:
             boton.draw(surface)
-        
-        # Info del Grid Automático
-        if self.grid_auto_activo:
-            y_info = 350
-            texto_grid = self.fuente_pequena.render("GRID AUTO ACTIVO:", True, (255, 255, 0))
-            surface.blit(texto_grid, (x, y_info))
-            y_info += 20
-            
-            info_grid = [
-                f"Tamaño: {self.grid_auto_ancho}x{self.grid_auto_alto}",
-                f"Sprites: {len(self.selecciones)}",
-                "Click en grid para añadir"
-            ]
-            
-            for linea in info_grid:
-                texto = self.fuente_pequena.render(linea, True, COLOR_TEXTO_SEC)
-                surface.blit(texto, (x, y_info))
-                y_info += 18
         
         # Botones de acción
         for boton in self.botones_accion:
@@ -945,9 +783,6 @@ class SpriteSheetEditor:
                 elif evento.key == pygame.K_g:
                     self.mostrar_grid = not self.mostrar_grid
                 
-                elif evento.key == pygame.K_a and not self.input_nombre.activo:
-                    self.toggle_grid_auto()
-                
                 elif evento.key == pygame.K_DELETE:
                     if self.seleccion_actual and self.seleccion_actual in self.selecciones:
                         self.selecciones.remove(self.seleccion_actual)
@@ -963,76 +798,32 @@ class SpriteSheetEditor:
                     
                     # Área del spritesheet
                     if mouse_pos[0] < AREA_SPRITESHEET_ANCHO and self.spritesheet:
-                        # Convertir a coordenadas del sheet
+                        # Verificar si se clickeó una selección existente
                         x_sheet, y_sheet = self.convertir_coords_pantalla_a_sheet(
                             mouse_pos[0], mouse_pos[1]
                         )
                         
-                        # Verificar si se clickeó una selección existente
                         seleccion_clickeada = None
-                        handle_clickeado = None
-                        
                         for sel in reversed(self.selecciones):
-                            # Primero verificar handles de redimensionamiento
-                            handle = sel.get_handle_en_punto(x_sheet, y_sheet, 10 / self.zoom)
-                            if handle:
-                                seleccion_clickeada = sel
-                                handle_clickeado = handle
-                                break
-                            # Luego verificar si está dentro del área
-                            elif sel.contiene_punto(x_sheet, y_sheet):
+                            if sel.contiene_punto(x_sheet, y_sheet):
                                 seleccion_clickeada = sel
                                 break
                         
                         if seleccion_clickeada:
                             self.seleccion_actual = seleccion_clickeada
                             self.input_nombre.texto = seleccion_clickeada.nombre
-                            
-                            if handle_clickeado:
-                                # Iniciar redimensionamiento
-                                self.redimensionando = True
-                                self.handle_activo = handle_clickeado
-                            # Si no hay handle, mantener selección pero no hacer nada más
                         else:
-                            # Click fuera de cualquier selección - Deseleccionar
-                            self.seleccion_actual = None
-                            self.input_nombre.texto = ""
-                            
-                            # Si Grid Auto está activo, usar dimensiones del grid
-                            if self.grid_auto_activo:
-                                # Buscar la posición del grid más cercana
-                                # Calcular cuál sprite del grid está más cerca
-                                grid_x = self.grid_auto_origen[0]
-                                grid_y = self.grid_auto_origen[1]
-                                
-                                # Encontrar el sprite del grid más cercano
-                                cols = (x_sheet - grid_x) // self.grid_auto_ancho if self.grid_auto_ancho > 0 else 0
-                                rows = (y_sheet - grid_y) // self.grid_auto_alto if self.grid_auto_alto > 0 else 0
-                                
-                                x_snap = grid_x + (cols * self.grid_auto_ancho)
-                                y_snap = grid_y + (rows * self.grid_auto_alto)
-                                
-                                # Crear selección con dimensiones del grid
-                                if 0 <= x_snap and x_snap + self.grid_auto_ancho <= self.spritesheet_original.get_width() and \
-                                   0 <= y_snap and y_snap + self.grid_auto_alto <= self.spritesheet_original.get_height():
-                                    seleccion = SeleccionSprite(
-                                        x=x_snap, y=y_snap, 
-                                        ancho=self.grid_auto_ancho, 
-                                        alto=self.grid_auto_alto,
-                                        categoria=self.categoria_actual
-                                    )
-                                    self.selecciones.append(seleccion)
-                                    self.seleccion_actual = seleccion
-                                    self.mostrar_mensaje(f"✓ Sprite {len(self.selecciones)} del grid añadido")
-                            else:
-                                # Iniciar nueva selección manual
-                                self.seleccionando = True
-                                self.punto_inicio = mouse_pos
-                
-                elif evento.button == 2 or evento.button == 3:  # Click medio o derecho - Pan cámara
+                            # Iniciar nueva selección
+                            self.seleccionando = True
+                            self.punto_inicio = mouse_pos
+            
+                elif evento.button == 4:  # Scroll up - Zoom in
                     if mouse_pos[0] < AREA_SPRITESHEET_ANCHO:
-                        self.arrastrando_camara = True
-                        self.mouse_anterior = mouse_pos
+                        self.zoom = min(5.0, self.zoom * 1.1)
+                
+                elif evento.button == 5:  # Scroll down - Zoom out
+                    if mouse_pos[0] < AREA_SPRITESHEET_ANCHO:
+                        self.zoom = max(0.1, self.zoom / 1.1)
             
             elif evento.type == pygame.MOUSEBUTTONUP:
                 if evento.button == 1 and self.seleccionando:
@@ -1060,68 +851,6 @@ class SpriteSheetEditor:
                             self.selecciones.append(seleccion)
                             self.seleccion_actual = seleccion
                             self.mostrar_mensaje(f"✓ Área seleccionada: {ancho}x{alto}")
-                
-                elif (evento.button == 2 or evento.button == 3):  # Soltar arrastre cámara
-                    self.arrastrando_camara = False
-                
-                # Soltar redimensionamiento
-                if evento.button == 1:
-                    self.redimensionando = False
-                    self.handle_activo = None
-            
-            elif evento.type == pygame.MOUSEMOTION:
-                # Redimensionar selección si está activo
-                if self.redimensionando and self.seleccion_actual and mouse_pos[0] < AREA_SPRITESHEET_ANCHO:
-                    x_sheet, y_sheet = self.convertir_coords_pantalla_a_sheet(mouse_pos[0], mouse_pos[1])
-                    sel = self.seleccion_actual
-                    
-                    # Límites del spritesheet
-                    ancho_max = self.spritesheet_original.get_width() if self.spritesheet_original else 9999
-                    alto_max = self.spritesheet_original.get_height() if self.spritesheet_original else 9999
-                    
-                    # Redimensionar según el handle activo con límites
-                    if 'e' in self.handle_activo:  # Este (derecha)
-                        nuevo_ancho = max(10, min(int(x_sheet - sel.x), ancho_max - sel.x))
-                        sel.ancho = nuevo_ancho
-                    
-                    if 'w' in self.handle_activo:  # Oeste (izquierda)
-                        nuevo_ancho = max(10, int(sel.x + sel.ancho - x_sheet))
-                        if nuevo_ancho >= 10:
-                            sel.x = max(0, int(x_sheet))
-                            sel.ancho = nuevo_ancho
-                    
-                    if 's' in self.handle_activo:  # Sur (abajo)
-                        nuevo_alto = max(10, min(int(y_sheet - sel.y), alto_max - sel.y))
-                        sel.alto = nuevo_alto
-                    
-                    if 'n' in self.handle_activo:  # Norte (arriba)
-                        nuevo_alto = max(10, int(sel.y + sel.alto - y_sheet))
-                        if nuevo_alto >= 10:
-                            sel.y = max(0, int(y_sheet))
-                            sel.alto = nuevo_alto
-                
-                # Arrastrar cámara si está activo
-                elif self.arrastrando_camara and mouse_pos[0] < AREA_SPRITESHEET_ANCHO:
-                    dx = mouse_pos[0] - self.mouse_anterior[0]
-                    dy = mouse_pos[1] - self.mouse_anterior[1]
-                    self.offset_x += dx
-                    self.offset_y += dy
-                    self.mouse_anterior = mouse_pos
-            
-            elif evento.type == pygame.MOUSEWHEEL:
-                # ZOOM CON RUEDA DEL MOUSE (moderno)
-                if mouse_pos[0] < AREA_SPRITESHEET_ANCHO:
-                    zoom_anterior = self.zoom
-                    
-                    # Ajustar zoom
-                    factor_zoom = 1.1 if evento.y > 0 else 0.9
-                    self.zoom *= factor_zoom
-                    self.zoom = max(0.1, min(5.0, self.zoom))
-                    
-                    # Ajustar offset para zoom centrado en cursor
-                    ratio = self.zoom / zoom_anterior
-                    self.offset_x = mouse_pos[0] - (mouse_pos[0] - self.offset_x) * ratio
-                    self.offset_y = mouse_pos[1] - (mouse_pos[1] - self.offset_y) * ratio
         
         # Actualizar UI
         self.input_nombre.update(eventos_texto, mouse_pos, click)

@@ -17,6 +17,8 @@ Editor completo con todas las funcionalidades solicitadas:
 import pygame
 import json
 import os
+import tkinter as tk
+from tkinter import filedialog
 from pathlib import Path
 from enum import Enum
 from dataclasses import dataclass, asdict
@@ -69,6 +71,7 @@ class ModoEditor(Enum):
     NORMAL = "normal"
     DIBUJAR_MUROS = "dibujar_muros"
     CREAR_PORTAL = "crear_portal"
+    VISTA_BATALLA = "vista_batalla"
 
 
 @dataclass
@@ -296,6 +299,11 @@ class EditorMapaAvanzado:
         # Modo de edición
         self.modo_editor = ModoEditor.NORMAL
         
+        # Configuración batalla
+        self.num_heroes = 1
+        self.num_monstruos = 1
+        self.fondo_batalla_actual = None
+        
         # Biblioteca de sprites
         self.biblioteca_sprites: Dict[str, List[SpriteInfo]] = {}
         self.cargar_biblioteca_sprites()
@@ -323,7 +331,7 @@ class EditorMapaAvanzado:
     
     def crear_botones_modo(self):
         """Crea botones para cambiar entre modos"""
-        modos = ["Mapas", "Cofres", "NPCs", "Héroes", "Monstruos", "Portales", "Muros"]
+        modos = ["Mapas", "Cofres", "NPCs", "Héroes", "Monstruos", "Portales", "Muros", "Batalla"]
         x_boton = 10
         y_boton = 10
         ancho_boton = (PANEL_IZQUIERDO - 30) // 3
@@ -350,11 +358,19 @@ class EditorMapaAvanzado:
             self.modo_editor = ModoEditor.DIBUJAR_MUROS
             self.dibujando_muro = False
             self.muro_actual = None
+            print("🌀 Modo Muros: Dibuja con clicks en el mapa")
         elif modo == "portales":
             self.modo_editor = ModoEditor.CREAR_PORTAL
             self.portal_temp = None
             self.creando_portal_origen = False
             self.creando_portal_destino = False
+            print("🌀 Modo Portales: Click para crear origen del portal")
+        elif modo == "batalla":
+            self.modo_editor = ModoEditor.VISTA_BATALLA
+            # Cargar fondos de batalla si no están cargados
+            if not hasattr(self, 'fondos_batalla'):
+                self.cargar_fondos_batalla()
+            print("🌀 Modo Batalla: Vista de configuración de batalla")
         else:
             self.modo_editor = ModoEditor.NORMAL
         
@@ -419,9 +435,9 @@ class EditorMapaAvanzado:
                 self.biblioteca_sprites["héroes"].append(sprite)
                 print(f"  ✓ Héroe cargado: {archivo.stem} desde {archivo.parent.name}")
         
-        # Cargar Monstruos (buscar en monstruos/ recursivamente)
+        # Cargar Monstruos (buscar en assets/sprites/monstruos/ recursivamente)
         self.biblioteca_sprites["monstruos"] = []
-        monstruos_path = base_path / "monstruos"
+        monstruos_path = base_path / "monstruos"  # Ruta correcta
         if monstruos_path.exists():
             for archivo in monstruos_path.rglob("*.png"):  # Buscar recursivamente
                 sprite = SpriteInfo(
@@ -435,6 +451,8 @@ class EditorMapaAvanzado:
                 )
                 self.biblioteca_sprites["monstruos"].append(sprite)
                 print(f"  ✓ Monstruo cargado: {archivo.stem}")
+        else:
+            print(f"  ⚠️ Carpeta de monstruos no encontrada: {monstruos_path}")
 
         
         # Cache de imágenes cargadas
@@ -472,6 +490,53 @@ class EditorMapaAvanzado:
                 })
                 print(f"  ✓ Mapa PNG: {archivo.stem} ({archivo.parent.name})")
         print(f"✓ Mapas encontrados: {len(self.mapas_disponibles)}")
+    
+    def cargar_fondos_batalla(self):
+        """Carga fondos de batalla desde assets/backgrounds/"""
+        self.fondos_batalla = []
+        backgrounds_path = Path("assets/backgrounds")
+        
+        if backgrounds_path.exists():
+            for archivo in backgrounds_path.glob("*.png"):
+                self.fondos_batalla.append({
+                    "nombre": archivo.stem,
+                    "ruta": str(archivo).replace('\\', '/')
+                })
+                print(f"  ✓ Fondo batalla: {archivo.stem}")
+            
+            # Cargar JPG también
+            for archivo in backgrounds_path.glob("*.jpg"):
+                self.fondos_batalla.append({
+                    "nombre": archivo.stem,
+                    "ruta": str(archivo).replace('\\', '/')
+                })
+                print(f"  ✓ Fondo batalla JPG: {archivo.stem}")
+        
+        print(f"✓ Fondos de batalla encontrados: {len(self.fondos_batalla)}")
+        
+        # Precargar cloud_batalla.png
+        cloud_path = Path("assets/sprites/heroes/batalla/cloud_batalla.png")
+        if cloud_path.exists():
+            try:
+                self.cloud_batalla_img = pygame.image.load(str(cloud_path)).convert_alpha()
+                print("✓ cloud_batalla.png cargado")
+            except Exception as e:
+                self.cloud_batalla_img = None
+                print(f"⚠️ Error cargando cloud_batalla.png: {e}")
+        else:
+            self.cloud_batalla_img = None
+            print("⚠️ No se encontró cloud_batalla.png")
+    
+    def crear_thumbnail(self, ruta_imagen, ancho=70, alto=40):
+        """Crea un thumbnail de una imagen"""
+        try:
+            img = pygame.image.load(ruta_imagen).convert()
+            return pygame.transform.scale(img, (ancho, alto))
+        except Exception as e:
+            # Crear placeholder si no se puede cargar
+            placeholder = pygame.Surface((ancho, alto))
+            placeholder.fill((80, 80, 80))
+            return placeholder
     
     def cargar_mapa(self, nombre_mapa, carpeta):
         """Carga un mapa para editar"""
@@ -575,36 +640,7 @@ class EditorMapaAvanzado:
                 )
                 self.objetos.append(obj)
             
-            # Cargar muros
-            self.muros = []
-            for muro_data in data.get("muros", []):
-                muro = MuroDibujable(
-                    id=muro_data.get("id", "muro_1"),
-                    puntos=[tuple(p) for p in muro_data.get("puntos", [])],
-                    color=tuple(muro_data.get("color", [255, 0, 0])),
-                    grosor=muro_data.get("grosor", 5),
-                    cerrado=muro_data.get("cerrado", False)
-                )
-                self.muros.append(muro)
-            
-            # Cargar portales
-            self.portales = []
-            for portal_data in data.get("portales", []):
-                portal = Portal(
-                    id=portal_data.get("id", "portal_1"),
-                    mapa_origen=portal_data.get("mapa_origen", ""),
-                    x_origen=portal_data.get("x_origen", 0),
-                    y_origen=portal_data.get("y_origen", 0),
-                    mapa_destino=portal_data.get("mapa_destino", ""),
-                    x_destino=portal_data.get("x_destino", 0),
-                    y_destino=portal_data.get("y_destino", 0),
-                    ancho=portal_data.get("ancho", 64),
-                    alto=portal_data.get("alto", 64),
-                    nombre=portal_data.get("nombre", "")
-                )
-                self.portales.append(portal)
-            
-            print(f"✓ Cargados {len(self.objetos)} objetos, {len(self.muros)} muros, {len(self.portales)} portales")
+            print(f"✓ Cargados {len(self.objetos)} objetos del mapa")
         
         except Exception as e:
             print(f"❌ Error cargando objetos: {e}")
@@ -635,9 +671,7 @@ class EditorMapaAvanzado:
             "carpeta": self.carpeta_actual,
             "cofres": cofres,
             "npcs": npcs,
-            "zonas_batalla": zonas_batalla,
-            "muros": [muro.to_dict() for muro in self.muros],
-            "portales": [portal.to_dict() for portal in self.portales]
+            "zonas_batalla": zonas_batalla
         }
         
         # Guardar
@@ -690,6 +724,54 @@ class EditorMapaAvanzado:
         self.cambios_sin_guardar = True
         self.mostrar_mensaje(f"✓ Creado: {nuevo_id}")
     
+    def explorar_y_añadir_sprite(self, categoria):
+        """Abre diálogo para seleccionar y añadir un nuevo sprite"""
+        import shutil
+        
+        # Crear ventana tkinter oculta para el diálogo
+        root = tk.Tk()
+        root.withdraw()
+        root.attributes('-topmost', True)
+        
+        # Abrir diálogo de selección de archivo
+        archivo = filedialog.askopenfilename(
+            title=f"Seleccionar sprite de {categoria}",
+            filetypes=[("Imágenes", "*.png *.jpg *.jpeg"), ("Todos", "*.*")]
+        )
+        
+        root.destroy()
+        
+        if not archivo:
+            return  # Cancelado
+        
+        archivo_path = Path(archivo)
+        
+        # Determinar carpeta destino según categoría
+        carpetas_destino = {
+            "cofres": Path("assets/sprites/cofres y demas"),
+            "npcs": Path("assets/sprites/npcs"),
+            "héroes": Path("assets/sprites/heroes/batalla"),
+            "monstruos": Path("assets/sprites/monstruos")
+        }
+        
+        carpeta_destino = carpetas_destino.get(categoria)
+        if not carpeta_destino:
+            self.mostrar_mensaje(f"❌ Categoría no válida: {categoria}")
+            return
+        
+        # Crear carpeta si no existe
+        carpeta_destino.mkdir(parents=True, exist_ok=True)
+        
+        # Copiar archivo
+        destino = carpeta_destino / archivo_path.name
+        try:
+            shutil.copy2(archivo, destino)
+            self.mostrar_mensaje(f"✓ Sprite añadido: {archivo_path.name}")
+            # Recargar biblioteca
+            self.cargar_biblioteca_sprites()
+        except Exception as e:
+            self.mostrar_mensaje(f"❌ Error copiando sprite: {e}")
+    
     def crear_objeto_desde_sprite(self, sprite_info):
         """Crea un nuevo objeto desde un SpriteInfo"""
         # Generar ID único
@@ -715,6 +797,80 @@ class EditorMapaAvanzado:
         self.objeto_seleccionado = obj
         self.cambios_sin_guardar = True
         self.mostrar_mensaje(f"✓ Creado: {nuevo_id} ({sprite_info.id})")
+    
+    def guardar_configuracion_batalla(self):
+        """Guarda la configuración de batalla actual (sprites y posiciones)"""
+        if not self.modo_actual == "batalla":
+            return
+        
+        config = {
+            "fondo": self.fondo_batalla_actual,
+            "num_heroes": self.num_heroes,
+            "num_monstruos": self.num_monstruos,
+            "sprites": []
+        }
+        
+        # Guardar solo sprites de batalla
+        for obj in self.objetos:
+            if obj.tipo in ["heroe_batalla", "monstruo"]:
+                config["sprites"].append({
+                    "tipo": obj.tipo,
+                    "id": obj.id,
+                    "sprite_ref": obj.sprite_ref,
+                    "x": obj.x,
+                    "y": obj.y,
+                    "ancho": obj.ancho,
+                    "alto": obj.alto
+                })
+        
+        # Guardar en archivo
+        config_path = Path("src/database/batalla_config.json")
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        try:
+            with open(config_path, 'w', encoding='utf-8') as f:
+                json.dump(config, f, indent=2, ensure_ascii=False)
+            self.mostrar_mensaje("✓ Configuración de batalla guardada")
+        except Exception as e:
+            self.mostrar_mensaje(f"❌ Error guardando: {e}")
+    
+    def cargar_configuracion_batalla(self):
+        """Carga una configuración de batalla guardada"""
+        config_path = Path("src/database/batalla_config.json")
+        
+        if not config_path.exists():
+            self.mostrar_mensaje("⚠️ No hay configuración guardada")
+            return
+        
+        try:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+            
+            # Limpiar sprites de batalla actuales
+            self.objetos = [o for o in self.objetos if o.tipo not in ["heroe_batalla", "monstruo"]]
+            
+            # Cargar configuración
+            self.fondo_batalla_actual = config.get("fondo")
+            self.num_heroes = config.get("num_heroes", 1)
+            self.num_monstruos = config.get("num_monstruos", 1)
+            
+            # Recrear sprites
+            for sprite_data in config.get("sprites", []):
+                obj = ObjetoMapa(
+                    tipo=sprite_data["tipo"],
+                    id=sprite_data["id"],
+                    x=sprite_data["x"],
+                    y=sprite_data["y"],
+                    ancho=sprite_data["ancho"],
+                    alto=sprite_data["alto"],
+                    z_index=len(self.objetos),
+                    sprite_ref=sprite_data.get("sprite_ref", "")
+                )
+                self.objetos.append(obj)
+            
+            self.mostrar_mensaje(f"✓ Configuración cargada: {len(config['sprites'])} sprites")
+        except Exception as e:
+            self.mostrar_mensaje(f"❌ Error cargando: {e}")
     
     def eliminar_objeto(self, objeto):
         """Elimina un objeto"""
@@ -804,18 +960,25 @@ class EditorMapaAvanzado:
         # Intentar cargar sprite real si existe
         sprite_dibujado = False
         if obj.sprite_ref:
-            # Buscar la imagen del sprite
-            for categoria, sprites in self.biblioteca_sprites.items():
-                for sprite in sprites:
-                    if sprite.id == obj.sprite_ref:
-                        if sprite.ruta_imagen in self.imagenes_sprites:
-                            img = self.imagenes_sprites[sprite.ruta_imagen]
-                            img_escalada = pygame.transform.scale(img, (ancho_zoom, alto_zoom))
-                            surface.blit(img_escalada, (x_pantalla, y_pantalla))
-                            sprite_dibujado = True
-                            break
-                if sprite_dibujado:
-                    break
+            # Primero intentar con la ruta completa
+            if obj.sprite_ref in self.imagenes_sprites:
+                img = self.imagenes_sprites[obj.sprite_ref]
+                img_escalada = pygame.transform.scale(img, (ancho_zoom, alto_zoom))
+                surface.blit(img_escalada, (x_pantalla, y_pantalla))
+                sprite_dibujado = True
+            else:
+                # Buscar por ID si no es una ruta
+                for categoria, sprites in self.biblioteca_sprites.items():
+                    for sprite in sprites:
+                        if sprite.id == obj.sprite_ref or sprite.ruta_imagen == obj.sprite_ref:
+                            if sprite.ruta_imagen in self.imagenes_sprites:
+                                img = self.imagenes_sprites[sprite.ruta_imagen]
+                                img_escalada = pygame.transform.scale(img, (ancho_zoom, alto_zoom))
+                                surface.blit(img_escalada, (x_pantalla, y_pantalla))
+                                sprite_dibujado = True
+                                break
+                    if sprite_dibujado:
+                        break
         
         # Si no se dibujó el sprite, dibujar rectángulo de color
         if not sprite_dibujado:
@@ -825,7 +988,11 @@ class EditorMapaAvanzado:
                 "npc": (0, 150, 255),
                 "zona_batalla": (255, 50, 50),
                 "heroe_mapa": (50, 255, 50),
-                "monstruo": (200, 50, 200)
+                "heroe_batalla": (50, 200, 50),
+                "monstruo": (200, 50, 200),
+                "monstruo_batalla": (255, 50, 150),  # Rosa/magenta para monstruos de batalla
+                "muro": (100, 100, 100),
+                "portal": (255, 200, 0)
             }
             color_base = colores.get(obj.tipo, (128, 128, 128))
             
@@ -880,78 +1047,6 @@ class EditorMapaAvanzado:
             pygame.draw.circle(surface, COLOR_RESIZE_HANDLE, (int(hx), int(hy)), tam_handle)
             pygame.draw.circle(surface, COLOR_TEXTO, (int(hx), int(hy)), tam_handle, 2)
     
-    def dibujar_muro(self, surface, muro, en_progreso=False):
-        """Dibuja un muro en el mapa con zoom"""
-        if len(muro.puntos) < 2:
-            return
-        
-        # Convertir puntos a coordenadas de pantalla con zoom
-        puntos_pantalla = []
-        for px, py in muro.puntos:
-            x_pantalla = (px - self.camara_x) * self.zoom + PANEL_IZQUIERDO
-            y_pantalla = (py - self.camara_y) * self.zoom
-            puntos_pantalla.append((int(x_pantalla), int(y_pantalla)))
-        
-        # Color según estado
-        if en_progreso:
-            color = (255, 255, 0)  # Amarillo mientras se dibuja
-            grosor = max(2, int(muro.grosor * self.zoom))
-        else:
-            color = muro.color
-            grosor = max(2, int(muro.grosor * self.zoom))
-        
-        # Dibujar líneas entre puntos
-        if len(puntos_pantalla) >= 2:
-            pygame.draw.lines(surface, color, muro.cerrado, puntos_pantalla, grosor)
-        
-        # Dibujar puntos de control
-        for i, (px, py) in enumerate(puntos_pantalla):
-            pygame.draw.circle(surface, color, (px, py), max(4, grosor))
-            if en_progreso or self.zoom > 0.5:
-                # Número del punto
-                texto = self.fuente_pequena.render(str(i+1), True, COLOR_TEXTO)
-                surface.blit(texto, (px + 10, py - 10))
-    
-    def dibujar_portal(self, surface, portal, en_progreso=False):
-        """Dibuja un portal en el mapa con zoom"""
-        # Convertir coordenadas con zoom
-        x_origen_pantalla = (portal.x_origen - self.camara_x) * self.zoom + PANEL_IZQUIERDO
-        y_origen_pantalla = (portal.y_origen - self.camara_y) * self.zoom
-        ancho_zoom = int(portal.ancho * self.zoom)
-        alto_zoom = int(portal.alto * self.zoom)
-        
-        # Color según estado
-        if en_progreso:
-            color_origen = (255, 255, 0)  # Amarillo para origen
-            color_destino = (0, 255, 0)   # Verde para destino
-        else:
-            color_origen = (100, 100, 255)  # Azul para portales completos
-            color_destino = (100, 255, 100)
-        
-        # Dibujar origen
-        rect_origen = pygame.Rect(int(x_origen_pantalla), int(y_origen_pantalla), ancho_zoom, alto_zoom)
-        pygame.draw.rect(surface, color_origen, rect_origen, 3)
-        pygame.draw.rect(surface, color_origen + (50,), rect_origen)  # Relleno semi-transparente
-        
-        # Texto del portal
-        if self.zoom > 0.5:
-            texto = self.fuente_pequena.render(f"Portal: {portal.nombre}", True, COLOR_TEXTO)
-            surface.blit(texto, (x_origen_pantalla + 5, y_origen_pantalla - 20))
-        
-        # Si tiene destino, dibujarlo también
-        if portal.mapa_destino and (portal.x_destino != 0 or portal.y_destino != 0):
-            x_destino_pantalla = (portal.x_destino - self.camara_x) * self.zoom + PANEL_IZQUIERDO
-            y_destino_pantalla = (portal.y_destino - self.camara_y) * self.zoom
-            
-            rect_destino = pygame.Rect(int(x_destino_pantalla), int(y_destino_pantalla), ancho_zoom, alto_zoom)
-            pygame.draw.rect(surface, color_destino, rect_destino, 3)
-            
-            # Línea conectando origen y destino
-            pygame.draw.line(surface, (255, 255, 255), 
-                           (int(x_origen_pantalla + ancho_zoom/2), int(y_origen_pantalla + alto_zoom/2)),
-                           (int(x_destino_pantalla + ancho_zoom/2), int(y_destino_pantalla + alto_zoom/2)),
-                           2)
-    
     def dibujar_panel_izquierdo(self, surface):
         """Dibuja panel izquierdo con opciones"""
         # Fondo del panel
@@ -974,9 +1069,13 @@ class EditorMapaAvanzado:
         elif self.modo_actual == "npcs":
             self.dibujar_lista_sprites(surface, 10, y, "npcs")
         elif self.modo_actual == "héroes":
-            self.dibujar_lista_sprites(surface, 10, y, "heroes")
+            self.dibujar_lista_sprites(surface, 10, y, "héroes")
         elif self.modo_actual == "monstruos":
             self.dibujar_lista_sprites(surface, 10, y, "monstruos")
+        elif self.modo_actual == "portales":
+            self.dibujar_modo_portales(surface, 10, y)
+        elif self.modo_actual == "batalla":
+            self.dibujar_modo_batalla(surface, 10, y)
     
     def dibujar_lista_mapas(self, surface, x, y):
         """Dibuja lista de mapas disponibles"""
@@ -1019,11 +1118,20 @@ class EditorMapaAvanzado:
         y += 35
         
         # Botón de actualizar
-        rect_actualizar = pygame.Rect(x, y, PANEL_IZQUIERDO - 20, 25)
+        ancho_boton = (PANEL_IZQUIERDO - 30) // 2
+        rect_actualizar = pygame.Rect(x, y, ancho_boton, 25)
         color = COLOR_BOTON_HOVER if rect_actualizar.collidepoint(pygame.mouse.get_pos()) else (50, 150, 50)
         pygame.draw.rect(surface, color, rect_actualizar, border_radius=3)
-        texto_act = self.fuente_pequena.render("↻ Actualizar Lista", True, COLOR_TEXTO)
+        texto_act = self.fuente_pequena.render("↻ Actualizar", True, COLOR_TEXTO)
         surface.blit(texto_act, (x + 5, y + 5))
+        
+        # Botón de explorar/añadir
+        rect_explorar = pygame.Rect(x + ancho_boton + 10, y, ancho_boton, 25)
+        color_exp = COLOR_BOTON_HOVER if rect_explorar.collidepoint(pygame.mouse.get_pos()) else (50, 100, 200)
+        pygame.draw.rect(surface, color_exp, rect_explorar, border_radius=3)
+        texto_exp = self.fuente_pequena.render("+ Añadir", True, COLOR_TEXTO)
+        surface.blit(texto_exp, (x + ancho_boton + 15, y + 5))
+        
         y += 35
         
         sprites = self.biblioteca_sprites.get(categoria, [])
@@ -1051,6 +1159,188 @@ class EditorMapaAvanzado:
             
             y += 35
     
+    def dibujar_modo_portales(self, surface, x, y):
+        """Dibuja interfaz del modo portales con thumbnails de mapas"""
+        texto = self.fuente.render("Portales:", True, COLOR_TEXTO)
+        surface.blit(texto, (x, y))
+        y += 30
+        
+        instruccion = self.fuente_pequena.render("Selecciona mapa destino:", True, COLOR_TEXTO_SEC)
+        surface.blit(instruccion, (x, y))
+        y += 25
+        
+        # Lista de mapas con thumbnails
+        for i, mapa_info in enumerate(self.mapas_disponibles[:8]):
+            nombre = mapa_info["nombre"]
+            carpeta = mapa_info["carpeta"]
+            ruta = mapa_info["ruta"]
+            
+            # Área del botón
+            rect_boton = pygame.Rect(x, y, PANEL_IZQUIERDO - 20, 50)
+            color = COLOR_BOTON_HOVER if rect_boton.collidepoint(pygame.mouse.get_pos()) else COLOR_BOTON
+            pygame.draw.rect(surface, color, rect_boton, border_radius=3)
+            
+            # Thumbnail del mapa
+            try:
+                thumb = self.crear_thumbnail(ruta, 70, 40)
+                surface.blit(thumb, (x + 5, y + 5))
+            except:
+                pass
+            
+            # Nombre del mapa
+            texto_nombre = self.fuente_pequena.render(nombre[:15], True, COLOR_TEXTO)
+            surface.blit(texto_nombre, (x + 85, y + 8))
+            
+            # Carpeta
+            texto_carpeta = self.fuente_pequena.render(f"({carpeta})", True, COLOR_TEXTO_SEC)
+            surface.blit(texto_carpeta, (x + 85, y + 26))
+            
+            y += 55
+    
+    def dibujar_modo_batalla(self, surface, x, y):
+        """Dibuja interfaz del modo batalla"""
+        texto = self.fuente.render("Vista Batalla:", True, COLOR_TEXTO)
+        surface.blit(texto, (x, y))
+        y += 30
+        
+        # Controles de cantidad
+        texto_config = self.fuente_pequena.render("Configuración:", True, COLOR_TEXTO_SEC)
+        surface.blit(texto_config, (x, y))
+        y += 25
+        
+        # Cantidad de héroes (1-4)
+        texto_heroes_cant = self.fuente_pequena.render(f"Héroes: {self.num_heroes}", True, (100, 255, 100))
+        surface.blit(texto_heroes_cant, (x, y))
+        y += 20
+        
+        for i in range(1, 5):
+            rect_num = pygame.Rect(x + (i-1) * 30, y, 25, 25)
+            color = COLOR_BOTON_ACTIVO if i == self.num_heroes else COLOR_BOTON
+            if rect_num.collidepoint(pygame.mouse.get_pos()):
+                color = COLOR_BOTON_HOVER
+            pygame.draw.rect(surface, color, rect_num, border_radius=3)
+            texto_num = self.fuente_pequena.render(str(i), True, COLOR_TEXTO)
+            surface.blit(texto_num, (x + (i-1) * 30 + 8, y + 5))
+        y += 35
+        
+        # Cantidad de monstruos (1-5)
+        texto_mons_cant = self.fuente_pequena.render(f"Monstruos: {self.num_monstruos}", True, (255, 100, 100))
+        surface.blit(texto_mons_cant, (x, y))
+        y += 20
+        
+        for i in range(1, 6):
+            rect_num = pygame.Rect(x + (i-1) * 30, y, 25, 25)
+            color = COLOR_BOTON_ACTIVO if i == self.num_monstruos else COLOR_BOTON
+            if rect_num.collidepoint(pygame.mouse.get_pos()):
+                color = COLOR_BOTON_HOVER
+            pygame.draw.rect(surface, color, rect_num, border_radius=3)
+            texto_num = self.fuente_pequena.render(str(i), True, COLOR_TEXTO)
+            surface.blit(texto_num, (x + (i-1) * 30 + 8, y + 5))
+        y += 40
+        
+        # Sección Fondos
+        texto_fondos = self.fuente_pequena.render("Fondos de batalla:", True, (100, 200, 255))
+        surface.blit(texto_fondos, (x, y))
+        y += 25
+        
+        if hasattr(self, 'fondos_batalla'):
+            for i, fondo in enumerate(self.fondos_batalla[:3]):
+                rect_fondo = pygame.Rect(x, y, PANEL_IZQUIERDO - 20, 45)
+                es_actual = (self.fondo_batalla_actual == fondo["nombre"])
+                color = COLOR_BOTON_ACTIVO if es_actual else (COLOR_BOTON_HOVER if rect_fondo.collidepoint(pygame.mouse.get_pos()) else COLOR_BOTON)
+                pygame.draw.rect(surface, color, rect_fondo, border_radius=3)
+                
+                # Thumbnail
+                try:
+                    thumb = self.crear_thumbnail(fondo["ruta"], 60, 35)
+                    surface.blit(thumb, (x + 5, y + 5))
+                except:
+                    pass
+                
+                # Nombre
+                texto_nombre = self.fuente_pequena.render(fondo["nombre"][:15], True, COLOR_TEXTO)
+                surface.blit(texto_nombre, (x + 75, y + 15))
+                
+                y += 50
+        
+        y += 10
+        
+        # Botones de Guardar/Cargar configuración
+        rect_guardar = pygame.Rect(x, y, (PANEL_IZQUIERDO - 30) // 2, 35)
+        color_guardar = (50, 200, 50) if rect_guardar.collidepoint(pygame.mouse.get_pos()) else (30, 150, 30)
+        pygame.draw.rect(surface, color_guardar, rect_guardar, border_radius=3)
+        pygame.draw.rect(surface, (255, 255, 255), rect_guardar, 2, border_radius=3)
+        texto_guardar = self.fuente_pequena.render("Guardar", True, COLOR_TEXTO)
+        surface.blit(texto_guardar, (x + 15, y + 10))
+        
+        rect_cargar = pygame.Rect(x + (PANEL_IZQUIERDO - 30) // 2 + 10, y, (PANEL_IZQUIERDO - 30) // 2, 35)
+        color_cargar = (50, 150, 200) if rect_cargar.collidepoint(pygame.mouse.get_pos()) else (30, 100, 150)
+        pygame.draw.rect(surface, color_cargar, rect_cargar, border_radius=3)
+        pygame.draw.rect(surface, (255, 255, 255), rect_cargar, 2, border_radius=3)
+        texto_cargar = self.fuente_pequena.render("Cargar", True, COLOR_TEXTO)
+        surface.blit(texto_cargar, (x + (PANEL_IZQUIERDO - 30) // 2 + 20, y + 10))
+        
+        y += 45
+        
+        # Sección Héroes
+        texto_heroes = self.fuente_pequena.render("Héroes de batalla:", True, (50, 255, 50))
+        surface.blit(texto_heroes, (x, y))
+        y += 25
+        
+        heroes_batalla = [s for s in self.biblioteca_sprites.get("héroes", []) if "batalla" in s.ruta_imagen.lower()]
+        for i, sprite in enumerate(heroes_batalla[:3]):
+            rect_sprite = pygame.Rect(x, y, PANEL_IZQUIERDO - 20, 30)
+            color = COLOR_BOTON_HOVER if rect_sprite.collidepoint(pygame.mouse.get_pos()) else COLOR_BOTON
+            pygame.draw.rect(surface, color, rect_sprite, border_radius=3)
+            
+            texto_nombre = self.fuente_pequena.render(sprite.id[:20], True, COLOR_TEXTO)
+            surface.blit(texto_nombre, (x + 5, y + 8))
+            
+            y += 35
+        
+        y += 10
+        
+        # Sección Monstruos
+        texto_monstruos = self.fuente_pequena.render("Monstruos disponibles:", True, (255, 100, 100))
+        surface.blit(texto_monstruos, (x, y))
+        y += 25
+        
+        # Botones de actualizar y explorar
+        ancho_boton_mons = (PANEL_IZQUIERDO - 30) // 2
+        rect_actualizar_mons = pygame.Rect(x, y, ancho_boton_mons, 25)
+        color_act = COLOR_BOTON_HOVER if rect_actualizar_mons.collidepoint(pygame.mouse.get_pos()) else (50, 150, 50)
+        pygame.draw.rect(surface, color_act, rect_actualizar_mons, border_radius=3)
+        texto_act = self.fuente_pequena.render("↻ Actualizar", True, COLOR_TEXTO)
+        surface.blit(texto_act, (x + 5, y + 5))
+        
+        rect_explorar_mons = pygame.Rect(x + ancho_boton_mons + 10, y, ancho_boton_mons, 25)
+        color_exp = COLOR_BOTON_HOVER if rect_explorar_mons.collidepoint(pygame.mouse.get_pos()) else (50, 100, 200)
+        pygame.draw.rect(surface, color_exp, rect_explorar_mons, border_radius=3)
+        texto_exp = self.fuente_pequena.render("+ Añadir", True, COLOR_TEXTO)
+        surface.blit(texto_exp, (x + ancho_boton_mons + 15, y + 5))
+        
+        y += 30
+        
+        # Mostrar TODOS los monstruos (con scroll si es necesario)
+        monstruos = self.biblioteca_sprites.get("monstruos", [])
+        if len(monstruos) == 0:
+            texto_vacio = self.fuente_pequena.render("(No hay monstruos)", True, COLOR_TEXTO_SEC)
+            surface.blit(texto_vacio, (x + 5, y))
+            texto_info = self.fuente_pequena.render("Click en + Añadir", True, COLOR_TEXTO_SEC)
+            surface.blit(texto_info, (x + 5, y + 20))
+        else:
+            # Mostrar hasta 8 monstruos (más que antes)
+            for i, sprite in enumerate(monstruos[:8]):
+                rect_sprite = pygame.Rect(x, y, PANEL_IZQUIERDO - 20, 30)
+                color = COLOR_BOTON_HOVER if rect_sprite.collidepoint(pygame.mouse.get_pos()) else COLOR_BOTON
+                pygame.draw.rect(surface, color, rect_sprite, border_radius=3)
+                
+                # Nombre del monstruo
+                texto_nombre = self.fuente_pequena.render(sprite.id[:20], True, COLOR_TEXTO)
+                surface.blit(texto_nombre, (x + 5, y + 8))
+                
+                y += 35
+    
     def dibujar_panel_derecho(self, surface):
         """Dibuja panel derecho con propiedades"""
         # Fondo del panel
@@ -1064,54 +1354,8 @@ class EditorMapaAvanzado:
         surface.blit(texto, (x, y))
         y += 35
         
-        # Mostrar información según modo
-        if self.modo_editor == ModoEditor.DIBUJAR_MUROS:
-            # Info sobre muros
-            texto = self.fuente_pequena.render("MODO: Dibujar Muros", True, (255, 255, 0))
-            surface.blit(texto, (x, y))
-            y += 30
-            
-            info = [
-                "Click: Añadir punto",
-                "ENTER: Terminar muro",
-                "C: Cerrar muro",
-                "ESC: Cancelar",
-                "",
-                f"Muros: {len(self.muros)}"
-            ]
-            
-            if self.dibujando_muro and self.muro_actual:
-                info.append(f"Puntos: {len(self.muro_actual.puntos)}")
-            
-            for linea in info:
-                texto = self.fuente_pequena.render(linea, True, COLOR_TEXTO)
-                surface.blit(texto, (x, y))
-                y += 22
-        
-        elif self.modo_editor == ModoEditor.CREAR_PORTAL:
-            # Info sobre portales
-            texto = self.fuente_pequena.render("MODO: Crear Portal", True, (100, 200, 255))
-            surface.blit(texto, (x, y))
-            y += 30
-            
-            info = [
-                "Click: Origen/Destino",
-                "ENTER: Completar",
-                "ESC: Cancelar",
-                "",
-                f"Portales: {len(self.portales)}"
-            ]
-            
-            if self.creando_portal_origen:
-                info.append("Clickea destino...")
-            
-            for linea in info:
-                texto = self.fuente_pequena.render(linea, True, COLOR_TEXTO)
-                surface.blit(texto, (x, y))
-                y += 22
-        
         # Info del objeto seleccionado
-        elif self.objeto_seleccionado:
+        if self.objeto_seleccionado:
             obj = self.objeto_seleccionado
             
             info = [
@@ -1171,6 +1415,118 @@ class EditorMapaAvanzado:
             mensaje_surf = self.fuente.render(self.mensaje, True, (100, 255, 100))
             surface.blit(mensaje_surf, (ANCHO // 2 - mensaje_surf.get_width() // 2, ALTO - barra_alto - 40))
     
+    def guardar_configuracion_batalla(self):
+        """Guarda la configuración actual de batalla"""
+        if not self.fondo_batalla_actual:
+            self.mostrar_mensaje("⚠️ Selecciona un fondo primero")
+            return False
+        
+        # Recopilar datos de batalla
+        heroes_config = []
+        monstruos_config = []
+        
+        for obj in self.objetos:
+            if obj.tipo == "heroe_batalla":
+                heroes_config.append({
+                    "sprite_ref": obj.sprite_ref,
+                    "x": obj.x,
+                    "y": obj.y,
+                    "ancho": obj.ancho,
+                    "alto": obj.alto
+                })
+            elif obj.tipo == "monstruo_batalla":
+                monstruos_config.append({
+                    "sprite_ref": obj.sprite_ref,
+                    "x": obj.x,
+                    "y": obj.y,
+                    "ancho": obj.ancho,
+                    "alto": obj.alto
+                })
+        
+        config = {
+            "fondo": self.fondo_batalla_actual,
+            "num_heroes": self.num_heroes,
+            "num_monstruos": self.num_monstruos,
+            "heroes": heroes_config,
+            "monstruos": monstruos_config
+        }
+        
+        # Guardar en archivo JSON
+        try:
+            ruta_config = Path("src/database/batalla_config.json")
+            ruta_config.parent.mkdir(parents=True, exist_ok=True)
+            
+            with open(ruta_config, 'w', encoding='utf-8') as f:
+                json.dump(config, f, indent=2, ensure_ascii=False)
+            
+            self.mostrar_mensaje(f"✓ Configuración guardada: {len(heroes_config)} héroes, {len(monstruos_config)} monstruos")
+            print(f"✓ Configuración de batalla guardada: {ruta_config}")
+            return True
+        
+        except Exception as e:
+            self.mostrar_mensaje(f"❌ Error: {str(e)}")
+            print(f"❌ Error guardando configuración: {e}")
+            return False
+    
+    def cargar_configuracion_batalla(self):
+        """Carga una configuración de batalla guardada"""
+        ruta_config = Path("src/database/batalla_config.json")
+        
+        if not ruta_config.exists():
+            self.mostrar_mensaje("⚠️ No hay configuración guardada")
+            return False
+        
+        try:
+            with open(ruta_config, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+            
+            # Limpiar objetos de batalla actuales
+            self.objetos = [o for o in self.objetos if o.tipo not in ["heroe_batalla", "monstruo_batalla"]]
+            
+            # Cargar fondo
+            self.fondo_batalla_actual = config.get("fondo", None)
+            
+            # Cargar cantidades
+            self.num_heroes = config.get("num_heroes", 1)
+            self.num_monstruos = config.get("num_monstruos", 1)
+            
+            # Cargar héroes
+            for hero_data in config.get("heroes", []):
+                obj = ObjetoMapa(
+                    tipo="heroe_batalla",
+                    id=f"heroe_batalla_{len([o for o in self.objetos if o.tipo == 'heroe_batalla']) + 1}",
+                    x=hero_data["x"],
+                    y=hero_data["y"],
+                    ancho=hero_data["ancho"],
+                    alto=hero_data["alto"],
+                    z_index=len(self.objetos),
+                    sprite_ref=hero_data["sprite_ref"]
+                )
+                self.objetos.append(obj)
+            
+            # Cargar monstruos
+            for mons_data in config.get("monstruos", []):
+                obj = ObjetoMapa(
+                    tipo="monstruo_batalla",
+                    id=f"monstruo_batalla_{len([o for o in self.objetos if o.tipo == 'monstruo_batalla']) + 1}",
+                    x=mons_data["x"],
+                    y=mons_data["y"],
+                    ancho=mons_data["ancho"],
+                    alto=mons_data["alto"],
+                    z_index=len(self.objetos),
+                    sprite_ref=mons_data["sprite_ref"]
+                )
+                self.objetos.append(obj)
+            
+            self.mostrar_mensaje(f"✓ Configuración cargada: {len(config.get('heroes', []))} héroes, {len(config.get('monstruos', []))} monstruos")
+            print(f"✓ Configuración de batalla cargada desde: {ruta_config}")
+            return True
+        
+        except Exception as e:
+            self.mostrar_mensaje(f"❌ Error: {str(e)}")
+            print(f"❌ Error cargando configuración: {e}")
+            return False
+    
     def manejar_clicks_panel_izquierdo(self, mouse_pos):
         """Maneja clicks en el panel izquierdo"""
         x, y = mouse_pos
@@ -1191,13 +1547,113 @@ class EditorMapaAvanzado:
                     self.cargar_mapa(mapa_info["nombre"], mapa_info["carpeta"])
                     return True
         
+        # Modo batalla - clicks en héroes/monstruos
+        elif self.modo_actual == "batalla" and self.modo_editor == ModoEditor.VISTA_BATALLA:
+            # Botones Guardar/Cargar (posición ajustada)
+            y_botones = 430
+            rect_guardar = pygame.Rect(10, y_botones, (PANEL_IZQUIERDO - 30) // 2, 35)
+            if rect_guardar.collidepoint(mouse_pos):
+                self.guardar_configuracion_batalla()
+                return True
+            
+            rect_cargar = pygame.Rect(10 + (PANEL_IZQUIERDO - 30) // 2 + 10, y_botones, (PANEL_IZQUIERDO - 30) // 2, 35)
+            if rect_cargar.collidepoint(mouse_pos):
+                self.cargar_configuracion_batalla()
+                return True
+            
+            # Selector de cantidad de héroes (1-4)
+            y_heroes = 155
+            for i in range(1, 5):
+                rect_num = pygame.Rect(10 + (i-1) * 30, y_heroes, 25, 25)
+                if rect_num.collidepoint(mouse_pos):
+                    self.num_heroes = i
+                    self.mostrar_mensaje(f"✓ Cantidad de héroes: {i}")
+                    return True
+            
+            # Selector de cantidad de monstruos (1-5)
+            y_mons = 210
+            for i in range(1, 6):
+                rect_num = pygame.Rect(10 + (i-1) * 30, y_mons, 25, 25)
+                if rect_num.collidepoint(mouse_pos):
+                    self.num_monstruos = i
+                    self.mostrar_mensaje(f"✓ Cantidad de monstruos: {i}")
+                    return True
+            
+            # Fondos de batalla
+            if hasattr(self, 'fondos_batalla'):
+                y_fondos = 280
+                for i, fondo in enumerate(self.fondos_batalla[:3]):
+                    rect_fondo = pygame.Rect(10, y_fondos + i * 50, PANEL_IZQUIERDO - 20, 45)
+                    if rect_fondo.collidepoint(mouse_pos):
+                        self.fondo_batalla_actual = fondo["nombre"]
+                        self.mostrar_mensaje(f"✓ Fondo: {fondo['nombre']}")
+                        return True
+            
+            # Héroes
+            heroes_batalla = [s for s in self.biblioteca_sprites.get("héroes", []) if "batalla" in s.ruta_imagen.lower()]
+            y_heroes_lista = 480  # Ajustado por los botones nuevos
+            for i, sprite in enumerate(heroes_batalla[:3]):
+                rect_sprite = pygame.Rect(10, y_heroes_lista + i * 35, PANEL_IZQUIERDO - 20, 30)
+                if rect_sprite.collidepoint(mouse_pos):
+                    # Verificar que hay un fondo seleccionado
+                    if not self.fondo_batalla_actual:
+                        self.mostrar_mensaje("⚠️ Selecciona un fondo primero")
+                        return True
+                    self.crear_objeto_batalla(sprite, "heroe")
+                    return True
+            
+            # Botones actualizar/explorar monstruos
+            ancho_boton_mons = (PANEL_IZQUIERDO - 30) // 2
+            y_botones_mons = 600  # Ajustado
+            
+            rect_actualizar_mons = pygame.Rect(10, y_botones_mons, ancho_boton_mons, 25)
+            if rect_actualizar_mons.collidepoint(mouse_pos):
+                self.cargar_biblioteca_sprites()
+                self.mostrar_mensaje("✓ Lista de monstruos actualizada")
+                return True
+            
+            rect_explorar_mons = pygame.Rect(10 + ancho_boton_mons + 10, y_botones_mons, ancho_boton_mons, 25)
+            if rect_explorar_mons.collidepoint(mouse_pos):
+                self.explorar_y_añadir_sprite("monstruos")
+                return True
+            
+            # Monstruos
+            monstruos = self.biblioteca_sprites.get("monstruos", [])
+            print(f"🔍 DEBUG: Procesando clicks en monstruos. Total: {len(monstruos)}")
+            
+            # Verificar que hay un fondo seleccionado primero
+            if not self.fondo_batalla_actual:
+                print("⚠️ No hay fondo de batalla seleccionado")
+            
+            y_mons_lista = 635  # Ajustado por los botones
+            for i, sprite in enumerate(monstruos[:8]):  # Hasta 8 monstruos
+                rect_sprite = pygame.Rect(10, y_mons_lista + i * 35, PANEL_IZQUIERDO - 20, 30)
+                if rect_sprite.collidepoint(mouse_pos):
+                    # Verificar que hay un fondo seleccionado
+                    if not self.fondo_batalla_actual:
+                        self.mostrar_mensaje("⚠️ Selecciona un fondo primero")
+                        return True
+                    
+                    # Crear objeto de monstruo en modo batalla
+                    print(f"🖱️ DEBUG: Click en monstruo {i}: {sprite.id}")
+                    print(f"   Ruta: {sprite.ruta_imagen}")
+                    self.crear_objeto_batalla(sprite, "monstruo")
+                    return True
+        
         # Verificar si se clickeó un sprite para añadir
         elif self.modo_actual in ["cofres", "npcs", "héroes", "monstruos"]:
             # Botón actualizar
-            rect_actualizar = pygame.Rect(10, 135, PANEL_IZQUIERDO - 20, 25)
+            ancho_boton = (PANEL_IZQUIERDO - 30) // 2
+            rect_actualizar = pygame.Rect(10, 135, ancho_boton, 25)
             if rect_actualizar.collidepoint(mouse_pos):
                 self.cargar_biblioteca_sprites()
                 self.mostrar_mensaje("✓ Biblioteca de sprites actualizada")
+                return True
+            
+            # Botón explorar/añadir
+            rect_explorar = pygame.Rect(10 + ancho_boton + 10, 135, ancho_boton, 25)
+            if rect_explorar.collidepoint(mouse_pos):
+                self.explorar_y_añadir_sprite(self.modo_actual)
                 return True
             
             y_inicio = 170
@@ -1211,6 +1667,57 @@ class EditorMapaAvanzado:
         
         return False
     
+    def crear_objeto_batalla(self, sprite_info, tipo_batalla):
+        """Crea un objeto específico para modo batalla (héroe o monstruo)"""
+        print(f"🎯 DEBUG crear_objeto_batalla:")
+        print(f"   tipo_batalla={tipo_batalla}")
+        print(f"   sprite.id={sprite_info.id}")
+        print(f"   sprite.ruta={sprite_info.ruta_imagen}")
+        
+        # Determinar el tipo correcto EXACTO
+        if tipo_batalla == "heroe":
+            tipo_obj = "heroe_batalla"
+            pos_x_base = 100
+            offset_x = 120
+            pos_y = 400 - 200  # 200px encima del borde inferior
+        elif tipo_batalla == "monstruo":
+            tipo_obj = "monstruo_batalla"
+            pos_x_base = 700
+            offset_x = 150
+            pos_y = 300 - 200  # 100px encima de los héroes
+        else:
+            print(f"❌ ERROR: tipo_batalla desconocido: {tipo_batalla}")
+            return
+        
+        # Generar ID único
+        num = len([o for o in self.objetos if o.tipo == tipo_obj]) + 1
+        nuevo_id = f"{sprite_info.id}_{num}"
+        
+        # Posición según cantidad de objetos del mismo tipo
+        pos_x = pos_x_base + (num - 1) * offset_x
+        
+        obj = ObjetoMapa(
+            tipo=tipo_obj,
+            id=nuevo_id,
+            x=pos_x,
+            y=pos_y,
+            ancho=sprite_info.ancho_default,
+            alto=sprite_info.alto_default,
+            z_index=len(self.objetos),
+            sprite_ref=sprite_info.ruta_imagen  # Usar ruta completa como referencia
+        )
+        
+        self.objetos.append(obj)
+        self.objeto_seleccionado = obj
+        self.cambios_sin_guardar = True
+        
+        print(f"✓ Objeto creado: tipo={tipo_obj}, id={nuevo_id}")
+        print(f"   Posición: ({pos_x}, {pos_y})")
+        print(f"   Total objetos: {len(self.objetos)}")
+        print(f"   Total {tipo_obj}: {len([o for o in self.objetos if o.tipo == tipo_obj])}")
+        
+        self.mostrar_mensaje(f"✓ Añadido: {sprite_info.id} ({tipo_batalla})")
+    
     def manejar_eventos(self):
         """Maneja eventos del pygame"""
         mouse_pos = pygame.mouse.get_pos()
@@ -1222,8 +1729,14 @@ class EditorMapaAvanzado:
                 return False
             
             elif evento.type == pygame.KEYDOWN:
+                # ESC - Salir
+                if evento.key == pygame.K_ESCAPE:
+                    if self.cambios_sin_guardar:
+                        print("⚠️ Cambios sin guardar. Presiona G para guardar.")
+                    return False
+                
                 # G - Guardar
-                if evento.key == pygame.K_g:
+                elif evento.key == pygame.K_g:
                     self.guardar_mapa()
                 
                 # D - Duplicar
@@ -1240,56 +1753,6 @@ class EditorMapaAvanzado:
                 elif evento.key == pygame.K_h:
                     self.mostrar_grid = not self.mostrar_grid
                 
-                # ENTER - Terminar muro o portal
-                elif evento.key == pygame.K_RETURN or evento.key == pygame.K_KP_ENTER:
-                    if self.dibujando_muro and self.muro_actual:
-                        # Cerrar y guardar muro
-                        if len(self.muro_actual.puntos) >= 2:
-                            self.muro_actual.cerrado = True
-                            self.muros.append(self.muro_actual)
-                            self.mostrar_mensaje(f"✓ Muro '{self.muro_actual.id}' guardado ({len(self.muro_actual.puntos)} puntos)")
-                            self.cambios_sin_guardar = True
-                        else:
-                            self.mostrar_mensaje("⚠️ El muro necesita al menos 2 puntos")
-                        self.muro_actual = None
-                        self.dibujando_muro = False
-                    elif self.creando_portal_origen and self.portal_temp:
-                        # Completar portal (usar mismo mapa como destino)
-                        self.portal_temp.mapa_destino = self.mapa_actual
-                        self.portales.append(self.portal_temp)
-                        self.mostrar_mensaje(f"✓ Portal '{self.portal_temp.nombre}' creado")
-                        self.portal_temp = None
-                        self.creando_portal_origen = False
-                        self.cambios_sin_guardar = True
-                
-                # C - Cerrar muro
-                elif evento.key == pygame.K_c:
-                    if self.dibujando_muro and self.muro_actual and len(self.muro_actual.puntos) >= 3:
-                        self.muro_actual.cerrado = True
-                        self.muros.append(self.muro_actual)
-                        self.mostrar_mensaje(f"✓ Muro cerrado guardado ({len(self.muro_actual.puntos)} puntos)")
-                        self.cambios_sin_guardar = True
-                        self.muro_actual = None
-                        self.dibujando_muro = False
-                
-                # ESC - Cancelar acción actual
-                elif evento.key == pygame.K_ESCAPE:
-                    if self.dibujando_muro:
-                        self.muro_actual = None
-                        self.dibujando_muro = False
-                        self.mostrar_mensaje("Dibujo de muro cancelado")
-                    elif self.creando_portal_origen:
-                        self.portal_temp = None
-                        self.creando_portal_origen = False
-                        self.mostrar_mensaje("Creación de portal cancelada")
-                    elif self.cambios_sin_guardar:
-                        print("⚠️ Cambios sin guardar. Presiona G para guardar.")
-                        return False
-                    else:
-                        return False
-                
-                # Grid toggle (movido aquí para evitar conflictos)
-                
                 # CTRL+Z - Deshacer (placeholder)
                 elif evento.key == pygame.K_z and pygame.key.get_mods() & pygame.KMOD_CTRL:
                     self.mostrar_mensaje("Deshacer - No implementado aún")
@@ -1298,94 +1761,105 @@ class EditorMapaAvanzado:
                 if evento.button == 1:  # Click izquierdo
                     click_izq = True
                     
+                    print(f"🖱️ CLICK IZQUIERDO en ({mouse_pos[0]}, {mouse_pos[1]})")
+                    print(f"   Modo actual: {self.modo_actual}")
+                    print(f"   Modo editor: {self.modo_editor}")
+                    
                     # Click en panel izquierdo
                     if mouse_pos[0] < PANEL_IZQUIERDO:
+                        print(f"   📍 Click en PANEL IZQUIERDO")
                         # Actualizar botones de modo
                         for boton in self.botones_modo:
                             boton.update(mouse_pos, True)
                         
-                        self.manejar_clicks_panel_izquierdo(mouse_pos)
+                        resultado = self.manejar_clicks_panel_izquierdo(mouse_pos)
+                        print(f"   Resultado manejar_clicks: {resultado}")
                     
                     # Click en área del mapa
                     elif PANEL_IZQUIERDO <= mouse_pos[0] <= ANCHO - PANEL_DERECHO:
                         x_mapa = mouse_pos[0] - PANEL_IZQUIERDO
-                        mundo_x = x_mapa / self.zoom + self.camara_x
-                        mundo_y = mouse_pos[1] / self.zoom + self.camara_y
                         
-                        # MODO DIBUJAR MUROS
-                        if self.modo_editor == ModoEditor.DIBUJAR_MUROS:
-                            if not self.dibujando_muro:
-                                # Iniciar nuevo muro
-                                num_muro = len(self.muros) + 1
-                                self.muro_actual = MuroDibujable(
-                                    id=f"muro_{num_muro}",
-                                    puntos=[(mundo_x, mundo_y)],
-                                    color=(255, 0, 0),
-                                    grosor=self.grosor_muro,
-                                    cerrado=False
-                                )
-                                self.dibujando_muro = True
-                                self.mostrar_mensaje(f"✓ Dibujando muro (click para añadir puntos, ENTER para terminar)")
+                        # En modo batalla, permitir mover objetos de batalla
+                        if self.modo_editor == ModoEditor.VISTA_BATALLA:
+                            # Convertir a coordenadas relativas al área de batalla
+                            obj = None
+                            for o in reversed(self.objetos):
+                                if o.tipo in ["heroe_batalla", "monstruo_batalla"]:
+                                    # Verificar si el click está en este objeto
+                                    if (x_mapa >= o.x and x_mapa <= o.x + o.ancho and
+                                        mouse_pos[1] >= o.y and mouse_pos[1] <= o.y + o.alto):
+                                        obj = o
+                                        break
+                            
+                            if obj:
+                                self.objeto_seleccionado = obj
+                                
+                                # Verificar si se clickeó un handle
+                                handle = obj.get_handle_en_punto(x_mapa, mouse_pos[1], 10)
+                                
+                                if handle:
+                                    obj.redimensionando = True
+                                    obj.handle_activo = handle
+                                else:
+                                    obj.arrastrando = True
+                                    obj.offset_x = obj.x - x_mapa
+                                    obj.offset_y = obj.y - mouse_pos[1]
                             else:
-                                # Añadir punto al muro actual
-                                self.muro_actual.puntos.append((mundo_x, mundo_y))
+                                self.objeto_seleccionado = None
                         
-                        # MODO CREAR PORTAL
-                        elif self.modo_editor == ModoEditor.CREAR_PORTAL:
-                            if not self.creando_portal_origen:
-                                # Crear origen del portal
-                                num_portal = len(self.portales) + 1
-                                self.portal_temp = Portal(
-                                    id=f"portal_{num_portal}",
-                                    mapa_origen=self.mapa_actual,
-                                    x_origen=mundo_x,
-                                    y_origen=mundo_y,
-                                    mapa_destino="",
-                                    x_destino=0,
-                                    y_destino=0,
-                                    nombre=f"Portal {num_portal}"
-                                )
-                                self.creando_portal_origen = True
-                                self.mostrar_mensaje("✓ Origen del portal creado. Haz click en el destino o presiona C para completar")
-                            else:
-                                # Establecer destino del portal
-                                self.portal_temp.x_destino = mundo_x
-                                self.portal_temp.y_destino = mundo_y
-                                self.portal_temp.mapa_destino = self.mapa_actual
-                                self.portales.append(self.portal_temp)
-                                self.mostrar_mensaje(f"✓ Portal '{self.portal_temp.nombre}' creado")
-                                self.portal_temp = None
-                                self.creando_portal_origen = False
-                                self.cambios_sin_guardar = True
-                        
-                        # MODO NORMAL - Seleccionar/arrastrar objetos
-                        else:
+                        # Solo buscar objetos en modo normal
+                        elif self.modo_editor == ModoEditor.NORMAL:
                             obj = self.obtener_objeto_en_posicion(x_mapa, mouse_pos[1])
-                        
-                        if obj:
-                            self.objeto_seleccionado = obj
                             
-                            # Verificar si se clickeó un handle (convertir a coordenadas del mundo con zoom)
-                            mundo_x = x_mapa / self.zoom + self.camara_x
-                            mundo_y = mouse_pos[1] / self.zoom + self.camara_y
-                            handle = obj.get_handle_en_punto(mundo_x, mundo_y, 10 / self.zoom)
-                            
-                            if handle:
-                                obj.redimensionando = True
-                                obj.handle_activo = handle
+                            if obj:
+                                self.objeto_seleccionado = obj
+                                
+                                # Verificar si se clickeó un handle (convertir a coordenadas del mundo con zoom)
+                                mundo_x = x_mapa / self.zoom + self.camara_x
+                                mundo_y = mouse_pos[1] / self.zoom + self.camara_y
+                                handle = obj.get_handle_en_punto(mundo_x, mundo_y, 10 / self.zoom)
+                                
+                                if handle:
+                                    obj.redimensionando = True
+                                    obj.handle_activo = handle
+                                else:
+                                    obj.arrastrando = True
+                                    obj.offset_x = obj.x - mundo_x
+                                    obj.offset_y = obj.y - mundo_y
                             else:
-                                obj.arrastrando = True
-                                obj.offset_x = obj.x - mundo_x
-                                obj.offset_y = obj.y - mundo_y
+                                # Si no hay objeto, iniciar arrastre del mapa
+                                self.arrastrando_camara = True
+                                self.mouse_anterior = mouse_pos
+                                self.objeto_seleccionado = None
                         else:
-                            # Si no hay objeto, iniciar arrastre del mapa
+                            # En otros modos, solo arrastre de cámara
                             self.arrastrando_camara = True
                             self.mouse_anterior = mouse_pos
-                            self.objeto_seleccionado = None
                 
-                elif evento.button == 2 or evento.button == 3:  # Click medio o derecho - Pan cámara
-                    self.arrastrando_camara = True
-                    self.mouse_anterior = mouse_pos
+                elif evento.button == 2 or evento.button == 3:  # Click medio o derecho
+                    # En modo batalla, eliminar sprite con click derecho
+                    if self.modo_editor == ModoEditor.VISTA_BATALLA:
+                        if PANEL_IZQUIERDO <= mouse_pos[0] <= ANCHO - PANEL_DERECHO:
+                            x_mapa = mouse_pos[0] - PANEL_IZQUIERDO
+                            
+                            # Buscar objeto bajo el cursor
+                            obj_eliminar = None
+                            for o in reversed(self.objetos):
+                                if o.tipo in ["heroe_batalla", "monstruo_batalla"]:
+                                    if (x_mapa >= o.x and x_mapa <= o.x + o.ancho and
+                                        mouse_pos[1] >= o.y and mouse_pos[1] <= o.y + o.alto):
+                                        obj_eliminar = o
+                                        break
+                            
+                            if obj_eliminar:
+                                self.eliminar_objeto(obj_eliminar)
+                                self.mostrar_mensaje(f"✓ Eliminado: {obj_eliminar.id}")
+                                return True
+                    
+                    # Fuera de modo batalla, pan de cámara
+                    else:
+                        self.arrastrando_camara = True
+                        self.mouse_anterior = mouse_pos
             
             elif evento.type == pygame.MOUSEBUTTONUP:
                 if evento.button == 1:
@@ -1408,9 +1882,15 @@ class EditorMapaAvanzado:
                 # Verificar si estamos en área del mapa
                 if PANEL_IZQUIERDO <= mouse_pos[0] <= ANCHO - PANEL_DERECHO:
                     x_mapa = mouse_pos[0] - PANEL_IZQUIERDO
-                    # Convertir a coordenadas del mundo considerando zoom
-                    mundo_x = x_mapa / self.zoom + self.camara_x
-                    mundo_y = mouse_pos[1] / self.zoom + self.camara_y
+                    
+                    # En modo batalla, coordenadas directas
+                    if self.modo_editor == ModoEditor.VISTA_BATALLA:
+                        mundo_x = x_mapa
+                        mundo_y = mouse_pos[1]
+                    else:
+                        # Convertir a coordenadas del mundo considerando zoom
+                        mundo_x = x_mapa / self.zoom + self.camara_x
+                        mundo_y = mouse_pos[1] / self.zoom + self.camara_y
                     
                     # Arrastrar objetos tiene prioridad sobre cámara
                     hay_objeto_siendo_arrastrado = False
@@ -1423,24 +1903,21 @@ class EditorMapaAvanzado:
                             hay_objeto_siendo_arrastrado = True
                         
                         elif obj.redimensionando and obj.handle_activo:
-                            # Redimensionar según el handle - las coordenadas ya están en espacio del mundo
-                            # Guardar posición/tamaño original para evitar saltos
-                            if 'e' in obj.handle_activo:  # Este (derecha) - solo cambia ancho
-                                nuevo_ancho = max(20, int(mundo_x - obj.x))
+                            # Redimensionar según el handle
+                            if 'e' in obj.handle_activo:  # Este (derecha)
+                                nuevo_ancho = max(20, mundo_x - obj.x)
                                 obj.ancho = nuevo_ancho
-                            
-                            if 'w' in obj.handle_activo:  # Oeste (izquierda) - cambia x y ancho
-                                nuevo_ancho = max(20, int(obj.x + obj.ancho - mundo_x))
+                            elif 'w' in obj.handle_activo:  # Oeste (izquierda)
+                                nuevo_ancho = max(20, obj.x + obj.ancho - mundo_x)
                                 if nuevo_ancho >= 20:
                                     obj.x = mundo_x
                                     obj.ancho = nuevo_ancho
                             
-                            if 's' in obj.handle_activo:  # Sur (abajo) - solo cambia alto
-                                nuevo_alto = max(20, int(mundo_y - obj.y))
+                            if 's' in obj.handle_activo:  # Sur (abajo)
+                                nuevo_alto = max(20, mundo_y - obj.y)
                                 obj.alto = nuevo_alto
-                            
-                            if 'n' in obj.handle_activo:  # Norte (arriba) - cambia y y alto
-                                nuevo_alto = max(20, int(obj.y + obj.alto - mundo_y))
+                            elif 'n' in obj.handle_activo:  # Norte (arriba)
+                                nuevo_alto = max(20, obj.y + obj.alto - mundo_y)
                                 if nuevo_alto >= 20:
                                     obj.y = mundo_y
                                     obj.alto = nuevo_alto
@@ -1462,7 +1939,17 @@ class EditorMapaAvanzado:
                     
                     # Actualizar hover solo si no estamos arrastrando
                     if not hay_objeto_siendo_arrastrado and not self.arrastrando_camara:
-                        self.objeto_hover = self.obtener_objeto_en_posicion(x_mapa, mouse_pos[1])
+                        if self.modo_editor == ModoEditor.VISTA_BATALLA:
+                            # En modo batalla, revisar objetos de batalla
+                            self.objeto_hover = None
+                            for o in reversed(self.objetos):
+                                if o.tipo in ["heroe_batalla", "monstruo_batalla"]:
+                                    if (x_mapa >= o.x and x_mapa <= o.x + o.ancho and
+                                        mouse_pos[1] >= o.y and mouse_pos[1] <= o.y + o.alto):
+                                        self.objeto_hover = o
+                                        break
+                        else:
+                            self.objeto_hover = self.obtener_objeto_en_posicion(x_mapa, mouse_pos[1])
                 
                 # Si estamos fuera del área del mapa pero arrastrando cámara
                 elif self.arrastrando_camara:
@@ -1517,6 +2004,132 @@ class EditorMapaAvanzado:
         
         return True
     
+    def dibujar_vista_batalla(self, surface):
+        """Dibuja la vista especial para configurar batallas"""
+        # Fondo de batalla (el seleccionado o el primero disponible)
+        if hasattr(self, 'fondos_batalla') and len(self.fondos_batalla) > 0:
+            try:
+                # Buscar el fondo actual o usar el primero
+                fondo_usar = self.fondos_batalla[0]
+                if self.fondo_batalla_actual:
+                    for f in self.fondos_batalla:
+                        if f["nombre"] == self.fondo_batalla_actual:
+                            fondo_usar = f
+                            break
+                
+                fondo = pygame.image.load(fondo_usar["ruta"]).convert()
+                fondo_escalado = pygame.transform.scale(fondo, (AREA_MAPA_ANCHO, ALTO))
+                surface.blit(fondo_escalado, (0, 0))
+            except:
+                surface.fill((30, 20, 40))
+        else:
+            surface.fill((30, 20, 40))
+        
+        # Simular ventana UI inferior (200px)
+        ui_alto = 200
+        ui_rect = pygame.Rect(0, ALTO - ui_alto, AREA_MAPA_ANCHO, ui_alto)
+        pygame.draw.rect(surface, (20, 20, 30), ui_rect)
+        pygame.draw.rect(surface, (100, 100, 120), ui_rect, 3)
+        
+        texto_ui = self.fuente.render("Área de UI (200px)", True, (150, 150, 150))
+        surface.blit(texto_ui, (AREA_MAPA_ANCHO // 2 - texto_ui.get_width() // 2, ALTO - ui_alto + 90))
+        
+        # Área de batalla real (sin UI)
+        area_batalla_alto = ALTO - ui_alto
+        
+        # Dibujar objetos de batalla (héroes y monstruos)
+        for obj in sorted(self.objetos, key=lambda o: o.z_index):
+            if obj.tipo in ["heroe_batalla", "monstruo_batalla"]:
+                self.dibujar_objeto_batalla(surface, obj)
+        
+        # Líneas de referencia
+        pygame.draw.line(surface, (80, 80, 100), (0, area_batalla_alto), (AREA_MAPA_ANCHO, area_batalla_alto), 2)
+        
+        # Información
+        info_texto = self.fuente_pequena.render(f"Área batalla: {AREA_MAPA_ANCHO}x{area_batalla_alto} | UI: {AREA_MAPA_ANCHO}x{ui_alto}", True, (180, 180, 200))
+        surface.blit(info_texto, (10, 10))
+        
+        # Indicadores de guía
+        if len([o for o in self.objetos if o.tipo == "heroe_batalla"]) == 0:
+            texto_guia = self.fuente.render("← Click en héroe del panel para agregar", True, (100, 255, 100))
+            surface.blit(texto_guia, (100, 350))
+        
+        if len([o for o in self.objetos if o.tipo == "monstruo_batalla"]) == 0:
+            texto_guia = self.fuente.render("Click en monstruo del panel para agregar →", True, (255, 100, 100))
+            surface.blit(texto_guia, (AREA_MAPA_ANCHO - 400, 300))
+    
+    def dibujar_objeto_batalla(self, surface, obj):
+        """Dibuja un objeto en modo batalla (sin zoom)"""
+        # Intentar cargar sprite real si existe
+        sprite_dibujado = False
+        if obj.sprite_ref:
+            # Primero intentar con la ruta directa (preferido)
+            if obj.sprite_ref in self.imagenes_sprites:
+                img = self.imagenes_sprites[obj.sprite_ref]
+                img_escalada = pygame.transform.scale(img, (obj.ancho, obj.alto))
+                surface.blit(img_escalada, (int(obj.x), int(obj.y)))
+                sprite_dibujado = True
+                print(f"✓ Dibujado sprite batalla: {obj.id} desde ruta directa")
+            else:
+                # Buscar por ID o ruta en la biblioteca
+                for categoria, sprites in self.biblioteca_sprites.items():
+                    for sprite in sprites:
+                        if sprite.id == obj.sprite_ref or sprite.ruta_imagen == obj.sprite_ref:
+                            if sprite.ruta_imagen in self.imagenes_sprites:
+                                img = self.imagenes_sprites[sprite.ruta_imagen]
+                                img_escalada = pygame.transform.scale(img, (obj.ancho, obj.alto))
+                                surface.blit(img_escalada, (int(obj.x), int(obj.y)))
+                                sprite_dibujado = True
+                                print(f"✓ Dibujado sprite batalla: {obj.id} desde biblioteca")
+                                break
+                    if sprite_dibujado:
+                        break
+            
+            if not sprite_dibujado:
+                print(f"⚠️  No se pudo cargar sprite para: {obj.id}, ref={obj.sprite_ref}")
+        
+        # Si no se dibujó el sprite, dibujar rectángulo de color
+        if not sprite_dibujado:
+            color_base = (50, 255, 50) if obj.tipo == "heroe_batalla" else (200, 50, 200)
+            rect_superficie = pygame.Surface((obj.ancho, obj.alto))
+            rect_superficie.set_alpha(120)
+            rect_superficie.fill(color_base)
+            surface.blit(rect_superficie, (int(obj.x), int(obj.y)))
+        
+        # Borde
+        rect = pygame.Rect(int(obj.x), int(obj.y), obj.ancho, obj.alto)
+        
+        if obj == self.objeto_seleccionado:
+            pygame.draw.rect(surface, COLOR_SELECCION, rect, 3)
+            # Dibujar handles de redimensionamiento
+            self.dibujar_handles_batalla(surface, obj)
+        elif obj == self.objeto_hover:
+            pygame.draw.rect(surface, COLOR_HOVER, rect, 2)
+        else:
+            pygame.draw.rect(surface, (255, 255, 255), rect, 1)
+        
+        # Texto con ID
+        texto = self.fuente_pequena.render(f"{obj.id}", True, COLOR_TEXTO)
+        fondo_texto = pygame.Surface((texto.get_width() + 10, texto.get_height() + 4))
+        fondo_texto.set_alpha(180)
+        fondo_texto.fill((0, 0, 0))
+        surface.blit(fondo_texto, (obj.x + 2, obj.y + 2))
+        surface.blit(texto, (obj.x + 5, obj.y + 4))
+    
+    def dibujar_handles_batalla(self, surface, obj):
+        """Dibuja handles de redimensionamiento en modo batalla"""
+        tam_handle = 8
+        handles = [
+            (obj.x, obj.y),  # NW
+            (obj.x + obj.ancho, obj.y),  # NE
+            (obj.x, obj.y + obj.alto),  # SW
+            (obj.x + obj.ancho, obj.y + obj.alto),  # SE
+        ]
+        
+        for hx, hy in handles:
+            pygame.draw.circle(surface, COLOR_RESIZE_HANDLE, (int(hx), int(hy)), tam_handle)
+            pygame.draw.circle(surface, COLOR_TEXTO, (int(hx), int(hy)), tam_handle, 2)
+    
     def ejecutar(self):
         """Bucle principal del editor"""
         ejecutando = True
@@ -1530,38 +2143,26 @@ class EditorMapaAvanzado:
             # Área del mapa
             area_mapa = self.pantalla.subsurface((PANEL_IZQUIERDO, 0, AREA_MAPA_ANCHO, ALTO))
             
-            # Fondo del mapa con zoom
-            if self.imagen_mapa:
-                # Escalar la imagen según el zoom
-                ancho_escalado = int(self.ancho_mapa * self.zoom)
-                alto_escalado = int(self.alto_mapa * self.zoom)
-                imagen_escalada = pygame.transform.scale(self.imagen_mapa, (ancho_escalado, alto_escalado))
-                area_mapa.blit(imagen_escalada, (int(-self.camara_x * self.zoom), int(-self.camara_y * self.zoom)))
+            # Si estamos en modo batalla, dibujar vista especial
+            if self.modo_editor == ModoEditor.VISTA_BATALLA:
+                self.dibujar_vista_batalla(area_mapa)
             else:
-                area_mapa.fill((30, 30, 40))
-            
-            # Grid
-            self.dibujar_grid(area_mapa)
-            
-            # Muros
-            for muro in self.muros:
-                self.dibujar_muro(self.pantalla, muro)
-            
-            # Muro en proceso
-            if self.dibujando_muro and self.muro_actual:
-                self.dibujar_muro(self.pantalla, self.muro_actual, en_progreso=True)
-            
-            # Portales
-            for portal in self.portales:
-                self.dibujar_portal(self.pantalla, portal)
-            
-            # Portal en proceso
-            if self.creando_portal_origen and self.portal_temp:
-                self.dibujar_portal(self.pantalla, self.portal_temp, en_progreso=True)
-            
-            # Objetos
-            for obj in sorted(self.objetos, key=lambda o: o.z_index):
-                self.dibujar_objeto(self.pantalla, obj)
+                # Fondo del mapa con zoom
+                if self.imagen_mapa:
+                    # Escalar la imagen según el zoom
+                    ancho_escalado = int(self.ancho_mapa * self.zoom)
+                    alto_escalado = int(self.alto_mapa * self.zoom)
+                    imagen_escalada = pygame.transform.scale(self.imagen_mapa, (ancho_escalado, alto_escalado))
+                    area_mapa.blit(imagen_escalada, (int(-self.camara_x * self.zoom), int(-self.camara_y * self.zoom)))
+                else:
+                    area_mapa.fill((30, 30, 40))
+                
+                # Grid
+                self.dibujar_grid(area_mapa)
+                
+                # Objetos
+                for obj in sorted(self.objetos, key=lambda o: o.z_index):
+                    self.dibujar_objeto(self.pantalla, obj)
             
             # Paneles
             self.dibujar_panel_izquierdo(self.pantalla)
@@ -1590,18 +2191,8 @@ if __name__ == "__main__":
 ║  ✓ Biblioteca de sprites organizados                  ║
 ║  ✓ Redimensionamiento con esquinas                    ║
 ║  ✓ Sistema de capas                                   ║
-║  ✓ ZOOM con rueda del mouse                           ║
-║  ✓ PAN/Arrastre con click medio/derecho               ║
-║  ✓ Sistema de Muros Dibujables                        ║
-║  ✓ Sistema de Portales                                ║
-║  ✓ Exportación automática JSON                        ║
-║                                                        ║
-║  Controles:                                            ║
-║  - Rueda Mouse: Zoom                                   ║
-║  - Click Medio/Derecho: Mover cámara                   ║
-║  - G: Guardar | H: Toggle Grid                         ║
-║  - D: Duplicar | DEL: Eliminar                         ║
-║  - ESC: Salir/Cancelar                                 ║
+║  ✓ Historial de uso                                   ║
+║  ✓ Exportación automática                             ║
 ╚═══════════════════════════════════════════════════════╝
     """)
     
