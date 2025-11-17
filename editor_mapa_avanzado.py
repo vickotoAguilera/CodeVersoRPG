@@ -347,7 +347,7 @@ class EditorMapaAvanzado:
         
         # Si estamos cambiando a modo muros o portales, actualizar modo_editor
         if modo == "muros":
-            self.modo_editor = ModoEditor.DIBUJAR_MURO
+            self.modo_editor = ModoEditor.DIBUJAR_MUROS
             self.dibujando_muro = False
             self.muro_actual = None
         elif modo == "portales":
@@ -575,7 +575,36 @@ class EditorMapaAvanzado:
                 )
                 self.objetos.append(obj)
             
-            print(f"✓ Cargados {len(self.objetos)} objetos del mapa")
+            # Cargar muros
+            self.muros = []
+            for muro_data in data.get("muros", []):
+                muro = MuroDibujable(
+                    id=muro_data.get("id", "muro_1"),
+                    puntos=[tuple(p) for p in muro_data.get("puntos", [])],
+                    color=tuple(muro_data.get("color", [255, 0, 0])),
+                    grosor=muro_data.get("grosor", 5),
+                    cerrado=muro_data.get("cerrado", False)
+                )
+                self.muros.append(muro)
+            
+            # Cargar portales
+            self.portales = []
+            for portal_data in data.get("portales", []):
+                portal = Portal(
+                    id=portal_data.get("id", "portal_1"),
+                    mapa_origen=portal_data.get("mapa_origen", ""),
+                    x_origen=portal_data.get("x_origen", 0),
+                    y_origen=portal_data.get("y_origen", 0),
+                    mapa_destino=portal_data.get("mapa_destino", ""),
+                    x_destino=portal_data.get("x_destino", 0),
+                    y_destino=portal_data.get("y_destino", 0),
+                    ancho=portal_data.get("ancho", 64),
+                    alto=portal_data.get("alto", 64),
+                    nombre=portal_data.get("nombre", "")
+                )
+                self.portales.append(portal)
+            
+            print(f"✓ Cargados {len(self.objetos)} objetos, {len(self.muros)} muros, {len(self.portales)} portales")
         
         except Exception as e:
             print(f"❌ Error cargando objetos: {e}")
@@ -606,7 +635,9 @@ class EditorMapaAvanzado:
             "carpeta": self.carpeta_actual,
             "cofres": cofres,
             "npcs": npcs,
-            "zonas_batalla": zonas_batalla
+            "zonas_batalla": zonas_batalla,
+            "muros": [muro.to_dict() for muro in self.muros],
+            "portales": [portal.to_dict() for portal in self.portales]
         }
         
         # Guardar
@@ -720,9 +751,9 @@ class EditorMapaAvanzado:
     
     def obtener_objeto_en_posicion(self, x_pantalla, y_pantalla):
         """Obtiene objeto en posición de pantalla"""
-        # Convertir a coordenadas del mundo
-        mundo_x = x_pantalla + self.camara_x
-        mundo_y = y_pantalla + self.camara_y
+        # Convertir a coordenadas del mundo considerando zoom
+        mundo_x = x_pantalla / self.zoom + self.camara_x
+        mundo_y = y_pantalla / self.zoom + self.camara_y
         
         # Buscar de atrás hacia adelante (objetos superiores primero)
         for obj in reversed(self.objetos):
@@ -731,13 +762,16 @@ class EditorMapaAvanzado:
         return None
     
     def dibujar_grid(self, surface):
-        """Dibuja grid de referencia"""
+        """Dibuja grid de referencia con zoom"""
         if not self.mostrar_grid:
             return
         
-        grid_size = 50
-        offset_x = -self.camara_x % grid_size
-        offset_y = -self.camara_y % grid_size
+        grid_size = int(50 * self.zoom)
+        if grid_size < 5:  # No dibujar grid si es muy pequeño
+            return
+        
+        offset_x = int(-self.camara_x * self.zoom) % grid_size
+        offset_y = int(-self.camara_y * self.zoom) % grid_size
         
         # Líneas verticales
         for x in range(offset_x, AREA_MAPA_ANCHO, grid_size):
@@ -753,14 +787,17 @@ class EditorMapaAvanzado:
     
     def dibujar_objeto(self, surface, obj):
         """Dibuja un objeto en el área del mapa"""
-        # Convertir coordenadas del mundo a pantalla
-        x_pantalla = obj.x - self.camara_x + PANEL_IZQUIERDO
-        y_pantalla = obj.y - self.camara_y
+        # Convertir coordenadas del mundo a pantalla con zoom
+        x_pantalla = (obj.x - self.camara_x) * self.zoom + PANEL_IZQUIERDO
+        y_pantalla = (obj.y - self.camara_y) * self.zoom
         
         # Verificar si está visible
-        if (x_pantalla + obj.ancho < PANEL_IZQUIERDO or 
+        ancho_zoom = int(obj.ancho * self.zoom)
+        alto_zoom = int(obj.alto * self.zoom)
+        
+        if (x_pantalla + ancho_zoom < PANEL_IZQUIERDO or 
             x_pantalla > ANCHO - PANEL_DERECHO or
-            y_pantalla + obj.alto < 0 or 
+            y_pantalla + alto_zoom < 0 or 
             y_pantalla > ALTO):
             return
         
@@ -773,7 +810,7 @@ class EditorMapaAvanzado:
                     if sprite.id == obj.sprite_ref:
                         if sprite.ruta_imagen in self.imagenes_sprites:
                             img = self.imagenes_sprites[sprite.ruta_imagen]
-                            img_escalada = pygame.transform.scale(img, (obj.ancho, obj.alto))
+                            img_escalada = pygame.transform.scale(img, (ancho_zoom, alto_zoom))
                             surface.blit(img_escalada, (x_pantalla, y_pantalla))
                             sprite_dibujado = True
                             break
@@ -793,56 +830,127 @@ class EditorMapaAvanzado:
             color_base = colores.get(obj.tipo, (128, 128, 128))
             
             # Dibujar rectángulo semitransparente
-            rect_superficie = pygame.Surface((obj.ancho, obj.alto))
+            rect_superficie = pygame.Surface((ancho_zoom, alto_zoom))
             rect_superficie.set_alpha(120)
             rect_superficie.fill(color_base)
             surface.blit(rect_superficie, (x_pantalla, y_pantalla))
         
         # Borde
-        rect = pygame.Rect(x_pantalla, y_pantalla, obj.ancho, obj.alto)
+        rect = pygame.Rect(int(x_pantalla), int(y_pantalla), ancho_zoom, alto_zoom)
         
         if obj == self.objeto_seleccionado:
             pygame.draw.rect(surface, COLOR_SELECCION, rect, 3)
             # Dibujar handles de redimensionamiento
-            self.dibujar_handles(surface, obj)
+            self.dibujar_handles(surface, obj, x_pantalla, y_pantalla, ancho_zoom, alto_zoom)
         elif obj == self.objeto_hover:
             pygame.draw.rect(surface, COLOR_HOVER, rect, 2)
         else:
             pygame.draw.rect(surface, (255, 255, 255), rect, 1)
         
-        # Texto con ID
-        texto = self.fuente_pequena.render(f"{obj.tipo}: {obj.id}", True, COLOR_TEXTO)
-        # Fondo para el texto
-        fondo_texto = pygame.Surface((texto.get_width() + 10, texto.get_height() + 4))
-        fondo_texto.set_alpha(180)
-        fondo_texto.fill((0, 0, 0))
-        surface.blit(fondo_texto, (x_pantalla + 2, y_pantalla + 2))
-        surface.blit(texto, (x_pantalla + 5, y_pantalla + 4))
-        
-        # Dimensiones
-        dim_texto = self.fuente_pequena.render(f"{obj.ancho}x{obj.alto}", True, COLOR_TEXTO)
-        fondo_dim = pygame.Surface((dim_texto.get_width() + 10, dim_texto.get_height() + 4))
-        fondo_dim.set_alpha(180)
-        fondo_dim.fill((0, 0, 0))
-        surface.blit(fondo_dim, (x_pantalla + 2, y_pantalla + obj.alto - 22))
-        surface.blit(dim_texto, (x_pantalla + 5, y_pantalla + obj.alto - 20))
+        # Texto con ID (solo si zoom > 0.5)
+        if self.zoom > 0.5:
+            texto = self.fuente_pequena.render(f"{obj.tipo}: {obj.id}", True, COLOR_TEXTO)
+            # Fondo para el texto
+            fondo_texto = pygame.Surface((texto.get_width() + 10, texto.get_height() + 4))
+            fondo_texto.set_alpha(180)
+            fondo_texto.fill((0, 0, 0))
+            surface.blit(fondo_texto, (x_pantalla + 2, y_pantalla + 2))
+            surface.blit(texto, (x_pantalla + 5, y_pantalla + 4))
+            
+            # Dimensiones
+            dim_texto = self.fuente_pequena.render(f"{obj.ancho}x{obj.alto}", True, COLOR_TEXTO)
+            fondo_dim = pygame.Surface((dim_texto.get_width() + 10, dim_texto.get_height() + 4))
+            fondo_dim.set_alpha(180)
+            fondo_dim.fill((0, 0, 0))
+            surface.blit(fondo_dim, (x_pantalla + 2, y_pantalla + alto_zoom - 22))
+            surface.blit(dim_texto, (x_pantalla + 5, y_pantalla + alto_zoom - 20))
     
-    def dibujar_handles(self, surface, obj):
-        """Dibuja handles de redimensionamiento"""
-        x_pantalla = obj.x - self.camara_x + PANEL_IZQUIERDO
-        y_pantalla = obj.y - self.camara_y
+    def dibujar_handles(self, surface, obj, x_pantalla, y_pantalla, ancho_zoom, alto_zoom):
+        """Dibuja handles de redimensionamiento con zoom"""
         
-        tam_handle = 8
+        tam_handle = max(6, int(8 * self.zoom))  # Ajustar tamaño del handle con zoom
         handles = [
             (x_pantalla, y_pantalla),  # NW
-            (x_pantalla + obj.ancho, y_pantalla),  # NE
-            (x_pantalla, y_pantalla + obj.alto),  # SW
-            (x_pantalla + obj.ancho, y_pantalla + obj.alto),  # SE
+            (x_pantalla + ancho_zoom, y_pantalla),  # NE
+            (x_pantalla, y_pantalla + alto_zoom),  # SW
+            (x_pantalla + ancho_zoom, y_pantalla + alto_zoom),  # SE
         ]
         
         for hx, hy in handles:
             pygame.draw.circle(surface, COLOR_RESIZE_HANDLE, (int(hx), int(hy)), tam_handle)
             pygame.draw.circle(surface, COLOR_TEXTO, (int(hx), int(hy)), tam_handle, 2)
+    
+    def dibujar_muro(self, surface, muro, en_progreso=False):
+        """Dibuja un muro en el mapa con zoom"""
+        if len(muro.puntos) < 2:
+            return
+        
+        # Convertir puntos a coordenadas de pantalla con zoom
+        puntos_pantalla = []
+        for px, py in muro.puntos:
+            x_pantalla = (px - self.camara_x) * self.zoom + PANEL_IZQUIERDO
+            y_pantalla = (py - self.camara_y) * self.zoom
+            puntos_pantalla.append((int(x_pantalla), int(y_pantalla)))
+        
+        # Color según estado
+        if en_progreso:
+            color = (255, 255, 0)  # Amarillo mientras se dibuja
+            grosor = max(2, int(muro.grosor * self.zoom))
+        else:
+            color = muro.color
+            grosor = max(2, int(muro.grosor * self.zoom))
+        
+        # Dibujar líneas entre puntos
+        if len(puntos_pantalla) >= 2:
+            pygame.draw.lines(surface, color, muro.cerrado, puntos_pantalla, grosor)
+        
+        # Dibujar puntos de control
+        for i, (px, py) in enumerate(puntos_pantalla):
+            pygame.draw.circle(surface, color, (px, py), max(4, grosor))
+            if en_progreso or self.zoom > 0.5:
+                # Número del punto
+                texto = self.fuente_pequena.render(str(i+1), True, COLOR_TEXTO)
+                surface.blit(texto, (px + 10, py - 10))
+    
+    def dibujar_portal(self, surface, portal, en_progreso=False):
+        """Dibuja un portal en el mapa con zoom"""
+        # Convertir coordenadas con zoom
+        x_origen_pantalla = (portal.x_origen - self.camara_x) * self.zoom + PANEL_IZQUIERDO
+        y_origen_pantalla = (portal.y_origen - self.camara_y) * self.zoom
+        ancho_zoom = int(portal.ancho * self.zoom)
+        alto_zoom = int(portal.alto * self.zoom)
+        
+        # Color según estado
+        if en_progreso:
+            color_origen = (255, 255, 0)  # Amarillo para origen
+            color_destino = (0, 255, 0)   # Verde para destino
+        else:
+            color_origen = (100, 100, 255)  # Azul para portales completos
+            color_destino = (100, 255, 100)
+        
+        # Dibujar origen
+        rect_origen = pygame.Rect(int(x_origen_pantalla), int(y_origen_pantalla), ancho_zoom, alto_zoom)
+        pygame.draw.rect(surface, color_origen, rect_origen, 3)
+        pygame.draw.rect(surface, color_origen + (50,), rect_origen)  # Relleno semi-transparente
+        
+        # Texto del portal
+        if self.zoom > 0.5:
+            texto = self.fuente_pequena.render(f"Portal: {portal.nombre}", True, COLOR_TEXTO)
+            surface.blit(texto, (x_origen_pantalla + 5, y_origen_pantalla - 20))
+        
+        # Si tiene destino, dibujarlo también
+        if portal.mapa_destino and (portal.x_destino != 0 or portal.y_destino != 0):
+            x_destino_pantalla = (portal.x_destino - self.camara_x) * self.zoom + PANEL_IZQUIERDO
+            y_destino_pantalla = (portal.y_destino - self.camara_y) * self.zoom
+            
+            rect_destino = pygame.Rect(int(x_destino_pantalla), int(y_destino_pantalla), ancho_zoom, alto_zoom)
+            pygame.draw.rect(surface, color_destino, rect_destino, 3)
+            
+            # Línea conectando origen y destino
+            pygame.draw.line(surface, (255, 255, 255), 
+                           (int(x_origen_pantalla + ancho_zoom/2), int(y_origen_pantalla + alto_zoom/2)),
+                           (int(x_destino_pantalla + ancho_zoom/2), int(y_destino_pantalla + alto_zoom/2)),
+                           2)
     
     def dibujar_panel_izquierdo(self, surface):
         """Dibuja panel izquierdo con opciones"""
@@ -956,8 +1064,54 @@ class EditorMapaAvanzado:
         surface.blit(texto, (x, y))
         y += 35
         
+        # Mostrar información según modo
+        if self.modo_editor == ModoEditor.DIBUJAR_MUROS:
+            # Info sobre muros
+            texto = self.fuente_pequena.render("MODO: Dibujar Muros", True, (255, 255, 0))
+            surface.blit(texto, (x, y))
+            y += 30
+            
+            info = [
+                "Click: Añadir punto",
+                "ENTER: Terminar muro",
+                "C: Cerrar muro",
+                "ESC: Cancelar",
+                "",
+                f"Muros: {len(self.muros)}"
+            ]
+            
+            if self.dibujando_muro and self.muro_actual:
+                info.append(f"Puntos: {len(self.muro_actual.puntos)}")
+            
+            for linea in info:
+                texto = self.fuente_pequena.render(linea, True, COLOR_TEXTO)
+                surface.blit(texto, (x, y))
+                y += 22
+        
+        elif self.modo_editor == ModoEditor.CREAR_PORTAL:
+            # Info sobre portales
+            texto = self.fuente_pequena.render("MODO: Crear Portal", True, (100, 200, 255))
+            surface.blit(texto, (x, y))
+            y += 30
+            
+            info = [
+                "Click: Origen/Destino",
+                "ENTER: Completar",
+                "ESC: Cancelar",
+                "",
+                f"Portales: {len(self.portales)}"
+            ]
+            
+            if self.creando_portal_origen:
+                info.append("Clickea destino...")
+            
+            for linea in info:
+                texto = self.fuente_pequena.render(linea, True, COLOR_TEXTO)
+                surface.blit(texto, (x, y))
+                y += 22
+        
         # Info del objeto seleccionado
-        if self.objeto_seleccionado:
+        elif self.objeto_seleccionado:
             obj = self.objeto_seleccionado
             
             info = [
@@ -1068,14 +1222,8 @@ class EditorMapaAvanzado:
                 return False
             
             elif evento.type == pygame.KEYDOWN:
-                # ESC - Salir
-                if evento.key == pygame.K_ESCAPE:
-                    if self.cambios_sin_guardar:
-                        print("⚠️ Cambios sin guardar. Presiona G para guardar.")
-                    return False
-                
                 # G - Guardar
-                elif evento.key == pygame.K_g:
+                if evento.key == pygame.K_g:
                     self.guardar_mapa()
                 
                 # D - Duplicar
@@ -1091,6 +1239,56 @@ class EditorMapaAvanzado:
                 # Grid toggle
                 elif evento.key == pygame.K_h:
                     self.mostrar_grid = not self.mostrar_grid
+                
+                # ENTER - Terminar muro o portal
+                elif evento.key == pygame.K_RETURN or evento.key == pygame.K_KP_ENTER:
+                    if self.dibujando_muro and self.muro_actual:
+                        # Cerrar y guardar muro
+                        if len(self.muro_actual.puntos) >= 2:
+                            self.muro_actual.cerrado = True
+                            self.muros.append(self.muro_actual)
+                            self.mostrar_mensaje(f"✓ Muro '{self.muro_actual.id}' guardado ({len(self.muro_actual.puntos)} puntos)")
+                            self.cambios_sin_guardar = True
+                        else:
+                            self.mostrar_mensaje("⚠️ El muro necesita al menos 2 puntos")
+                        self.muro_actual = None
+                        self.dibujando_muro = False
+                    elif self.creando_portal_origen and self.portal_temp:
+                        # Completar portal (usar mismo mapa como destino)
+                        self.portal_temp.mapa_destino = self.mapa_actual
+                        self.portales.append(self.portal_temp)
+                        self.mostrar_mensaje(f"✓ Portal '{self.portal_temp.nombre}' creado")
+                        self.portal_temp = None
+                        self.creando_portal_origen = False
+                        self.cambios_sin_guardar = True
+                
+                # C - Cerrar muro
+                elif evento.key == pygame.K_c:
+                    if self.dibujando_muro and self.muro_actual and len(self.muro_actual.puntos) >= 3:
+                        self.muro_actual.cerrado = True
+                        self.muros.append(self.muro_actual)
+                        self.mostrar_mensaje(f"✓ Muro cerrado guardado ({len(self.muro_actual.puntos)} puntos)")
+                        self.cambios_sin_guardar = True
+                        self.muro_actual = None
+                        self.dibujando_muro = False
+                
+                # ESC - Cancelar acción actual
+                elif evento.key == pygame.K_ESCAPE:
+                    if self.dibujando_muro:
+                        self.muro_actual = None
+                        self.dibujando_muro = False
+                        self.mostrar_mensaje("Dibujo de muro cancelado")
+                    elif self.creando_portal_origen:
+                        self.portal_temp = None
+                        self.creando_portal_origen = False
+                        self.mostrar_mensaje("Creación de portal cancelada")
+                    elif self.cambios_sin_guardar:
+                        print("⚠️ Cambios sin guardar. Presiona G para guardar.")
+                        return False
+                    else:
+                        return False
+                
+                # Grid toggle (movido aquí para evitar conflictos)
                 
                 # CTRL+Z - Deshacer (placeholder)
                 elif evento.key == pygame.K_z and pygame.key.get_mods() & pygame.KMOD_CTRL:
@@ -1111,15 +1309,66 @@ class EditorMapaAvanzado:
                     # Click en área del mapa
                     elif PANEL_IZQUIERDO <= mouse_pos[0] <= ANCHO - PANEL_DERECHO:
                         x_mapa = mouse_pos[0] - PANEL_IZQUIERDO
-                        obj = self.obtener_objeto_en_posicion(x_mapa, mouse_pos[1])
+                        mundo_x = x_mapa / self.zoom + self.camara_x
+                        mundo_y = mouse_pos[1] / self.zoom + self.camara_y
+                        
+                        # MODO DIBUJAR MUROS
+                        if self.modo_editor == ModoEditor.DIBUJAR_MUROS:
+                            if not self.dibujando_muro:
+                                # Iniciar nuevo muro
+                                num_muro = len(self.muros) + 1
+                                self.muro_actual = MuroDibujable(
+                                    id=f"muro_{num_muro}",
+                                    puntos=[(mundo_x, mundo_y)],
+                                    color=(255, 0, 0),
+                                    grosor=self.grosor_muro,
+                                    cerrado=False
+                                )
+                                self.dibujando_muro = True
+                                self.mostrar_mensaje(f"✓ Dibujando muro (click para añadir puntos, ENTER para terminar)")
+                            else:
+                                # Añadir punto al muro actual
+                                self.muro_actual.puntos.append((mundo_x, mundo_y))
+                        
+                        # MODO CREAR PORTAL
+                        elif self.modo_editor == ModoEditor.CREAR_PORTAL:
+                            if not self.creando_portal_origen:
+                                # Crear origen del portal
+                                num_portal = len(self.portales) + 1
+                                self.portal_temp = Portal(
+                                    id=f"portal_{num_portal}",
+                                    mapa_origen=self.mapa_actual,
+                                    x_origen=mundo_x,
+                                    y_origen=mundo_y,
+                                    mapa_destino="",
+                                    x_destino=0,
+                                    y_destino=0,
+                                    nombre=f"Portal {num_portal}"
+                                )
+                                self.creando_portal_origen = True
+                                self.mostrar_mensaje("✓ Origen del portal creado. Haz click en el destino o presiona C para completar")
+                            else:
+                                # Establecer destino del portal
+                                self.portal_temp.x_destino = mundo_x
+                                self.portal_temp.y_destino = mundo_y
+                                self.portal_temp.mapa_destino = self.mapa_actual
+                                self.portales.append(self.portal_temp)
+                                self.mostrar_mensaje(f"✓ Portal '{self.portal_temp.nombre}' creado")
+                                self.portal_temp = None
+                                self.creando_portal_origen = False
+                                self.cambios_sin_guardar = True
+                        
+                        # MODO NORMAL - Seleccionar/arrastrar objetos
+                        else:
+                            obj = self.obtener_objeto_en_posicion(x_mapa, mouse_pos[1])
                         
                         if obj:
                             self.objeto_seleccionado = obj
                             
-                            # Verificar si se clickeó un handle
-                            mundo_x = x_mapa + self.camara_x
-                            mundo_y = mouse_pos[1] + self.camara_y
-                            handle = obj.get_handle_en_punto(mundo_x, mundo_y, 10)
+                            # Verificar si se clickeó un handle (convertir a coordenadas del mundo con zoom)
+                            mundo_x = x_mapa / self.zoom + self.camara_x
+                            mundo_y = mouse_pos[1] / self.zoom + self.camara_y
+                            handle = obj.get_handle_en_punto(mundo_x, mundo_y, 10 / self.zoom)
                             
                             if handle:
                                 obj.redimensionando = True
@@ -1159,8 +1408,9 @@ class EditorMapaAvanzado:
                 # Verificar si estamos en área del mapa
                 if PANEL_IZQUIERDO <= mouse_pos[0] <= ANCHO - PANEL_DERECHO:
                     x_mapa = mouse_pos[0] - PANEL_IZQUIERDO
-                    mundo_x = x_mapa + self.camara_x
-                    mundo_y = mouse_pos[1] + self.camara_y
+                    # Convertir a coordenadas del mundo considerando zoom
+                    mundo_x = x_mapa / self.zoom + self.camara_x
+                    mundo_y = mouse_pos[1] / self.zoom + self.camara_y
                     
                     # Arrastrar objetos tiene prioridad sobre cámara
                     hay_objeto_siendo_arrastrado = False
@@ -1173,21 +1423,24 @@ class EditorMapaAvanzado:
                             hay_objeto_siendo_arrastrado = True
                         
                         elif obj.redimensionando and obj.handle_activo:
-                            # Redimensionar según el handle
-                            if 'e' in obj.handle_activo:  # Este (derecha)
-                                nuevo_ancho = max(20, mundo_x - obj.x)
+                            # Redimensionar según el handle - las coordenadas ya están en espacio del mundo
+                            # Guardar posición/tamaño original para evitar saltos
+                            if 'e' in obj.handle_activo:  # Este (derecha) - solo cambia ancho
+                                nuevo_ancho = max(20, int(mundo_x - obj.x))
                                 obj.ancho = nuevo_ancho
-                            elif 'w' in obj.handle_activo:  # Oeste (izquierda)
-                                nuevo_ancho = max(20, obj.x + obj.ancho - mundo_x)
+                            
+                            if 'w' in obj.handle_activo:  # Oeste (izquierda) - cambia x y ancho
+                                nuevo_ancho = max(20, int(obj.x + obj.ancho - mundo_x))
                                 if nuevo_ancho >= 20:
                                     obj.x = mundo_x
                                     obj.ancho = nuevo_ancho
                             
-                            if 's' in obj.handle_activo:  # Sur (abajo)
-                                nuevo_alto = max(20, mundo_y - obj.y)
+                            if 's' in obj.handle_activo:  # Sur (abajo) - solo cambia alto
+                                nuevo_alto = max(20, int(mundo_y - obj.y))
                                 obj.alto = nuevo_alto
-                            elif 'n' in obj.handle_activo:  # Norte (arriba)
-                                nuevo_alto = max(20, obj.y + obj.alto - mundo_y)
+                            
+                            if 'n' in obj.handle_activo:  # Norte (arriba) - cambia y y alto
+                                nuevo_alto = max(20, int(obj.y + obj.alto - mundo_y))
                                 if nuevo_alto >= 20:
                                     obj.y = mundo_y
                                     obj.alto = nuevo_alto
@@ -1199,11 +1452,12 @@ class EditorMapaAvanzado:
                     if self.arrastrando_camara and not hay_objeto_siendo_arrastrado:
                         dx = mouse_pos[0] - self.mouse_anterior[0]
                         dy = mouse_pos[1] - self.mouse_anterior[1]
-                        self.camara_x -= dx
-                        self.camara_y -= dy
+                        # Ajustar movimiento de cámara según zoom
+                        self.camara_x -= dx / self.zoom
+                        self.camara_y -= dy / self.zoom
                         # Permitir desplazamiento libre sin límites estrictos
-                        self.camara_x = max(-AREA_MAPA_ANCHO, min(self.camara_x, max(self.ancho_mapa, AREA_MAPA_ANCHO)))
-                        self.camara_y = max(-ALTO, min(self.camara_y, max(self.alto_mapa, ALTO)))
+                        self.camara_x = max(-AREA_MAPA_ANCHO / self.zoom, min(self.camara_x, max(self.ancho_mapa, AREA_MAPA_ANCHO / self.zoom)))
+                        self.camara_y = max(-ALTO / self.zoom, min(self.camara_y, max(self.alto_mapa, ALTO / self.zoom)))
                         self.mouse_anterior = mouse_pos
                     
                     # Actualizar hover solo si no estamos arrastrando
@@ -1214,15 +1468,36 @@ class EditorMapaAvanzado:
                 elif self.arrastrando_camara:
                     dx = mouse_pos[0] - self.mouse_anterior[0]
                     dy = mouse_pos[1] - self.mouse_anterior[1]
-                    self.camara_x -= dx
-                    self.camara_y -= dy
-                    self.camara_x = max(-AREA_MAPA_ANCHO, min(self.camara_x, max(self.ancho_mapa, AREA_MAPA_ANCHO)))
-                    self.camara_y = max(-ALTO, min(self.camara_y, max(self.alto_mapa, ALTO)))
+                    self.camara_x -= dx / self.zoom
+                    self.camara_y -= dy / self.zoom
+                    self.camara_x = max(-AREA_MAPA_ANCHO / self.zoom, min(self.camara_x, max(self.ancho_mapa, AREA_MAPA_ANCHO / self.zoom)))
+                    self.camara_y = max(-ALTO / self.zoom, min(self.camara_y, max(self.alto_mapa, ALTO / self.zoom)))
                     self.mouse_anterior = mouse_pos
             
             elif evento.type == pygame.MOUSEWHEEL:
-                # Zoom (placeholder)
-                pass
+                # ZOOM CON RUEDA DEL MOUSE
+                # Verificar que estamos en el área del mapa
+                if PANEL_IZQUIERDO <= mouse_pos[0] <= ANCHO - PANEL_DERECHO:
+                    # Guardar zoom anterior
+                    zoom_anterior = self.zoom
+                    
+                    # Ajustar zoom
+                    factor_zoom = 1.1 if evento.y > 0 else 0.9
+                    self.zoom *= factor_zoom
+                    
+                    # Limitar zoom entre 0.1x y 5x
+                    self.zoom = max(0.1, min(5.0, self.zoom))
+                    
+                    # Ajustar cámara para que el zoom sea centrado en el cursor
+                    # Convertir posición del mouse a coordenadas del mundo antes del zoom
+                    x_mapa = mouse_pos[0] - PANEL_IZQUIERDO
+                    mundo_x_antes = x_mapa + self.camara_x
+                    mundo_y_antes = mouse_pos[1] + self.camara_y
+                    
+                    # Después del zoom, ajustar cámara para mantener punto bajo cursor
+                    ratio_zoom = self.zoom / zoom_anterior
+                    self.camara_x = mundo_x_antes - x_mapa / ratio_zoom
+                    self.camara_y = mundo_y_antes - mouse_pos[1] / ratio_zoom
         
         # Actualizar hover en botones
         for boton in self.botones_modo:
@@ -1255,14 +1530,34 @@ class EditorMapaAvanzado:
             # Área del mapa
             area_mapa = self.pantalla.subsurface((PANEL_IZQUIERDO, 0, AREA_MAPA_ANCHO, ALTO))
             
-            # Fondo del mapa
+            # Fondo del mapa con zoom
             if self.imagen_mapa:
-                area_mapa.blit(self.imagen_mapa, (-self.camara_x, -self.camara_y))
+                # Escalar la imagen según el zoom
+                ancho_escalado = int(self.ancho_mapa * self.zoom)
+                alto_escalado = int(self.alto_mapa * self.zoom)
+                imagen_escalada = pygame.transform.scale(self.imagen_mapa, (ancho_escalado, alto_escalado))
+                area_mapa.blit(imagen_escalada, (int(-self.camara_x * self.zoom), int(-self.camara_y * self.zoom)))
             else:
                 area_mapa.fill((30, 30, 40))
             
             # Grid
             self.dibujar_grid(area_mapa)
+            
+            # Muros
+            for muro in self.muros:
+                self.dibujar_muro(self.pantalla, muro)
+            
+            # Muro en proceso
+            if self.dibujando_muro and self.muro_actual:
+                self.dibujar_muro(self.pantalla, self.muro_actual, en_progreso=True)
+            
+            # Portales
+            for portal in self.portales:
+                self.dibujar_portal(self.pantalla, portal)
+            
+            # Portal en proceso
+            if self.creando_portal_origen and self.portal_temp:
+                self.dibujar_portal(self.pantalla, self.portal_temp, en_progreso=True)
             
             # Objetos
             for obj in sorted(self.objetos, key=lambda o: o.z_index):
@@ -1295,8 +1590,18 @@ if __name__ == "__main__":
 ║  ✓ Biblioteca de sprites organizados                  ║
 ║  ✓ Redimensionamiento con esquinas                    ║
 ║  ✓ Sistema de capas                                   ║
-║  ✓ Historial de uso                                   ║
-║  ✓ Exportación automática                             ║
+║  ✓ ZOOM con rueda del mouse                           ║
+║  ✓ PAN/Arrastre con click medio/derecho               ║
+║  ✓ Sistema de Muros Dibujables                        ║
+║  ✓ Sistema de Portales                                ║
+║  ✓ Exportación automática JSON                        ║
+║                                                        ║
+║  Controles:                                            ║
+║  - Rueda Mouse: Zoom                                   ║
+║  - Click Medio/Derecho: Mover cámara                   ║
+║  - G: Guardar | H: Toggle Grid                         ║
+║  - D: Duplicar | DEL: Eliminar                         ║
+║  - ESC: Salir/Cancelar                                 ║
 ╚═══════════════════════════════════════════════════════╝
     """)
     
