@@ -1,0 +1,43 @@
+{
+  "COFRE_PRADERA_01": {
+    "nombre": "Cofre Pradera 1",
+    "requiere_llave": null,
+    "items_contenido": {
+      "POCION_BASICA": 3,
+      "ETER_BASICO": 1
+    },
+    "descripcion": "Un cofre simple sin cerradura"
+  },
+  
+  "COFRE_PRADERA_SECRETO": {
+    "nombre": "Cofre Secreto",
+    "requiere_llave": "LLAVE_BRONCE",
+    "items_contenido": {
+      "POCION_BASICA": 5,
+      "ETER_BASICO": 3,
+      "EXPANSOR_RANURAS": 1
+    },
+    "descripcion": "Un cofre cerrado con llave de bronce"
+  },
+  
+  "COFRE_PUEBLO_01": {
+    "nombre": "Cofre del Pueblo",
+    "requiere_llave": "LLAVE_PLATA",
+    "items_contenido": {
+      "POCION_BASICA": 10,
+      "ETER_BASICO": 5
+    },
+    "descripcion": "Cofre cerrado con llave de plata"
+  },
+  
+  "COFRE_TESORO_ORO": {
+    "nombre": "Cofre de Oro",
+    "requiere_llave": "LLAVE_ORO",
+    "items_contenido": {
+      "EXPANSOR_RANURAS": 2,
+      "POCION_BASICA": 20,
+      "ETER_BASICO": 10
+    },
+    "descripcion": "Un cofre dorado muy valioso"
+  }
+}

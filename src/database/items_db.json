@@ -20,19 +20,11 @@
     "EXPANSOR_RANURAS": {
         "id_item": "EXPANSOR_RANURAS",
         "nombre": "Expansor de Ranuras",
-<<<<<<< HEAD
         "descripcion": "Aumenta permanentemente las ranuras de habilidades de TODOS los héroes en +2 por cada expansor. Efecto automático y acumulable.",
         "tipo": "Especial",
         "efecto": "AUMENTA_RANURAS_HABILIDAD",
         "poder": 2,
         "target": "Global"
-=======
-        "descripcion": "Aumenta permanentemente las ranuras de habilidades de un héroe en +2. Acumulable.",
-        "tipo": "Especial",
-        "efecto": "AUMENTA_RANURAS_HABILIDAD",
-        "poder": 2,
-        "target": "Heroe"
->>>>>>> 2b327ff69cadaac90f9843e6d11438e4f982c9ee
     },
     "LLAVE_BRONCE": {
         "id_item": "LLAVE_BRONCE",

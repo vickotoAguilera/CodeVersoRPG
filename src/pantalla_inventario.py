@@ -274,19 +274,10 @@ class PantallaInventario:
                     item_data = self.lista_items_mostrados[self.item_seleccionado_idx]
                     categoria_actual_nombre = self.categorias[self.categoria_actual]["nombre"]
                     
-<<<<<<< HEAD
-                    # Si estamos en la categoría "Especiales", NO hacer nada con Enter
-                    # Los items especiales aplican su efecto automáticamente al inicio del juego
-                    if categoria_actual_nombre == "Especiales":
-                        print(f"[INFO] Items especiales no se usan manualmente.")
-                        print(f"[INFO] Su efecto es automático y global.")
-                        print(f"[INFO] Presiona 'd' para ver la descripción del item.")
-=======
                     # Si estamos en la categoría "Especiales", NO hacer nada (solo visualización)
                     # Los items especiales aplican su efecto automáticamente
                     if categoria_actual_nombre == "Especiales":
                         print(f"Los items especiales no se usan manualmente. Su efecto es automático y global.")
->>>>>>> 2b327ff69cadaac90f9843e6d11438e4f982c9ee
                         return None
                     
                     # Si estamos en la categoría "Equipos", no hacer nada (solo visualización)

@@ -2,7 +2,8 @@ import pygame
 import os
 import sys 
 import json 
-from src.config import MAPS_PATH, DATABASE_PATH 
+from src.config import MAPS_PATH, DATABASE_PATH
+from src.cofre import Cofre 
 
 class Mapa:
     # --- 1. EL CONSTRUCTOR (¡MODIFICADO!) ---
@@ -51,8 +52,10 @@ class Mapa:
         self.muros = []
         self.portales = [] 
         self.zonas_batalla = []
+        self.cofres = []  # ¡NUEVO! Lista de cofres en el mapa
         
-        self.cargar_datos_mapa()
+        self.cargar_cofres_db()  # ¡NUEVO! Cargar base de datos de cofres PRIMERO
+        self.cargar_datos_mapa()  # Luego cargar datos del mapa (que usa cofres_db)
 
 
     # --- ¡MODIFICADO! "EL MOTOR" PARA LEER JSON ---
@@ -107,10 +110,33 @@ class Mapa:
                 }
                 self.portales.append(nuevo_portal)
         
+        # ¡NUEVO! Cofres
+        if "cofres" in datos:
+            for cofre_data in datos["cofres"]:
+                id_cofre = cofre_data["id_cofre"]
+                x = cofre_data["x"]
+                y = cofre_data["y"]
+                escala = cofre_data.get("escala", 0.5)  # Escala por defecto 0.5
+                
+                # Buscar datos del cofre en la base de datos
+                cofre_info = self.cofres_db.get(id_cofre)
+                if cofre_info:
+                    nuevo_cofre = Cofre(
+                        x, y,
+                        id_cofre,
+                        requiere_llave=cofre_info.get("requiere_llave"),
+                        items_contenido=cofre_info.get("items_contenido", {}),
+                        escala=escala
+                    )
+                    self.cofres.append(nuevo_cofre)
+                else:
+                    print(f"¡ADVERTENCIA! Cofre '{id_cofre}' no encontrado en cofres_db.json")
+        
         print(f"¡Datos del mapa '{nombre_json}' cargados con éxito!")
         print(f"  > Muros: {len(self.muros)}")
         print(f"  > Zonas: {len(self.zonas_batalla)}")
         print(f"  > Portales: {len(self.portales)}")
+        print(f"  > Cofres: {len(self.cofres)}")
 
     # --- (Las funciones 2, 3, 4 y 5: update_camara, draw, chequear_zona y chequear_portales quedan 100% IGUAL) ---
     # --- 2. EL UPDATE ---
@@ -126,6 +152,10 @@ class Mapa:
     def draw(self, pantalla):
         # (esto queda 100% igual)
         pantalla.blit(self.mapa_img, (0 - self.camara_rect.x, 0 - self.camara_rect.y))
+        
+        # ¡NUEVO! Dibujar cofres
+        for cofre in self.cofres:
+            cofre.draw(pantalla, self.camara_rect)
         
         # --- DEBUG: Dibujar cajas (Descomentar para ver) ---
         # for muro in self.muros:
@@ -160,4 +190,43 @@ class Mapa:
         for portal in self.portales:
             if rect_heroe.colliderect(portal["caja"]):
                 return portal 
+        return None
+    
+    # ¡NUEVO! --- 6. CARGAR BASE DE DATOS DE COFRES ---
+    def cargar_cofres_db(self):
+        """Carga la base de datos de cofres desde JSON"""
+        ruta_cofres_db = os.path.join(DATABASE_PATH, "cofres_db.json")
+        
+        try:
+            with open(ruta_cofres_db, 'r', encoding='utf-8') as f:
+                self.cofres_db = json.load(f)
+            print(f"✓ Base de datos de cofres cargada: {len(self.cofres_db)} cofres definidos")
+        except FileNotFoundError:
+            print(f"¡ADVERTENCIA! No se encontró cofres_db.json en: {ruta_cofres_db}")
+            self.cofres_db = {}
+        except json.JSONDecodeError as e:
+            print(f"¡ERROR! Archivo cofres_db.json malformado: {e}")
+            self.cofres_db = {}
+    
+    # ¡NUEVO! --- 7. CHEQUEAR COFRES CERCANOS ---
+    def chequear_cofre_cercano(self, rect_heroe, distancia_interaccion=50):
+        """
+        Verifica si hay un cofre cerca del héroe.
+        
+        Args:
+            rect_heroe: Rectángulo del héroe
+            distancia_interaccion: Distancia máxima para interactuar
+        
+        Returns:
+            Objeto Cofre si hay uno cerca, None si no
+        """
+        for cofre in self.cofres:
+            # Calcular distancia entre héroe y cofre
+            dx = rect_heroe.centerx - cofre.rect.centerx
+            dy = rect_heroe.centery - cofre.rect.centery
+            distancia = (dx**2 + dy**2) ** 0.5
+            
+            if distancia <= distancia_interaccion:
+                return cofre
+        
         return None

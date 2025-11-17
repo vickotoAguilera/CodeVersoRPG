@@ -17,6 +17,7 @@ from src.pantalla_estado import PantallaEstado
 from src.pantalla_equipo import PantallaEquipo
 from src.pantalla_inventario import PantallaInventario
 from src.pantalla_habilidades import PantallaHabilidades  # ¡NUEVO! (Paso 7.18)
+from src.pantalla_recompensa_cofre import PantallaRecompensaCofre  # ¡NUEVO! Sistema de Cofres
 # --- NUEVAS IMPORTACIONES (Paso 53.6) ---
 from src.asset_coords_db import pillar_coords, COORDS_TERRA as COORDS_TERRA_FALLBACK
  
@@ -68,73 +69,6 @@ except FileNotFoundError:
     CURSOR_IMG = None 
 # --- FIN CARGA CURSOR ---
 
-<<<<<<< HEAD
-# === FUNCIÓN PARA APLICAR EFECTOS GLOBALES DE ITEMS ESPECIALES ===
-def aplicar_efectos_items_especiales_globales(grupo_heroes):
-    """
-    Aplica automáticamente los efectos de items especiales a TODOS los héroes del grupo.
-    Los items especiales tienen efecto global y acumulativo.
-    
-    Esta función se llama:
-    1. Al iniciar nueva partida
-    2. Al cargar partida guardada
-    3. Al obtener nuevos items especiales
-    """
-    if not grupo_heroes:
-        return
-    
-    # Obtener inventario especial del líder (es compartido por el grupo)
-    lider = grupo_heroes[0]
-    inventario_especial = lider.inventario_especiales
-    inventario_normal = lider.inventario
-    
-    print("\n=== Aplicando Efectos de Items Especiales Globales ===")
-    
-    # Procesar cada item especial
-    for id_item in inventario_especial:
-        cantidad = inventario_especial.get(id_item, 0)
-        if cantidad > 0:
-            item_data = ITEMS_DB.get(id_item)
-            if item_data and item_data.get("tipo") == "Especial":
-                print(f"  Item: {item_data['nombre']} x{cantidad}")
-                _aplicar_efecto_especial(item_data, cantidad, grupo_heroes)
-    
-    # También verificar items especiales que puedan estar en inventario normal
-    for id_item in inventario_normal:
-        cantidad = inventario_normal.get(id_item, 0)
-        if cantidad > 0:
-            item_data = ITEMS_DB.get(id_item)
-            if item_data and item_data.get("tipo") == "Especial":
-                print(f"  Item: {item_data['nombre']} x{cantidad}")
-                _aplicar_efecto_especial(item_data, cantidad, grupo_heroes)
-    
-    print("=== Efectos Aplicados ===\n")
-
-def _aplicar_efecto_especial(item_data, cantidad, grupo_heroes):
-    """
-    Aplica el efecto de un item especial según su tipo.
-    El efecto se multiplica por la cantidad de items.
-    """
-    efecto = item_data.get("efecto")
-    poder_base = item_data.get("poder", 0)
-    poder_total = poder_base * cantidad
-    
-    if efecto == "AUMENTA_RANURAS_HABILIDAD":
-        # Aplicar a TODOS los héroes
-        for heroe in grupo_heroes:
-            # Calcular ranuras base + bonus de items
-            ranuras_base = 4  # Ranuras iniciales
-            ranuras_totales = ranuras_base + poder_total
-            heroe.ranuras_habilidad_max = ranuras_totales
-            print(f"    → {heroe.nombre_en_juego}: {ranuras_totales} ranuras (+{poder_total})")
-    
-    elif efecto == "LLAVE":
-        # Las llaves solo necesitan existir en el inventario
-        # No requieren aplicación de efecto, solo verificación de ID
-        print(f"    → Llave disponible para uso en interacciones")
-
-=======
->>>>>>> 2b327ff69cadaac90f9843e6d11438e4f982c9ee
 # 3. ¡CREAMOS LOS OBJETOS!
 mi_pantalla_titulo = PantallaTitulo(ANCHO, ALTO, CURSOR_IMG)
 mi_pantalla_slots = None 
@@ -145,6 +79,7 @@ mi_pantalla_estado = None
 mi_pantalla_equipo = None
 mi_pantalla_inventario = None
 mi_pantalla_habilidades = None  # ¡NUEVO! (Paso 7.18)
+mi_pantalla_recompensa = None  # ¡NUEVO! Sistema de Cofres
 # --- FIN OBJETOS ---
 
 # --- Variables de estado del juego (Sin cambios) ---
@@ -162,6 +97,12 @@ SLOT_AUTOGUARDADO = 3
 tiempo_ultimo_autoguardado = None 
 aviso_autoguardado_activo = False
 aviso_autoguardado_inicio = 0
+
+# Variables para popup de cofre cerrado
+popup_cofre_activo = False
+popup_cofre_mensaje = ""
+popup_cofre_inicio = 0
+DURACION_POPUP_COFRE = 3000  # 3 segundos
 
 # 4. Bucle principal del juego
 while True:
@@ -234,6 +175,13 @@ while True:
                         estado_juego = "menu_pausa"
                         mi_menu_pausa = MenuPausa(ANCHO, ALTO, CURSOR_IMG)
                         mi_pantalla_habilidades = None
+                
+                # ¡NUEVO! - Manejo de ESC en pantalla recompensa cofre
+                elif estado_juego == "recompensa_cofre" and mi_pantalla_recompensa:
+                    mi_pantalla_recompensa.update_input(event.key)
+                    if mi_pantalla_recompensa.cerrar:
+                        estado_juego = "mapa"
+                        mi_pantalla_recompensa = None
                 # --- FIN BLOQUE CORREGIDO ---
 
             # --- MANEJO DE TECLA ENTER (Por Estado) ---
@@ -272,6 +220,19 @@ while True:
                                 )
                                 nuevo_heroe.HP_actual = nuevo_heroe.HP_max
                                 nuevo_heroe.MP_actual = nuevo_heroe.MP_max
+                                
+                                # Cargar items iniciales del grupo_inicial.json
+                                if "items_iniciales" in miembro:
+                                    for item_id, cantidad in miembro["items_iniciales"].items():
+                                        nuevo_heroe.inventario[item_id] = cantidad
+                                        print(f"  → {item_id} x{cantidad} agregado al inventario")
+                                
+                                # Cargar items especiales del grupo_inicial.json
+                                if "items_especiales" in miembro:
+                                    for item_id, cantidad in miembro["items_especiales"].items():
+                                        nuevo_heroe.inventario_especiales[item_id] = cantidad
+                                        print(f"  → {item_id} x{cantidad} agregado a items especiales")
+                                
                                 grupo_heroes.append(nuevo_heroe)
                             else:
                                 print(f"¡ADVERTENCIA! Datos incompletos para {miembro['nombre_en_juego']}")
@@ -281,12 +242,6 @@ while True:
                         tiempo_inicio_partida_ticks = tiempo_actual_ticks
                         tiempo_ultimo_autoguardado = tiempo_actual_ticks
                         
-<<<<<<< HEAD
-                        # Aplicar efectos de items especiales automáticamente
-                        aplicar_efectos_items_especiales_globales(grupo_heroes)
-                        
-=======
->>>>>>> 2b327ff69cadaac90f9843e6d11438e4f982c9ee
                     elif accion_titulo == "cargar_juego":
                         print("¡Cambiando a Pantalla de Slots (Modo Cargar)!")
                         estado_juego = "slots_carga"
@@ -396,12 +351,6 @@ while True:
                                 estado_juego = "mapa"
                                 mi_pantalla_slots = None
                                 
-<<<<<<< HEAD
-                                # Aplicar efectos de items especiales automáticamente
-                                aplicar_efectos_items_especiales_globales(grupo_heroes)
-                                
-=======
->>>>>>> 2b327ff69cadaac90f9843e6d11438e4f982c9ee
                             else:
                                 print(f"¡ERROR! El Slot {slot_id} está corrupto o no se pudo leer.")
 
@@ -549,6 +498,44 @@ while True:
                         estado_juego = "menu_pausa"
                         mi_menu_pausa = MenuPausa(ANCHO, ALTO, CURSOR_IMG)
                         mi_pantalla_habilidades = None
+                
+                # ¡NUEVO! Sistema de Cofres
+                # [CANAL 9: MAPA - Interacción con Cofres]
+                elif estado_juego == "mapa" and mi_mapa and grupo_heroes:
+                    heroe_lider = grupo_heroes[0]
+                    cofre_cercano = mi_mapa.chequear_cofre_cercano(heroe_lider.heroe_rect)
+                    
+                    if cofre_cercano:
+                        resultado = cofre_cercano.interactuar(grupo_heroes, ITEMS_DB)
+                        
+                        if resultado["exito"]:
+                            # Cofre abierto exitosamente
+                            print(f"✓ {resultado['mensaje']}")
+                            mi_pantalla_recompensa = PantallaRecompensaCofre(
+                                ANCHO, ALTO,
+                                resultado["items_obtenidos"],
+                                ITEMS_DB
+                            )
+                            estado_juego = "recompensa_cofre"
+                        else:
+                            # No se pudo abrir (sin llave o vacío)
+                            print(f"✗ {resultado['mensaje']}")
+                            
+                            # Si necesita llave, mostrar popup con el nombre de la llave
+                            if "nombre_llave_necesaria" in resultado:
+                                popup_cofre_activo = True
+                                popup_cofre_mensaje = f"{resultado['mensaje']}\nNecesitas: {resultado['nombre_llave_necesaria']}"
+                                popup_cofre_inicio = tiempo_actual_ticks
+                                print(f"  ⚠️ {popup_cofre_mensaje.replace(chr(10), ' ')}")
+
+
+                
+                # [CANAL 10: PANTALLA RECOMPENSA COFRE]
+                elif estado_juego == "recompensa_cofre" and mi_pantalla_recompensa:
+                    accion = mi_pantalla_recompensa.update_input(event.key)
+                    if accion == "cerrar":
+                        estado_juego = "mapa"
+                        mi_pantalla_recompensa = None
             
             # --- MANEJO DE TECLA 'D' (Detalles) ---
             if event.key == pygame.K_d:
@@ -583,6 +570,13 @@ while True:
     # ¡NUEVO! (Paso 7.18)
     elif estado_juego == "pantalla_habilidades":
         if mi_pantalla_habilidades: mi_pantalla_habilidades.update(teclas)
+    # ¡NUEVO! Sistema de Cofres
+    elif estado_juego == "recompensa_cofre":
+        if mi_pantalla_recompensa:
+            mi_pantalla_recompensa.update(teclas)
+            if mi_pantalla_recompensa.cerrar:
+                estado_juego = "mapa"
+                mi_pantalla_recompensa = None
     
     # --- Lógica del MAPA ---
     elif estado_juego == "mapa":
@@ -732,6 +726,19 @@ while True:
         if estado_juego == "pantalla_habilidades" and mi_pantalla_habilidades:
             mi_pantalla_habilidades.draw(PANTALLA)
     # --- FIN BLOQUE CORREGIDO ---
+    
+    # ¡NUEVO! Sistema de Cofres
+    # Pantalla de recompensa de cofre
+    elif estado_juego == "recompensa_cofre":
+        # Dibujar mapa de fondo
+        if mi_mapa and grupo_heroes:
+            heroe_lider = grupo_heroes[0]
+            mi_mapa.draw(PANTALLA)
+            heroe_lider.draw(PANTALLA, mi_mapa.camara_rect)
+        
+        # Dibujar pantalla de recompensa encima
+        if mi_pantalla_recompensa:
+            mi_pantalla_recompensa.draw(PANTALLA)
             
     # --- (Aviso de Autoguardado - Sin cambios) ---
     if aviso_autoguardado_activo:
@@ -749,6 +756,43 @@ while True:
             PANTALLA.blit(aviso_surf, aviso_rect)
         else:
             aviso_autoguardado_activo = False
+    
+    # --- Popup de Cofre Cerrado ---
+    if popup_cofre_activo:
+        tiempo_transcurrido = tiempo_actual_ticks - popup_cofre_inicio
+        if tiempo_transcurrido < DURACION_POPUP_COFRE:
+            # Dividir el mensaje en líneas
+            lineas = popup_cofre_mensaje.split('\n')
+            
+            # Calcular dimensiones del popup
+            altura_linea = 35
+            padding = 20
+            ancho_popup = 400
+            alto_popup = (len(lineas) * altura_linea) + (padding * 2)
+            
+            # Posición centrada en la pantalla
+            x_popup = (ANCHO - ancho_popup) // 2
+            y_popup = ALTO // 3
+            
+            # Dibujar fondo del popup
+            fondo_popup = pygame.Surface((ancho_popup, alto_popup))
+            fondo_popup.set_alpha(220)
+            fondo_popup.fill((50, 0, 0))  # Rojo oscuro
+            PANTALLA.blit(fondo_popup, (x_popup, y_popup))
+            
+            # Dibujar borde
+            pygame.draw.rect(PANTALLA, (255, 50, 50), (x_popup, y_popup, ancho_popup, alto_popup), 3)
+            
+            # Dibujar texto centrado
+            fuente_popup = pygame.font.Font(None, 32)
+            y_actual = y_popup + padding
+            for linea in lineas:
+                texto_surf = fuente_popup.render(linea, True, (255, 255, 255))
+                texto_rect = texto_surf.get_rect(center=(ANCHO // 2, y_actual))
+                PANTALLA.blit(texto_surf, texto_rect)
+                y_actual += altura_linea
+        else:
+            popup_cofre_activo = False
 
     
     # 8. Actualizar la pantalla

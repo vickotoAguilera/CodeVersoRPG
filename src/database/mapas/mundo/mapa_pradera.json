@@ -10,5 +10,19 @@
       "categoria_destino": "ciudades_y_pueblos/pueblo_inicio",
       "pos_destino": [449, 904]
     }
+  ],
+  "cofres": [
+    {
+      "id_cofre": "COFRE_PRADERA_01",
+      "x": 300,
+      "y": 400,
+      "escala": 0.3
+    },
+    {
+      "id_cofre": "COFRE_PRADERA_SECRETO",
+      "x": 800,
+      "y": 300,
+      "escala": 0.3
+    }
   ]
 }
