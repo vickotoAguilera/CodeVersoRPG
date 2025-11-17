@@ -68,6 +68,7 @@ except FileNotFoundError:
     CURSOR_IMG = None 
 # --- FIN CARGA CURSOR ---
 
+<<<<<<< HEAD
 # === FUNCIÓN PARA APLICAR EFECTOS GLOBALES DE ITEMS ESPECIALES ===
 def aplicar_efectos_items_especiales_globales(grupo_heroes):
     """
@@ -132,6 +133,8 @@ def _aplicar_efecto_especial(item_data, cantidad, grupo_heroes):
         # No requieren aplicación de efecto, solo verificación de ID
         print(f"    → Llave disponible para uso en interacciones")
 
+=======
+>>>>>>> 2b327ff69cadaac90f9843e6d11438e4f982c9ee
 # 3. ¡CREAMOS LOS OBJETOS!
 mi_pantalla_titulo = PantallaTitulo(ANCHO, ALTO, CURSOR_IMG)
 mi_pantalla_slots = None 
@@ -278,9 +281,12 @@ while True:
                         tiempo_inicio_partida_ticks = tiempo_actual_ticks
                         tiempo_ultimo_autoguardado = tiempo_actual_ticks
                         
+<<<<<<< HEAD
                         # Aplicar efectos de items especiales automáticamente
                         aplicar_efectos_items_especiales_globales(grupo_heroes)
                         
+=======
+>>>>>>> 2b327ff69cadaac90f9843e6d11438e4f982c9ee
                     elif accion_titulo == "cargar_juego":
                         print("¡Cambiando a Pantalla de Slots (Modo Cargar)!")
                         estado_juego = "slots_carga"
@@ -390,9 +396,12 @@ while True:
                                 estado_juego = "mapa"
                                 mi_pantalla_slots = None
                                 
+<<<<<<< HEAD
                                 # Aplicar efectos de items especiales automáticamente
                                 aplicar_efectos_items_especiales_globales(grupo_heroes)
                                 
+=======
+>>>>>>> 2b327ff69cadaac90f9843e6d11438e4f982c9ee
                             else:
                                 print(f"¡ERROR! El Slot {slot_id} está corrupto o no se pudo leer.")
 

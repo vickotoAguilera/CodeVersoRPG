@@ -37,7 +37,11 @@ class Heroe:
         
         # --- ¡NUEVO! Sistema de Habilidades (Paso 7.14) ---
         self.clase = clase_data['clase']
+<<<<<<< HEAD
         self.ranuras_habilidad_max = clase_data['ranuras_habilidad_max']  # Ranuras actuales (puede aumentar con expansor)
+=======
+        self.ranuras_habilidad_max_base = clase_data['ranuras_habilidad_max']  # Ranuras base
+>>>>>>> 2b327ff69cadaac90f9843e6d11438e4f982c9ee
         self.habilidades_activas = clase_data['habilidades_activas'].copy()
         self.inventario_habilidades = clase_data['inventario_habilidades'].copy()
 

@@ -330,7 +330,75 @@ class Batalla:
                 self.monstruos_ui_lista.clear() 
                 
             return None 
+<<<<<<< HEAD
         # --- FIN DE LA MODIFICACIÓN (Paso 4.4)! ---
+=======
+        # --- ¡INICIO DE LA MODIFICACIÓN (Paso 4.4)! ---
+        if not monstruos_vivos:
+            # Si ya estamos en el estado VICTORIA, no hagas nada, solo espera.
+            if self.estado_batalla == "VICTORIA":
+                return None 
+                
+            if self.estado_batalla != "FIN_BATALLA":
+                print("¡Batalla Ganada! Calculando recompensas...")
+                
+                # 1. Almacenar stats ANTIGUOS (para la pantalla de "Level Up")
+                stats_heroes_antes = {}
+                for heroe in heroes_vivos:
+                    # Usamos copy.copy() para una copia superficial de las stats
+                    stats_heroes_antes[heroe.nombre_en_juego] = {
+                        "nivel": heroe.nivel,
+                        "hp_max": heroe.HP_max,
+                        "mp_max": heroe.MP_max,
+                        "fuerza": heroe.fuerza,
+                        "defensa": heroe.defensa,
+                        "inteligencia": heroe.inteligencia,
+                        "espiritu": heroe.espiritu
+                    }
+
+                # 2. Calcular recompensas totales
+                total_xp_ganada = 0
+                total_oro_ganado = 0
+                for monstruo in self.monstruos_en_batalla:
+                    total_xp_ganada += monstruo.xp_otorgada
+                    total_oro_ganado += monstruo.oro_otorgado
+                print(f"Recompensas Totales: {total_xp_ganada} XP, {total_oro_ganado} Oro!")
+
+                # 3. Distribuir recompensas y detectar "Level Ups"
+                heroes_que_subieron_stats = []
+                
+                if heroes_vivos: 
+                    for heroe in heroes_vivos:
+                        # heroe.ganar_experiencia ahora devuelve True si subió de nivel
+                        subio_de_nivel = heroe.ganar_experiencia(total_xp_ganada)
+                        
+                        if subio_de_nivel:
+                            print(f"¡{heroe.nombre_en_juego} ha subido de nivel y será mostrado!")
+                            # Guardamos el objeto héroe (con stats NUEVAS)
+                            # y el diccionario de stats ANTIGUAS
+                            heroes_que_subieron_stats.append({
+                                "heroe": heroe,
+                                "stats_antes": stats_heroes_antes[heroe.nombre_en_juego]
+                            })
+                    
+                    # Asignar el oro al líder
+                    heroes_vivos[0].oro += total_oro_ganado
+                    print(f"Oro añadido al líder! (Total: {heroes_vivos[0].oro})")
+                
+                # 4. Cambiar al estado de VICTORIA y crear la pantalla
+                self.estado_batalla = "VICTORIA" # ¡NUEVO ESTADO!
+                self.pantalla_victoria_activa = PantallaVictoria(
+                    self.ANCHO, self.ALTO, self.cursor_img,
+                    self.grupo_heroes, 
+                    heroes_que_subieron_stats, # ¡Enviamos la lista de héroes que subieron!
+                    total_xp_ganada,
+                    total_oro_ganado
+                )
+                self.monstruos_ui_lista.clear() 
+                
+            return None 
+        # --- ¡FIN DE LA MODIFICACIÓN (Paso 4.4)! ---
+>>>>>>> 2b327ff69cadaac90f9843e6d11438e4f982c9ee
 
         if not heroes_vivos: 
             if self.estado_batalla != "FIN_BATALLA":

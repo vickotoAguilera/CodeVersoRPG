@@ -212,6 +212,7 @@ main.py (funciones guardar/cargar)
 
 ---
 
+<<<<<<< HEAD
 ## 🗺️ HOJA DE RUTA FUTURA (Visión General)
 
 Una vez completada la Fase 7, el plan de desarrollo continúa con las siguientes fases:
@@ -326,6 +327,8 @@ PENDIENTE (42%):
 
 ---
 
+=======
+>>>>>>> 2b327ff69cadaac90f9843e6d11438e4f982c9ee
 ## 📊 PROGRESO GENERAL
 
 **Fase Actual:** Fase 7.5 - Pulido y Testing ⚙️  

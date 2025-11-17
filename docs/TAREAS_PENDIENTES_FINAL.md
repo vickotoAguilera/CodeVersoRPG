@@ -176,6 +176,7 @@ main.py (funciones guardar/cargar)
 
 ---
 
+<<<<<<< HEAD
 ## 🗺️ HOJA DE RUTA FUTURA (Visión General)
 
 ### Fase 8: Gestión de Grupo
@@ -295,6 +296,8 @@ settings.json (guardar configuración de controles)
 
 ---
 
+=======
+>>>>>>> 2b327ff69cadaac90f9843e6d11438e4f982c9ee
 ## 📝 NOTAS IMPORTANTES
 
 ### Chilenismos Eliminados
