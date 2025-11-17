@@ -4,19 +4,7 @@ import sys
 
 errors = []
 files_to_check = [
-    "main.py",
-    "src/batalla.py",
-    "src/heroe.py",
-    "src/mapa.py",
-    "src/cofre.py",
-    "src/pantalla_recompensa_cofre.py",
-    "src/pantalla_habilidades.py",
-    "src/pantalla_inventario.py",
-    "src/pantalla_equipo.py",
-    "src/pantalla_estado.py",
-    "src/pantalla_titulo.py",
-    "src/pantalla_slots.py",
-    "src/menu_pausa.py"
+    "sprite_sheet_editor.py"
 ]
 
 print("Verificando sintaxis de archivos Python...")
