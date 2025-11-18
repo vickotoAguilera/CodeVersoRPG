@@ -304,6 +304,13 @@ class EditorMapaAvanzado:
         self.num_monstruos = 1
         self.fondo_batalla_actual = None
         
+        # ¡NUEVO! Sistema de Drag & Drop
+        self.sprite_siendo_arrastrado = None  # SpriteInfo del sprite siendo arrastrado
+        self.tipo_sprite_arrastrado = None  # "heroe" o "monstruo"
+        self.offset_drag_x = 0
+        self.offset_drag_y = 0
+        self.arrastrando_desde_panel = False
+        
         # Biblioteca de sprites
         self.biblioteca_sprites: Dict[str, List[SpriteInfo]] = {}
         self.cargar_biblioteca_sprites()
@@ -552,16 +559,15 @@ class EditorMapaAvanzado:
                 # Cargar imagen original
                 img_original = pygame.image.load(str(ruta_imagen)).convert()
                 
-                # USAR DIMENSIONES DEL JUEGO (no la imagen original)
-                self.ancho_mapa = self.ANCHO_JUEGO
-                self.alto_mapa = self.ALTO_JUEGO
+                # Usar dimensiones originales del mapa
+                self.ancho_mapa = img_original.get_width()
+                self.alto_mapa = img_original.get_height()
                 
-                # Escalar el mapa al tamaño del juego
-                self.imagen_mapa = pygame.transform.scale(img_original, (self.ANCHO_JUEGO, self.ALTO_JUEGO))
+                # No escalar, usar imagen original
+                self.imagen_mapa = img_original
                 
                 print(f"✓ Mapa cargado: {nombre_mapa}")
-                print(f"  Original: {img_original.get_width()}x{img_original.get_height()}")
-                print(f"  En juego: {self.ANCHO_JUEGO}x{self.ALTO_JUEGO}")
+                print(f"  Dimensiones: {self.ancho_mapa}x{self.alto_mapa}")
             else:
                 self.imagen_mapa = None
                 print(f"⚠️ No se encontró imagen: {ruta_imagen}")
@@ -572,16 +578,15 @@ class EditorMapaAvanzado:
                 if ruta_imagen.exists():
                     img_original = pygame.image.load(str(ruta_imagen)).convert()
                     
-                    # USAR DIMENSIONES DEL JUEGO
-                    self.ancho_mapa = self.ANCHO_JUEGO
-                    self.alto_mapa = self.ALTO_JUEGO
+                    # Usar dimensiones originales
+                    self.ancho_mapa = img_original.get_width()
+                    self.alto_mapa = img_original.get_height()
                     
-                    # Escalar al tamaño del juego
-                    self.imagen_mapa = pygame.transform.scale(img_original, (self.ANCHO_JUEGO, self.ALTO_JUEGO))
+                    # No escalar, usar imagen original
+                    self.imagen_mapa = img_original
                     
                     print(f"✓ Mapa cargado: {nombre_mapa}")
-                    print(f"  Original: {img_original.get_width()}x{img_original.get_height()}")
-                    print(f"  En juego: {self.ANCHO_JUEGO}x{self.ALTO_JUEGO}")
+                    print(f"  Dimensiones: {self.ancho_mapa}x{self.alto_mapa}")
                     break
             else:
                 self.imagen_mapa = None
@@ -728,6 +733,12 @@ class EditorMapaAvanzado:
         """Abre diálogo para seleccionar y añadir un nuevo sprite"""
         import shutil
         
+        # ¡NUEVO! Normalizar categoría para evitar confusiones
+        categoria_normalizada = categoria.lower().strip()
+        print(f"🔍 DEBUG explorar_y_añadir_sprite:")
+        print(f"   Categoría recibida: '{categoria}'")
+        print(f"   Categoría normalizada: '{categoria_normalizada}'")
+        
         # Crear ventana tkinter oculta para el diálogo
         root = tk.Tk()
         root.withdraw()
@@ -742,22 +753,27 @@ class EditorMapaAvanzado:
         root.destroy()
         
         if not archivo:
+            print("   ✗ Diálogo cancelado")
             return  # Cancelado
         
         archivo_path = Path(archivo)
+        print(f"   Archivo seleccionado: {archivo_path.name}")
         
         # Determinar carpeta destino según categoría
         carpetas_destino = {
             "cofres": Path("assets/sprites/cofres y demas"),
             "npcs": Path("assets/sprites/npcs"),
-            "héroes": Path("assets/sprites/heroes/batalla"),
+            "heroes": Path("assets/sprites/heroes/batalla"),
             "monstruos": Path("assets/sprites/monstruos")
         }
         
-        carpeta_destino = carpetas_destino.get(categoria)
+        carpeta_destino = carpetas_destino.get(categoria_normalizada)
         if not carpeta_destino:
             self.mostrar_mensaje(f"❌ Categoría no válida: {categoria}")
+            print(f"   ❌ Categorías disponibles: {list(carpetas_destino.keys())}")
             return
+        
+        print(f"   Carpeta destino: {carpeta_destino}")
         
         # Crear carpeta si no existe
         carpeta_destino.mkdir(parents=True, exist_ok=True)
@@ -871,6 +887,8 @@ class EditorMapaAvanzado:
             self.mostrar_mensaje(f"✓ Configuración cargada: {len(config['sprites'])} sprites")
         except Exception as e:
             self.mostrar_mensaje(f"❌ Error cargando: {e}")
+    
+
     
     def eliminar_objeto(self, objeto):
         """Elimina un objeto"""
@@ -989,8 +1007,7 @@ class EditorMapaAvanzado:
                 "zona_batalla": (255, 50, 50),
                 "heroe_mapa": (50, 255, 50),
                 "heroe_batalla": (50, 200, 50),
-                "monstruo": (200, 50, 200),
-                "monstruo_batalla": (255, 50, 150),  # Rosa/magenta para monstruos de batalla
+                "monstruo_batalla": (255, 50, 150),
                 "muro": (100, 100, 100),
                 "portal": (255, 200, 0)
             }
@@ -1282,62 +1299,62 @@ class EditorMapaAvanzado:
         
         y += 45
         
-        # Sección Héroes
-        texto_heroes = self.fuente_pequena.render("Héroes de batalla:", True, (50, 255, 50))
+        # Sección Héroes - ARRASTRABLES
+        texto_heroes = self.fuente_pequena.render("Héroes (arrastra al mapa):", True, (50, 255, 50))
         surface.blit(texto_heroes, (x, y))
         y += 25
         
         heroes_batalla = [s for s in self.biblioteca_sprites.get("héroes", []) if "batalla" in s.ruta_imagen.lower()]
         for i, sprite in enumerate(heroes_batalla[:3]):
             rect_sprite = pygame.Rect(x, y, PANEL_IZQUIERDO - 20, 30)
-            color = COLOR_BOTON_HOVER if rect_sprite.collidepoint(pygame.mouse.get_pos()) else COLOR_BOTON
+            
+            # Highlight si es el sprite siendo arrastrado
+            if self.sprite_siendo_arrastrado == sprite:
+                color = (100, 255, 150)
+            else:
+                color = COLOR_BOTON_HOVER if rect_sprite.collidepoint(pygame.mouse.get_pos()) else COLOR_BOTON
+            
             pygame.draw.rect(surface, color, rect_sprite, border_radius=3)
             
             texto_nombre = self.fuente_pequena.render(sprite.id[:20], True, COLOR_TEXTO)
             surface.blit(texto_nombre, (x + 5, y + 8))
             
+            # Icono de arrastre
+            icono = self.fuente_pequena.render("⋮⋮", True, COLOR_TEXTO_SEC)
+            surface.blit(icono, (x + PANEL_IZQUIERDO - 35, y + 8))
+            
             y += 35
         
-        y += 10
-        
-        # Sección Monstruos
-        texto_monstruos = self.fuente_pequena.render("Monstruos disponibles:", True, (255, 100, 100))
+            y += 10        # Sección Monstruos - ARRASTRABLES
+        texto_monstruos = self.fuente_pequena.render("Monstruos (arrastra al mapa):", True, (255, 100, 100))
         surface.blit(texto_monstruos, (x, y))
         y += 25
         
-        # Botones de actualizar y explorar
-        ancho_boton_mons = (PANEL_IZQUIERDO - 30) // 2
-        rect_actualizar_mons = pygame.Rect(x, y, ancho_boton_mons, 25)
-        color_act = COLOR_BOTON_HOVER if rect_actualizar_mons.collidepoint(pygame.mouse.get_pos()) else (50, 150, 50)
-        pygame.draw.rect(surface, color_act, rect_actualizar_mons, border_radius=3)
-        texto_act = self.fuente_pequena.render("↻ Actualizar", True, COLOR_TEXTO)
-        surface.blit(texto_act, (x + 5, y + 5))
-        
-        rect_explorar_mons = pygame.Rect(x + ancho_boton_mons + 10, y, ancho_boton_mons, 25)
-        color_exp = COLOR_BOTON_HOVER if rect_explorar_mons.collidepoint(pygame.mouse.get_pos()) else (50, 100, 200)
-        pygame.draw.rect(surface, color_exp, rect_explorar_mons, border_radius=3)
-        texto_exp = self.fuente_pequena.render("+ Añadir", True, COLOR_TEXTO)
-        surface.blit(texto_exp, (x + ancho_boton_mons + 15, y + 5))
-        
-        y += 30
-        
-        # Mostrar TODOS los monstruos (con scroll si es necesario)
+        # Mostrar TODOS los monstruos arrastrables
         monstruos = self.biblioteca_sprites.get("monstruos", [])
         if len(monstruos) == 0:
             texto_vacio = self.fuente_pequena.render("(No hay monstruos)", True, COLOR_TEXTO_SEC)
             surface.blit(texto_vacio, (x + 5, y))
-            texto_info = self.fuente_pequena.render("Click en + Añadir", True, COLOR_TEXTO_SEC)
-            surface.blit(texto_info, (x + 5, y + 20))
         else:
-            # Mostrar hasta 8 monstruos (más que antes)
-            for i, sprite in enumerate(monstruos[:8]):
+            # Mostrar hasta 10 monstruos arrastrables
+            for i, sprite in enumerate(monstruos[:10]):
                 rect_sprite = pygame.Rect(x, y, PANEL_IZQUIERDO - 20, 30)
-                color = COLOR_BOTON_HOVER if rect_sprite.collidepoint(pygame.mouse.get_pos()) else COLOR_BOTON
+                
+                # Highlight si es el sprite siendo arrastrado
+                if self.sprite_siendo_arrastrado == sprite:
+                    color = (255, 150, 150)
+                else:
+                    color = COLOR_BOTON_HOVER if rect_sprite.collidepoint(pygame.mouse.get_pos()) else COLOR_BOTON
+                
                 pygame.draw.rect(surface, color, rect_sprite, border_radius=3)
                 
                 # Nombre del monstruo
                 texto_nombre = self.fuente_pequena.render(sprite.id[:20], True, COLOR_TEXTO)
                 surface.blit(texto_nombre, (x + 5, y + 8))
+                
+                # Icono de arrastre
+                icono = self.fuente_pequena.render("⋮⋮", True, COLOR_TEXTO_SEC)
+                surface.blit(icono, (x + PANEL_IZQUIERDO - 35, y + 8))
                 
                 y += 35
     
@@ -1589,55 +1606,40 @@ class EditorMapaAvanzado:
                         self.mostrar_mensaje(f"✓ Fondo: {fondo['nombre']}")
                         return True
             
-            # Héroes
+            # Héroes (arrastrables) - POSICIÓN AJUSTADA
             heroes_batalla = [s for s in self.biblioteca_sprites.get("héroes", []) if "batalla" in s.ruta_imagen.lower()]
-            y_heroes_lista = 480  # Ajustado por los botones nuevos
+            y_heroes_lista = 490
             for i, sprite in enumerate(heroes_batalla[:3]):
                 rect_sprite = pygame.Rect(10, y_heroes_lista + i * 35, PANEL_IZQUIERDO - 20, 30)
                 if rect_sprite.collidepoint(mouse_pos):
-                    # Verificar que hay un fondo seleccionado
                     if not self.fondo_batalla_actual:
                         self.mostrar_mensaje("⚠️ Selecciona un fondo primero")
                         return True
-                    self.crear_objeto_batalla(sprite, "heroe")
+                    # Iniciar drag & drop
+                    self.sprite_siendo_arrastrado = sprite
+                    self.tipo_sprite_arrastrado = "heroe"
+                    self.arrastrando_desde_panel = True
+                    self.offset_drag_x = mouse_pos[0]
+                    self.offset_drag_y = mouse_pos[1]
+                    print(f"🎯 Arrastrando héroe: {sprite.id}")
                     return True
             
-            # Botones actualizar/explorar monstruos
-            ancho_boton_mons = (PANEL_IZQUIERDO - 30) // 2
-            y_botones_mons = 600  # Ajustado
-            
-            rect_actualizar_mons = pygame.Rect(10, y_botones_mons, ancho_boton_mons, 25)
-            if rect_actualizar_mons.collidepoint(mouse_pos):
-                self.cargar_biblioteca_sprites()
-                self.mostrar_mensaje("✓ Lista de monstruos actualizada")
-                return True
-            
-            rect_explorar_mons = pygame.Rect(10 + ancho_boton_mons + 10, y_botones_mons, ancho_boton_mons, 25)
-            if rect_explorar_mons.collidepoint(mouse_pos):
-                self.explorar_y_añadir_sprite("monstruos")
-                return True
-            
-            # Monstruos
+            # Monstruos (arrastrables) - POSICIÓN AJUSTADA
             monstruos = self.biblioteca_sprites.get("monstruos", [])
-            print(f"🔍 DEBUG: Procesando clicks en monstruos. Total: {len(monstruos)}")
-            
-            # Verificar que hay un fondo seleccionado primero
-            if not self.fondo_batalla_actual:
-                print("⚠️ No hay fondo de batalla seleccionado")
-            
-            y_mons_lista = 635  # Ajustado por los botones
-            for i, sprite in enumerate(monstruos[:8]):  # Hasta 8 monstruos
+            y_mons_lista = 600
+            for i, sprite in enumerate(monstruos[:10]):
                 rect_sprite = pygame.Rect(10, y_mons_lista + i * 35, PANEL_IZQUIERDO - 20, 30)
                 if rect_sprite.collidepoint(mouse_pos):
-                    # Verificar que hay un fondo seleccionado
                     if not self.fondo_batalla_actual:
                         self.mostrar_mensaje("⚠️ Selecciona un fondo primero")
                         return True
-                    
-                    # Crear objeto de monstruo en modo batalla
-                    print(f"🖱️ DEBUG: Click en monstruo {i}: {sprite.id}")
-                    print(f"   Ruta: {sprite.ruta_imagen}")
-                    self.crear_objeto_batalla(sprite, "monstruo")
+                    # Iniciar drag & drop
+                    self.sprite_siendo_arrastrado = sprite
+                    self.tipo_sprite_arrastrado = "monstruo"
+                    self.arrastrando_desde_panel = True
+                    self.offset_drag_x = mouse_pos[0]
+                    self.offset_drag_y = mouse_pos[1]
+                    print(f"🎯 Arrastrando monstruo: {sprite.id}")
                     return True
         
         # Verificar si se clickeó un sprite para añadir
@@ -1669,11 +1671,6 @@ class EditorMapaAvanzado:
     
     def crear_objeto_batalla(self, sprite_info, tipo_batalla):
         """Crea un objeto específico para modo batalla (héroe o monstruo)"""
-        print(f"🎯 DEBUG crear_objeto_batalla:")
-        print(f"   tipo_batalla={tipo_batalla}")
-        print(f"   sprite.id={sprite_info.id}")
-        print(f"   sprite.ruta={sprite_info.ruta_imagen}")
-        
         # Determinar el tipo correcto EXACTO
         if tipo_batalla == "heroe":
             tipo_obj = "heroe_batalla"
@@ -1686,7 +1683,7 @@ class EditorMapaAvanzado:
             offset_x = 150
             pos_y = 300 - 200  # 100px encima de los héroes
         else:
-            print(f"❌ ERROR: tipo_batalla desconocido: {tipo_batalla}")
+            print(f"❌ ERROR: tipo_batalla desconocido: '{tipo_batalla}'")
             return
         
         # Generar ID único
@@ -1696,6 +1693,7 @@ class EditorMapaAvanzado:
         # Posición según cantidad de objetos del mismo tipo
         pos_x = pos_x_base + (num - 1) * offset_x
         
+        # Crear objeto inmediatamente (sin delays para 60 FPS)
         obj = ObjetoMapa(
             tipo=tipo_obj,
             id=nuevo_id,
@@ -1711,12 +1709,46 @@ class EditorMapaAvanzado:
         self.objeto_seleccionado = obj
         self.cambios_sin_guardar = True
         
-        print(f"✓ Objeto creado: tipo={tipo_obj}, id={nuevo_id}")
-        print(f"   Posición: ({pos_x}, {pos_y})")
-        print(f"   Total objetos: {len(self.objetos)}")
-        print(f"   Total {tipo_obj}: {len([o for o in self.objetos if o.tipo == tipo_obj])}")
+        print(f"✓ {tipo_obj} creado: {nuevo_id} en ({pos_x}, {pos_y})")
+        self.mostrar_mensaje(f"✓ {sprite_info.id} añadido")
+    
+    def crear_objeto_batalla_en_posicion(self, sprite_info, tipo_batalla, pos_x, pos_y):
+        """Crea un objeto en una posición específica (para drag & drop)"""
+        # Determinar el tipo correcto
+        if tipo_batalla == "heroe":
+            tipo_obj = "heroe_batalla"
+        elif tipo_batalla == "monstruo":
+            tipo_obj = "monstruo_batalla"
+        else:
+            print(f"❌ ERROR: tipo_batalla desconocido: '{tipo_batalla}'")
+            return
         
-        self.mostrar_mensaje(f"✓ Añadido: {sprite_info.id} ({tipo_batalla})")
+        # Generar ID único
+        num = len([o for o in self.objetos if o.tipo == tipo_obj]) + 1
+        nuevo_id = f"{sprite_info.id}_{num}"
+        
+        # Ajustar posición para centrar el sprite en el cursor
+        pos_x_centrado = pos_x - (sprite_info.ancho_default // 2)
+        pos_y_centrado = pos_y - (sprite_info.alto_default // 2)
+        
+        # Crear objeto en la posición del drop
+        obj = ObjetoMapa(
+            tipo=tipo_obj,
+            id=nuevo_id,
+            x=pos_x_centrado,
+            y=pos_y_centrado,
+            ancho=sprite_info.ancho_default,
+            alto=sprite_info.alto_default,
+            z_index=len(self.objetos),
+            sprite_ref=sprite_info.ruta_imagen
+        )
+        
+        self.objetos.append(obj)
+        self.objeto_seleccionado = obj
+        self.cambios_sin_guardar = True
+        
+        print(f"✓ {tipo_obj} creado en ({pos_x_centrado}, {pos_y_centrado})")
+        self.mostrar_mensaje(f"✓ {sprite_info.id} añadido")
     
     def manejar_eventos(self):
         """Maneja eventos del pygame"""
@@ -1782,12 +1814,13 @@ class EditorMapaAvanzado:
                         # En modo batalla, permitir mover objetos de batalla
                         if self.modo_editor == ModoEditor.VISTA_BATALLA:
                             # Convertir a coordenadas relativas al área de batalla
+                            y_mapa = mouse_pos[1]
                             obj = None
                             for o in reversed(self.objetos):
                                 if o.tipo in ["heroe_batalla", "monstruo_batalla"]:
                                     # Verificar si el click está en este objeto
                                     if (x_mapa >= o.x and x_mapa <= o.x + o.ancho and
-                                        mouse_pos[1] >= o.y and mouse_pos[1] <= o.y + o.alto):
+                                        y_mapa >= o.y and y_mapa <= o.y + o.alto):
                                         obj = o
                                         break
                             
@@ -1795,7 +1828,7 @@ class EditorMapaAvanzado:
                                 self.objeto_seleccionado = obj
                                 
                                 # Verificar si se clickeó un handle
-                                handle = obj.get_handle_en_punto(x_mapa, mouse_pos[1], 10)
+                                handle = obj.get_handle_en_punto(x_mapa, y_mapa, 10)
                                 
                                 if handle:
                                     obj.redimensionando = True
@@ -1803,7 +1836,7 @@ class EditorMapaAvanzado:
                                 else:
                                     obj.arrastrando = True
                                     obj.offset_x = obj.x - x_mapa
-                                    obj.offset_y = obj.y - mouse_pos[1]
+                                    obj.offset_y = obj.y - y_mapa
                             else:
                                 self.objeto_seleccionado = None
                         
@@ -1863,6 +1896,31 @@ class EditorMapaAvanzado:
             
             elif evento.type == pygame.MOUSEBUTTONUP:
                 if evento.button == 1:
+                    # ¡NUEVO! Soltar sprite arrastrado desde panel
+                    if self.arrastrando_desde_panel and self.sprite_siendo_arrastrado:
+                        # Verificar si soltamos en área del mapa (modo batalla)
+                        if (self.modo_editor == ModoEditor.VISTA_BATALLA and 
+                            PANEL_IZQUIERDO <= mouse_pos[0] <= ANCHO - PANEL_DERECHO):
+                            # Convertir posición del mouse a coordenadas del área de batalla
+                            x_drop = mouse_pos[0] - PANEL_IZQUIERDO
+                            y_drop = mouse_pos[1]
+                            
+                            # Crear sprite en esa posición
+                            self.crear_objeto_batalla_en_posicion(
+                                self.sprite_siendo_arrastrado, 
+                                self.tipo_sprite_arrastrado,
+                                x_drop, 
+                                y_drop
+                            )
+                            print(f"✓ Sprite soltado en ({x_drop}, {y_drop})")
+                        else:
+                            print("⚠️ Sprite soltado fuera del área válida")
+                        
+                        # Resetear estado de drag
+                        self.sprite_siendo_arrastrado = None
+                        self.tipo_sprite_arrastrado = None
+                        self.arrastrando_desde_panel = False
+                    
                     # Soltar objetos
                     for obj in self.objetos:
                         if obj.arrastrando or obj.redimensionando:
@@ -1932,9 +1990,9 @@ class EditorMapaAvanzado:
                         # Ajustar movimiento de cámara según zoom
                         self.camara_x -= dx / self.zoom
                         self.camara_y -= dy / self.zoom
-                        # Permitir desplazamiento libre sin límites estrictos
-                        self.camara_x = max(-AREA_MAPA_ANCHO / self.zoom, min(self.camara_x, max(self.ancho_mapa, AREA_MAPA_ANCHO / self.zoom)))
-                        self.camara_y = max(-ALTO / self.zoom, min(self.camara_y, max(self.alto_mapa, ALTO / self.zoom)))
+                        # Limitar cámara dentro de los límites del mapa
+                        self.camara_x = max(0, min(self.camara_x, max(0, self.ancho_mapa - AREA_MAPA_ANCHO / self.zoom)))
+                        self.camara_y = max(0, min(self.camara_y, max(0, self.alto_mapa - ALTO / self.zoom)))
                         self.mouse_anterior = mouse_pos
                     
                     # Actualizar hover solo si no estamos arrastrando
@@ -1957,8 +2015,8 @@ class EditorMapaAvanzado:
                     dy = mouse_pos[1] - self.mouse_anterior[1]
                     self.camara_x -= dx / self.zoom
                     self.camara_y -= dy / self.zoom
-                    self.camara_x = max(-AREA_MAPA_ANCHO / self.zoom, min(self.camara_x, max(self.ancho_mapa, AREA_MAPA_ANCHO / self.zoom)))
-                    self.camara_y = max(-ALTO / self.zoom, min(self.camara_y, max(self.alto_mapa, ALTO / self.zoom)))
+                    self.camara_x = max(0, min(self.camara_x, max(0, self.ancho_mapa - AREA_MAPA_ANCHO / self.zoom)))
+                    self.camara_y = max(0, min(self.camara_y, max(0, self.alto_mapa - ALTO / self.zoom)))
                     self.mouse_anterior = mouse_pos
             
             elif evento.type == pygame.MOUSEWHEEL:
@@ -1978,13 +2036,12 @@ class EditorMapaAvanzado:
                     # Ajustar cámara para que el zoom sea centrado en el cursor
                     # Convertir posición del mouse a coordenadas del mundo antes del zoom
                     x_mapa = mouse_pos[0] - PANEL_IZQUIERDO
-                    mundo_x_antes = x_mapa + self.camara_x
-                    mundo_y_antes = mouse_pos[1] + self.camara_y
+                    mundo_x_antes = (x_mapa / self.zoom) + self.camara_x
+                    mundo_y_antes = (mouse_pos[1] / self.zoom) + self.camara_y
                     
                     # Después del zoom, ajustar cámara para mantener punto bajo cursor
-                    ratio_zoom = self.zoom / zoom_anterior
-                    self.camara_x = mundo_x_antes - x_mapa / ratio_zoom
-                    self.camara_y = mundo_y_antes - mouse_pos[1] / ratio_zoom
+                    self.camara_x = mundo_x_antes - (x_mapa / self.zoom)
+                    self.camara_y = mundo_y_antes - (mouse_pos[1] / self.zoom)
         
         # Actualizar hover en botones
         for boton in self.botones_modo:
@@ -2049,14 +2106,19 @@ class EditorMapaAvanzado:
         info_texto = self.fuente_pequena.render(f"Área batalla: {AREA_MAPA_ANCHO}x{area_batalla_alto} | UI: {AREA_MAPA_ANCHO}x{ui_alto}", True, (180, 180, 200))
         surface.blit(info_texto, (10, 10))
         
-        # Indicadores de guía
+        # Indicadores de guía mejorados
         if len([o for o in self.objetos if o.tipo == "heroe_batalla"]) == 0:
-            texto_guia = self.fuente.render("← Click en héroe del panel para agregar", True, (100, 255, 100))
-            surface.blit(texto_guia, (100, 350))
+            texto_guia = self.fuente.render("← ARRASTRA héroes desde el panel", True, (100, 255, 100))
+            surface.blit(texto_guia, (80, 350))
         
         if len([o for o in self.objetos if o.tipo == "monstruo_batalla"]) == 0:
-            texto_guia = self.fuente.render("Click en monstruo del panel para agregar →", True, (255, 100, 100))
-            surface.blit(texto_guia, (AREA_MAPA_ANCHO - 400, 300))
+            texto_guia = self.fuente.render("ARRASTRA monstruos desde el panel →", True, (255, 100, 100))
+            surface.blit(texto_guia, (AREA_MAPA_ANCHO - 420, 300))
+        
+        # Instrucción de drag & drop si hay sprite siendo arrastrado
+        if self.arrastrando_desde_panel:
+            texto_drag = self.fuente.render("⬇ Suelta aquí para colocar ⬇", True, (255, 255, 0))
+            surface.blit(texto_drag, (AREA_MAPA_ANCHO // 2 - texto_drag.get_width() // 2, 50))
     
     def dibujar_objeto_batalla(self, surface, obj):
         """Dibuja un objeto en modo batalla (sin zoom)"""
@@ -2130,6 +2192,46 @@ class EditorMapaAvanzado:
             pygame.draw.circle(surface, COLOR_RESIZE_HANDLE, (int(hx), int(hy)), tam_handle)
             pygame.draw.circle(surface, COLOR_TEXTO, (int(hx), int(hy)), tam_handle, 2)
     
+    def dibujar_sprite_fantasma(self, surface, mouse_pos):
+        """Dibuja un sprite semitransparente siguiendo el cursor durante drag & drop"""
+        if not self.sprite_siendo_arrastrado:
+            return
+        
+        sprite = self.sprite_siendo_arrastrado
+        
+        # Calcular posición centrada en el cursor
+        x = mouse_pos[0] - (sprite.ancho_default // 2)
+        y = mouse_pos[1] - (sprite.alto_default // 2)
+        
+        # Intentar cargar imagen del sprite
+        if sprite.ruta_imagen in self.imagenes_sprites:
+            img = self.imagenes_sprites[sprite.ruta_imagen]
+            img_escalada = pygame.transform.scale(img, (sprite.ancho_default, sprite.alto_default))
+            
+            # Hacer semitransparente
+            img_fantasma = img_escalada.copy()
+            img_fantasma.set_alpha(150)
+            surface.blit(img_fantasma, (x, y))
+        else:
+            # Rectángulo semitransparente como fallback
+            color = (50, 255, 50) if self.tipo_sprite_arrastrado == "heroe" else (255, 50, 150)
+            rect_fantasma = pygame.Surface((sprite.ancho_default, sprite.alto_default))
+            rect_fantasma.set_alpha(150)
+            rect_fantasma.fill(color)
+            surface.blit(rect_fantasma, (x, y))
+        
+        # Borde del sprite fantasma
+        rect = pygame.Rect(x, y, sprite.ancho_default, sprite.alto_default)
+        pygame.draw.rect(surface, (255, 255, 255), rect, 2)
+        
+        # Texto con nombre del sprite
+        texto = self.fuente_pequena.render(sprite.id[:15], True, COLOR_TEXTO)
+        fondo = pygame.Surface((texto.get_width() + 10, texto.get_height() + 4))
+        fondo.set_alpha(200)
+        fondo.fill((0, 0, 0))
+        surface.blit(fondo, (x + 2, y - 20))
+        surface.blit(texto, (x + 5, y - 18))
+    
     def ejecutar(self):
         """Bucle principal del editor"""
         ejecutando = True
@@ -2167,6 +2269,11 @@ class EditorMapaAvanzado:
             # Paneles
             self.dibujar_panel_izquierdo(self.pantalla)
             self.dibujar_panel_derecho(self.pantalla)
+            
+            # ¡NUEVO! Dibujar sprite fantasma si se está arrastrando
+            if self.arrastrando_desde_panel and self.sprite_siendo_arrastrado:
+                mouse_pos = pygame.mouse.get_pos()
+                self.dibujar_sprite_fantasma(self.pantalla, mouse_pos)
             
             # Barra de estado
             self.dibujar_barra_estado(self.pantalla)

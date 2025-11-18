@@ -2,6 +2,113 @@
   "fondo": "pelea_pradera",
   "num_heroes": 1,
   "num_monstruos": 1,
-  "heroes": [],
-  "monstruos": []
+  "heroes": [
+    {
+      "sprite_ref": "assets/sprites/heroes/batalla/caminar_2.png",
+      "x": 100,
+      "y": 200,
+      "ancho": 96,
+      "alto": 96
+    },
+    {
+      "sprite_ref": "assets/sprites/heroes/batalla/caminar.png",
+      "x": 220,
+      "y": 200,
+      "ancho": 96,
+      "alto": 96
+    },
+    {
+      "sprite_ref": "assets/sprites/heroes/batalla/caminar_2.png",
+      "x": 205,
+      "y": 357,
+      "ancho": 96,
+      "alto": 96
+    },
+    {
+      "sprite_ref": "assets/sprites/heroes/batalla/caminar_1.png",
+      "x": 346,
+      "y": 264,
+      "ancho": 96,
+      "alto": 96
+    },
+    {
+      "sprite_ref": "assets/sprites/heroes/batalla/caminar.png",
+      "x": 518,
+      "y": 225,
+      "ancho": 96,
+      "alto": 96
+    },
+    {
+      "sprite_ref": "assets/sprites/heroes/batalla/caminar.png",
+      "x": 63,
+      "y": 421,
+      "ancho": 96,
+      "alto": 96
+    }
+  ],
+  "monstruos": [
+    {
+      "sprite_ref": "assets/sprites/monstruos/dragon_prueba.png",
+      "x": 1000,
+      "y": 100,
+      "ancho": 128,
+      "alto": 128
+    },
+    {
+      "sprite_ref": "assets/sprites/monstruos/dragon_prueba.png",
+      "x": 1000,
+      "y": 100,
+      "ancho": 128,
+      "alto": 128
+    },
+    {
+      "sprite_ref": "assets/sprites/monstruos/dragon_prueba.png",
+      "x": 1150,
+      "y": 100,
+      "ancho": 128,
+      "alto": 128
+    },
+    {
+      "sprite_ref": "assets/sprites/monstruos/dragon_prueba.png",
+      "x": 1300,
+      "y": 100,
+      "ancho": 128,
+      "alto": 128
+    },
+    {
+      "sprite_ref": "assets/sprites/monstruos/dragon_prueba.png",
+      "x": 1450,
+      "y": 100,
+      "ancho": 128,
+      "alto": 128
+    },
+    {
+      "sprite_ref": "assets/sprites/monstruos/dragon_prueba.png",
+      "x": 1450,
+      "y": 100,
+      "ancho": 128,
+      "alto": 128
+    },
+    {
+      "sprite_ref": "assets/sprites/monstruos/fueguito.png",
+      "x": 1600,
+      "y": 100,
+      "ancho": 128,
+      "alto": 128
+    },
+    {
+      "sprite_ref": "assets/sprites/monstruos/fueguito.png",
+      "x": 217,
+      "y": 544,
+      "ancho": 128,
+      "alto": 128
+    },
+    {
+      "sprite_ref": "assets/sprites/monstruos/dragon_prueba.png",
+      "x": 409,
+      "y": 490,
+      "ancho": 128,
+      "alto": 128
+    }
+  ]
 }
