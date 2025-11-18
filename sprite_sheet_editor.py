@@ -448,50 +448,90 @@ class SpriteSheetEditor:
             print(f"❌ Error cargando spritesheet: {e}")
     
     def guardar_sprite_actual(self):
-        """Guarda el sprite actualmente seleccionado"""
-        if not self.seleccion_actual:
-            self.mostrar_mensaje("⚠️ No hay selección activa")
-            return
-        
+        """Guarda el/los sprite(s) seleccionado(s) - Si hay múltiples marcados, guarda todos con numeración"""
         if not self.input_nombre.texto:
             self.mostrar_mensaje("⚠️ Ingresa un nombre primero")
             self.input_nombre.activo = True
             return
         
-        self.seleccion_actual.nombre = self.input_nombre.texto
-        self.seleccion_actual.categoria = self.categoria_actual
+        # Verificar cuántos sprites están marcados con checkbox
+        sprites_marcados = [s for s in self.selecciones if s.seleccionado and not s.guardado]
         
-        # Extraer el sprite
-        if self.spritesheet_original:
-            sprite_surface = self.spritesheet_original.subsurface(
-                self.seleccion_actual.get_rect_valido(self.spritesheet_original)
-            ).copy()
-            
-            # Guardar
-            ruta_destino = Path(f"assets/sprites/{self.categoria_actual.value}")
-            ruta_destino.mkdir(parents=True, exist_ok=True)
-            ruta_archivo = ruta_destino / f"{self.input_nombre.texto}.png"
-            
-            # Verificar si existe y preguntar
-            if ruta_archivo.exists():
-                print(f"⚠️ El archivo {ruta_archivo.name} ya existe")
-                self.mostrar_mensaje(f"⚠️ Archivo existe, se reemplazará")
-            
+        if not sprites_marcados:
+            self.mostrar_mensaje("⚠️ No hay sprites marcados (usa checkboxes)")
+            return
+        
+        if not self.spritesheet_original:
+            self.mostrar_mensaje("⚠️ No hay spritesheet cargado")
+            return
+        
+        nombre_base = self.input_nombre.texto
+        categoria = self.categoria_actual
+        contador = 0
+        errores = 0
+        
+        # Si solo hay un sprite, guardarlo sin numeración
+        if len(sprites_marcados) == 1:
+            sel = sprites_marcados[0]
             try:
+                sprite_surface = self.spritesheet_original.subsurface(
+                    sel.get_rect_valido(self.spritesheet_original)
+                ).copy()
+                
+                ruta_destino = Path(f"assets/sprites/{categoria.value}")
+                ruta_destino.mkdir(parents=True, exist_ok=True)
+                ruta_archivo = ruta_destino / f"{nombre_base}.png"
+                
                 pygame.image.save(sprite_surface, str(ruta_archivo))
-                self.seleccion_actual.guardado = True
-                self.mostrar_mensaje(f"✓ Guardado: {ruta_archivo.name}")
-                print(f"✓ Sprite guardado: {ruta_archivo}")
-                
-                # Limpiar input para el siguiente
-                self.input_nombre.texto = ""
-                
-                # Añadir a historial
-                self.agregar_al_historial()
-            
+                sel.nombre = nombre_base
+                sel.categoria = categoria
+                sel.guardado = True
+                contador = 1
+                self.mostrar_mensaje(f"✓ Guardado: {nombre_base}.png")
+                print(f"✓ Sprite guardado: {nombre_base}.png en {categoria.value}")
             except Exception as e:
                 self.mostrar_mensaje(f"❌ Error: {str(e)}")
                 print(f"❌ Error guardando: {e}")
+                return
+        
+        # Si hay múltiples sprites, guardarlos con numeración automática
+        else:
+            for i, sel in enumerate(sprites_marcados, 1):
+                try:
+                    sprite_surface = self.spritesheet_original.subsurface(
+                        sel.get_rect_valido(self.spritesheet_original)
+                    ).copy()
+                    
+                    ruta_destino = Path(f"assets/sprites/{categoria.value}")
+                    ruta_destino.mkdir(parents=True, exist_ok=True)
+                    
+                    nombre_archivo = f"{nombre_base}_{i}"
+                    ruta_archivo = ruta_destino / f"{nombre_archivo}.png"
+                    
+                    pygame.image.save(sprite_surface, str(ruta_archivo))
+                    sel.nombre = nombre_archivo
+                    sel.categoria = categoria
+                    sel.guardado = True
+                    contador += 1
+                    print(f"✓ Guardado: {nombre_archivo}.png en {categoria.value}")
+                except Exception as e:
+                    errores += 1
+                    print(f"❌ Error guardando sprite {i}: {e}")
+            
+            if errores > 0:
+                self.mostrar_mensaje(f"✓ Guardados {contador}/{len(sprites_marcados)} sprites")
+            else:
+                self.mostrar_mensaje(f"✓ Guardados {contador} sprites: {nombre_base}_1 a {nombre_base}_{contador}")
+            
+            print(f"✓ Total guardados: {contador} sprites con base '{nombre_base}'")
+            if errores > 0:
+                print(f"⚠️ Errores: {errores}")
+        
+        # Limpiar input para el siguiente
+        self.input_nombre.texto = ""
+        
+        # Añadir a historial
+        self.agregar_al_historial()
     
     def quitar_fondo_sprite(self):
         """Quita el fondo del sprite seleccionado haciéndolo transparente"""
@@ -586,18 +626,36 @@ class SpriteSheetEditor:
         contador = 0
         errores = 0
         
-        # Exportar cada sprite con su nombre tal cual
-        for sel in selecciones_a_exportar:
+        # Agrupar sprites por nombre base para numeración automática
+        nombres_contador = {}
+        
+        # Exportar cada sprite
+        for i, sel in enumerate(selecciones_a_exportar):
             try:
                 sprite_surface = self.spritesheet_original.subsurface(sel.get_rect_valido(self.spritesheet_original)).copy()
                 ruta_destino = Path(f"assets/sprites/{sel.categoria.value}")
                 ruta_destino.mkdir(parents=True, exist_ok=True)
-                ruta_archivo = ruta_destino / f"{sel.nombre}.png"
+                
+                # Si varios sprites tienen el mismo nombre base, agregar numeración
+                nombre_base = sel.nombre
+                
+                # Contar cuántos sprites con este nombre ya procesamos
+                if nombre_base not in nombres_contador:
+                    nombres_contador[nombre_base] = 0
+                nombres_contador[nombre_base] += 1
+                
+                # Si hay más de un sprite con este nombre, agregar número
+                if sum(1 for s in selecciones_a_exportar if s.nombre == nombre_base) > 1:
+                    nombre_archivo = f"{nombre_base}_{nombres_contador[nombre_base]}"
+                else:
+                    nombre_archivo = nombre_base
+                
+                ruta_archivo = ruta_destino / f"{nombre_archivo}.png"
                 
                 pygame.image.save(sprite_surface, str(ruta_archivo))
                 sel.guardado = True
                 contador += 1
-                print(f"✓ Guardado: {sel.nombre}.png en {sel.categoria.value}")
+                print(f"✓ Guardado: {nombre_archivo}.png en {sel.categoria.value}")
             except Exception as e:
                 errores += 1
                 print(f"❌ Error guardando {sel.nombre}: {e}")
