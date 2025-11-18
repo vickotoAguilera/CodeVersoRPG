@@ -310,6 +310,19 @@ class EditorMapaAvanzado:
         self.offset_drag_x = 0
         self.offset_drag_y = 0
         self.arrastrando_desde_panel = False
+
+        # --- NUEVO: Modos de dibujo y herramientas ---
+        self.modo_dibujo = 'rectangulo'  # rectangulo | pincel | borrador
+        self.pincel_tamano = 60
+        self.pincel_min = 10
+        self.pincel_max = 200
+        self.dibujando_rectangulo = False
+        self.rect_inicio = None
+        self.mouse_izquierdo_presionado = False
+        # Movimiento de muros dibujables (polígonos)
+        self.muro_seleccionado = None
+        self.muro_arrastrando = False
+        self.muro_offset = (0, 0)
         
         # Biblioteca de sprites
         self.biblioteca_sprites: Dict[str, List[SpriteInfo]] = {}
@@ -1431,6 +1444,80 @@ class EditorMapaAvanzado:
         if self.mensaje and pygame.time.get_ticks() - self.mensaje_tiempo < 3000:
             mensaje_surf = self.fuente.render(self.mensaje, True, (100, 255, 100))
             surface.blit(mensaje_surf, (ANCHO // 2 - mensaje_surf.get_width() // 2, ALTO - barra_alto - 40))
+        # Overlay con modo dibujo, pincel y zoom (arriba derecha área mapa)
+        overlay = [f"Modo: {self.modo_dibujo}", f"Pincel: {self.pincel_tamano}px", f"Zoom: {self.zoom:.2f}x"]
+        for i, linea in enumerate(overlay):
+            surf = self.fuente_pequena.render(linea, True, (220, 220, 230))
+            fondo = pygame.Surface((surf.get_width() + 10, surf.get_height() + 4))
+            fondo.set_alpha(150)
+            fondo.fill((0, 0, 0))
+            surface.blit(fondo, (PANEL_IZQUIERDO + AREA_MAPA_ANCHO - 240, 10 + i * 22))
+            surface.blit(surf, (PANEL_IZQUIERDO + AREA_MAPA_ANCHO - 235, 12 + i * 22))
+
+    # === UTILIDADES DE DIBUJO ===
+    def _cursor_mundo(self):
+        mx, my = pygame.mouse.get_pos()
+        if PANEL_IZQUIERDO <= mx <= ANCHO - PANEL_DERECHO:
+            x_mapa = mx - PANEL_IZQUIERDO
+            mundo_x = x_mapa / self.zoom + self.camara_x
+            mundo_y = my / self.zoom + self.camara_y
+            return mundo_x, mundo_y
+        return 0, 0
+
+    def _pincel_colocar_muro(self, x, y):
+        # Evitar duplicar demasiados en misma zona
+        for obj in self.objetos:
+            if obj.tipo == 'muro' and abs(obj.x - (x - self.pincel_tamano/2)) < 5 and abs(obj.y - (y - self.pincel_tamano/2)) < 5:
+                return
+        nuevo = ObjetoMapa(
+            tipo='muro',
+            id=f"muro_{len([o for o in self.objetos if o.tipo=='muro'])+1}",
+            x=x - self.pincel_tamano/2,
+            y=y - self.pincel_tamano/2,
+            ancho=self.pincel_tamano,
+            alto=self.pincel_tamano,
+            z_index=len(self.objetos),
+            sprite_ref=''
+        )
+        self.objetos.append(nuevo)
+        self.cambios_sin_guardar = True
+
+    def _borrar_muro_en_pos(self, x, y):
+        borrar = None
+        for obj in self.objetos:
+            if obj.tipo == 'muro' and obj.contiene_punto(x, y):
+                borrar = obj
+                break
+        if borrar:
+            self.objetos.remove(borrar)
+            self.cambios_sin_guardar = True
+
+    def _crear_muro_rectangulo(self, x, y, ancho, alto):
+        nuevo = ObjetoMapa(
+            tipo='muro',
+            id=f"muro_{len([o for o in self.objetos if o.tipo=='muro'])+1}",
+            x=x,
+            y=y,
+            ancho=int(ancho),
+            alto=int(alto),
+            z_index=len(self.objetos),
+            sprite_ref=''
+        )
+        self.objetos.append(nuevo)
+        self.cambios_sin_guardar = True
+
+    def _bounding_rect_muro(self, muro: MuroDibujable):
+        xs = [p[0] for p in muro.puntos]
+        ys = [p[1] for p in muro.puntos]
+        if not xs or not ys:
+            return pygame.Rect(0, 0, 0, 0)
+        min_x, max_x = min(xs), max(xs)
+        min_y, max_y = min(ys), max(ys)
+        return pygame.Rect(int(min_x), int(min_y), int(max_x - min_x), int(max_y - min_y))
+
+    def _mover_muro_dibujable(self, muro: MuroDibujable, dx, dy):
+        muro.puntos = [(px + dx, py + dy) for (px, py) in muro.puntos]
+        self.cambios_sin_guardar = True
     
     def guardar_configuracion_batalla(self):
         """Guarda la configuración actual de batalla"""
@@ -1788,10 +1875,38 @@ class EditorMapaAvanzado:
                 # CTRL+Z - Deshacer (placeholder)
                 elif evento.key == pygame.K_z and pygame.key.get_mods() & pygame.KMOD_CTRL:
                     self.mostrar_mensaje("Deshacer - No implementado aún")
+                # --- NUEVOS MODOS DE DIBUJO ---
+                elif evento.key == pygame.K_r:
+                    self.modo_dibujo = 'rectangulo'
+                    self.mostrar_mensaje("Modo Rectángulo")
+                elif evento.key == pygame.K_p:
+                    self.modo_dibujo = 'pincel'
+                    self.mostrar_mensaje("Modo Pincel")
+                elif evento.key == pygame.K_e:
+                    if self.modo_dibujo == 'borrador':
+                        self.modo_dibujo = 'rectangulo'
+                        self.mostrar_mensaje("Borrador desactivado")
+                    else:
+                        self.modo_dibujo = 'borrador'
+                        self.mostrar_mensaje("Modo Borrador")
+                elif evento.key in (pygame.K_PLUS, pygame.K_EQUALS):
+                    if self.modo_dibujo == 'pincel':
+                        self.pincel_tamano = min(self.pincel_max, self.pincel_tamano + 5)
+                        self.mostrar_mensaje(f"Pincel: {self.pincel_tamano}px")
+                elif evento.key == pygame.K_MINUS:
+                    if self.modo_dibujo == 'pincel':
+                        self.pincel_tamano = max(self.pincel_min, self.pincel_tamano - 5)
+                        self.mostrar_mensaje(f"Pincel: {self.pincel_tamano}px")
+                elif evento.key == pygame.K_0:
+                    self.zoom = 1.0
+                    self.camara_x = 0
+                    self.camara_y = 0
+                    self.mostrar_mensaje("Zoom reiniciado")
             
             elif evento.type == pygame.MOUSEBUTTONDOWN:
                 if evento.button == 1:  # Click izquierdo
                     click_izq = True
+                    self.mouse_izquierdo_presionado = True
                     
                     print(f"🖱️ CLICK IZQUIERDO en ({mouse_pos[0]}, {mouse_pos[1]})")
                     print(f"   Modo actual: {self.modo_actual}")
@@ -1810,6 +1925,27 @@ class EditorMapaAvanzado:
                     # Click en área del mapa
                     elif PANEL_IZQUIERDO <= mouse_pos[0] <= ANCHO - PANEL_DERECHO:
                         x_mapa = mouse_pos[0] - PANEL_IZQUIERDO
+                        # --- Acciones de dibujo (solo fuera vista batalla) ---
+                        if self.modo_editor != ModoEditor.VISTA_BATALLA:
+                            mundo_x_preciso = x_mapa / self.zoom + self.camara_x
+                            mundo_y_preciso = mouse_pos[1] / self.zoom + self.camara_y
+                            # Seleccionar muro dibujable para mover (modo muros)
+                            if self.modo_editor == ModoEditor.DIBUJAR_MUROS:
+                                for muro in reversed(self.muros):
+                                    rect_muro = self._bounding_rect_muro(muro)
+                                    if rect_muro.collidepoint(mundo_x_preciso, mundo_y_preciso):
+                                        self.muro_seleccionado = muro
+                                        self.muro_arrastrando = True
+                                        self.muro_offset = (mundo_x_preciso, mundo_y_preciso)
+                                        break
+                            # Comenzar rectángulo
+                            if self.modo_dibujo == 'rectangulo':
+                                self.dibujando_rectangulo = True
+                                self.rect_inicio = (mundo_x_preciso, mundo_y_preciso)
+                            elif self.modo_dibujo == 'pincel':
+                                self._pincel_colocar_muro(mundo_x_preciso, mundo_y_preciso)
+                            elif self.modo_dibujo == 'borrador':
+                                self._borrar_muro_en_pos(mundo_x_preciso, mundo_y_preciso)
                         
                         # En modo batalla, permitir mover objetos de batalla
                         if self.modo_editor == ModoEditor.VISTA_BATALLA:
@@ -1896,6 +2032,7 @@ class EditorMapaAvanzado:
             
             elif evento.type == pygame.MOUSEBUTTONUP:
                 if evento.button == 1:
+                    self.mouse_izquierdo_presionado = False
                     # ¡NUEVO! Soltar sprite arrastrado desde panel
                     if self.arrastrando_desde_panel and self.sprite_siendo_arrastrado:
                         # Verificar si soltamos en área del mapa (modo batalla)
@@ -1932,6 +2069,22 @@ class EditorMapaAvanzado:
                     # Soltar arrastre de cámara
                     if self.arrastrando_camara:
                         self.arrastrando_camara = False
+                    # Finalizar rectángulo
+                    if self.dibujando_rectangulo and self.rect_inicio and self.modo_dibujo == 'rectangulo' and self.modo_editor != ModoEditor.VISTA_BATALLA:
+                        fin_x, fin_y = self._cursor_mundo()
+                        inicio_x, inicio_y = self.rect_inicio
+                        ancho = abs(fin_x - inicio_x)
+                        alto = abs(fin_y - inicio_y)
+                        if ancho >= 5 and alto >= 5:
+                            x_final = min(inicio_x, fin_x)
+                            y_final = min(inicio_y, fin_y)
+                            self._crear_muro_rectangulo(x_final, y_final, ancho, alto)
+                        self.dibujando_rectangulo = False
+                        self.rect_inicio = None
+                    # Terminar arrastre de muro dibujable
+                    if self.muro_arrastrando:
+                        self.muro_arrastrando = False
+                        self.muro_seleccionado = None
                 
                 elif evento.button == 2 or evento.button == 3:
                     self.arrastrando_camara = False
@@ -1994,6 +2147,19 @@ class EditorMapaAvanzado:
                         self.camara_x = max(0, min(self.camara_x, max(0, self.ancho_mapa - AREA_MAPA_ANCHO / self.zoom)))
                         self.camara_y = max(0, min(self.camara_y, max(0, self.alto_mapa - ALTO / self.zoom)))
                         self.mouse_anterior = mouse_pos
+
+                    # Pintar / borrar mientras se mueve el mouse con botón
+                    if self.mouse_izquierdo_presionado and self.modo_editor != ModoEditor.VISTA_BATALLA:
+                        if self.modo_dibujo == 'pincel':
+                            self._pincel_colocar_muro(mundo_x, mundo_y)
+                        elif self.modo_dibujo == 'borrador':
+                            self._borrar_muro_en_pos(mundo_x, mundo_y)
+                    # Arrastrar muro dibujable
+                    if self.muro_arrastrando and self.muro_seleccionado:
+                        dx_m = mundo_x - self.muro_offset[0]
+                        dy_m = mundo_y - self.muro_offset[1]
+                        self._mover_muro_dibujable(self.muro_seleccionado, dx_m, dy_m)
+                        self.muro_offset = (mundo_x, mundo_y)
                     
                     # Actualizar hover solo si no estamos arrastrando
                     if not hay_objeto_siendo_arrastrado and not self.arrastrando_camara:
@@ -2031,7 +2197,8 @@ class EditorMapaAvanzado:
                     self.zoom *= factor_zoom
                     
                     # Limitar zoom entre 0.1x y 5x
-                    self.zoom = max(0.1, min(5.0, self.zoom))
+                    # Nuevo rango: 0.25x - 4.0x
+                    self.zoom = max(0.25, min(4.0, self.zoom))
                     
                     # Ajustar cámara para que el zoom sea centrado en el cursor
                     # Convertir posición del mouse a coordenadas del mundo antes del zoom
