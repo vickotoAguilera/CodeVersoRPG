@@ -195,12 +195,125 @@ class VentanaBatalla:
                 return nombre
         return None
     
+    def get_tamano_texto_escalado(self):
+        """Calcula el tamaño del texto basado en el tamaño de la ventana"""
+        factor = min(self.ancho / 600, self.alto / 120)  # Tamaño base
+        return max(12, int(32 * factor))
+    
     def to_dict(self):
         return {
             "x": self.x,
             "y": self.y,
             "ancho": self.ancho,
             "alto": self.alto
+        }
+
+class VentanaMagia:
+    """Ventana de magias/habilidades redimensionable"""
+    def __init__(self):
+        self.x = 100
+        self.y = 100
+        self.ancho = 400
+        self.alto = 300
+        self.rect = pygame.Rect(self.x, self.y, self.ancho, self.alto)
+        self.arrastrando = False
+        self.escalando = False
+        self.handle_activo = None
+        self.offset_x = 0
+        self.offset_y = 0
+        self.visible = False
+        
+        # Magias de ejemplo
+        self.magias = [
+            {"nombre": "Fuego", "mp": 10},
+            {"nombre": "Rayo", "mp": 15},
+            {"nombre": "Curar", "mp": 8},
+            {"nombre": "Hielo", "mp": 12},
+            {"nombre": "Veneno", "mp": 6}
+        ]
+        self.seleccionado = 0
+    
+    def get_tamano_texto_escalado(self):
+        """Calcula el tamaño del texto basado en el tamaño de la ventana"""
+        factor = min(self.ancho / 400, self.alto / 300)
+        return max(10, int(20 * factor))
+    
+    def actualizar_rect(self):
+        self.rect = pygame.Rect(int(self.x), int(self.y), self.ancho, self.alto)
+    
+    def contiene_punto(self, px, py):
+        return self.rect.collidepoint(px, py)
+    
+    def get_handle_en_punto(self, px, py, tam=10):
+        """Retorna qué handle está en el punto"""
+        handles = {
+            'nw': (self.x, self.y),
+            'ne': (self.x + self.ancho, self.y),
+            'sw': (self.x, self.y + self.alto),
+            'se': (self.x + self.ancho, self.y + self.alto)
+        }
+        
+        for nombre, (hx, hy) in handles.items():
+            if abs(px - hx) <= tam and abs(py - hy) <= tam:
+                return nombre
+        return None
+    
+    def to_dict(self):
+        return {
+            "x": self.x,
+            "y": self.y,
+            "ancho": self.ancho,
+            "alto": self.alto,
+            "visible": self.visible
+        }
+
+class VentanaEmuladorBatalla:
+    """Ventana que emula la vista completa de batalla"""
+    def __init__(self):
+        self.x = 700
+        self.y = 100
+        self.ancho = 500
+        self.alto = 400
+        self.rect = pygame.Rect(self.x, self.y, self.ancho, self.alto)
+        self.arrastrando = False
+        self.escalando = False
+        self.handle_activo = None
+        self.offset_x = 0
+        self.offset_y = 0
+        self.visible = False
+    
+    def get_tamano_texto_escalado(self, base=20):
+        """Calcula el tamaño del texto basado en el tamaño de la ventana"""
+        factor = min(self.ancho / 500, self.alto / 400)  # Tamaño base
+        return max(10, int(base * factor))
+    
+    def actualizar_rect(self):
+        self.rect = pygame.Rect(int(self.x), int(self.y), self.ancho, self.alto)
+    
+    def contiene_punto(self, px, py):
+        return self.rect.collidepoint(px, py)
+    
+    def get_handle_en_punto(self, px, py, tam=10):
+        """Retorna qué handle está en el punto"""
+        handles = {
+            'nw': (self.x, self.y),
+            'ne': (self.x + self.ancho, self.y),
+            'sw': (self.x, self.y + self.alto),
+            'se': (self.x + self.ancho, self.y + self.alto)
+        }
+        
+        for nombre, (hx, hy) in handles.items():
+            if abs(px - hx) <= tam and abs(py - hy) <= tam:
+                return nombre
+        return None
+    
+    def to_dict(self):
+        return {
+            "x": self.x,
+            "y": self.y,
+            "ancho": self.ancho,
+            "alto": self.alto,
+            "visible": self.visible
         }
 
 class SeccionDesplegable:
@@ -211,7 +324,7 @@ class SeccionDesplegable:
         self.expandida = False
         self.color_titulo = color_titulo
         self.items: List[SpriteInfo] = []
-        self.scroll_y = 0
+        self.scroll_y = 0  # Mantenemos por compatibilidad pero no se usa
         self.fuente = pygame.font.Font(None, 22)
         self.fuente_item = pygame.font.Font(None, 18)
     
@@ -229,8 +342,8 @@ class SeccionDesplegable:
         """Verifica si se hizo click en el título"""
         return self.rect_titulo.collidepoint(mouse_pos)
     
-    def get_item_en_posicion(self, mouse_pos):
-        """Retorna el item clickeado (si hay)"""
+    def get_item_en_posicion(self, mouse_pos, scroll_offset=0, items_visibles=999):
+        """Retorna el item clickeado (si hay) - con soporte para scroll"""
         if not self.expandida:
             return None
         
@@ -239,10 +352,15 @@ class SeccionDesplegable:
             return None
         
         y_item_inicio = self.rect_titulo.y + self.rect_titulo.height + 5
-        for i, item in enumerate(self.items):
+        
+        # Calcular items visibles basado en scroll
+        items_fin = min(scroll_offset + items_visibles, len(self.items))
+        items_visibles_lista = self.items[scroll_offset:items_fin]
+        
+        for idx_visual, item in enumerate(items_visibles_lista):
             rect_item = pygame.Rect(
                 self.rect_titulo.x + 10,
-                y_item_inicio + i * 35 - self.scroll_y,
+                y_item_inicio + idx_visual * 35,
                 self.rect_titulo.width - 20,
                 30
             )
@@ -250,8 +368,8 @@ class SeccionDesplegable:
                 return item
         return None
     
-    def dibujar(self, surface):
-        """Dibuja la sección"""
+    def dibujar(self, surface, scroll_offset=0, items_visibles_max=999):
+        """Dibuja la sección con soporte para scroll"""
         # Título
         color = COLOR_BOTON_ACTIVO if self.expandida else self.color_titulo
         pygame.draw.rect(surface, color, self.rect_titulo, border_radius=5)
@@ -270,16 +388,16 @@ class SeccionDesplegable:
         contador = self.fuente_item.render(f"({len(self.items)})", True, COLOR_TEXTO_SEC)
         surface.blit(contador, (self.rect_titulo.x + self.rect_titulo.width - 50, self.rect_titulo.y + 12))
         
-        # Items (si está expandida)
-        if self.expandida:
+        # Items (si está expandida) - con scroll
+        if self.expandida and len(self.items) > 0:
             y_item = self.rect_titulo.y + self.rect_titulo.height + 5
             
-            for i, item in enumerate(self.items):
-                y_pos = y_item + i * 35 - self.scroll_y
-                
-                # Solo dibujar si está visible
-                if y_pos < self.rect_titulo.y or y_pos > ALTO - 50:
-                    continue
+            # Calcular items visibles basado en scroll
+            items_fin = min(scroll_offset + items_visibles_max, len(self.items))
+            items_visibles = self.items[scroll_offset:items_fin]
+            
+            for idx_visual, item in enumerate(items_visibles):
+                y_pos = y_item + idx_visual * 35
                 
                 rect_item = pygame.Rect(
                     self.rect_titulo.x + 10,
@@ -301,6 +419,29 @@ class SeccionDesplegable:
                 # Icono de arrastre
                 icono = self.fuente_item.render("⋮⋮", True, COLOR_TEXTO_SEC)
                 surface.blit(icono, (rect_item.x + rect_item.width - 25, rect_item.y + 8))
+            
+            # Dibujar scrollbar si es necesario
+            if len(self.items) > items_visibles_max:
+                scrollbar_x = self.rect_titulo.x + self.rect_titulo.width - 8
+                scrollbar_y = y_item
+                scrollbar_ancho = 6
+                scrollbar_altura = items_visibles_max * 35
+                
+                # Barra de fondo
+                pygame.draw.rect(surface, (50, 50, 100),
+                               (scrollbar_x, scrollbar_y, scrollbar_ancho, scrollbar_altura),
+                               border_radius=3)
+                
+                # Calcular tamaño y posición del thumb
+                thumb_altura = max(15, int((items_visibles_max / len(self.items)) * scrollbar_altura))
+                thumb_pos_max = scrollbar_altura - thumb_altura
+                scroll_ratio = scroll_offset / (len(self.items) - items_visibles_max)
+                thumb_y = scrollbar_y + int(scroll_ratio * thumb_pos_max)
+                
+                # Dibujar thumb
+                pygame.draw.rect(surface, (100, 100, 255),
+                               (scrollbar_x, thumb_y, scrollbar_ancho, thumb_altura),
+                               border_radius=3)
 
 # ========================================
 # EDITOR PRINCIPAL
@@ -335,6 +476,12 @@ class EditorBatalla:
             AREA_BATALLA_ANCHO - (ventana_padding * 2),
             ventana_alto
         )
+        
+        # Ventanas adicionales
+        self.ventana_magia = VentanaMagia()
+        self.ventana_emulador = VentanaEmuladorBatalla()
+        self.mostrar_ventana_magia = False
+        self.mostrar_ventana_emulador = False
         
         # Textos flotantes de demostración
         self.textos_flotantes_demo: List[TextoFlotanteDemo] = []
@@ -374,8 +521,19 @@ class EditorBatalla:
         self.seccion_heroes = SeccionDesplegable(10, 60, PANEL_ANCHO - 20, "Héroes", (50, 150, 50))
         self.seccion_monstruos = SeccionDesplegable(10, 110, PANEL_ANCHO - 20, "Monstruos", (200, 50, 50))
         
+        # Sistema de scroll para secciones
+        self.scroll_heroes = 0  # Offset de scroll para héroes
+        self.scroll_monstruos = 0  # Offset de scroll para monstruos
+        self.items_visibles_max = 8  # Máximo de items visibles a la vez
+        self.tiempo_ultimo_scroll = pygame.time.get_ticks()
+        self.cooldown_scroll = 150  # ms entre cada scroll
+        
         # Cargar sprites
         self.cargar_sprites()
+        
+        # Botones derecha (inicializados luego en dibujar)
+        self.rect_guardar_derecha = None
+        self.rect_cargar_derecha = None
         
         # Mensajes
         self.mensaje = ""
@@ -829,6 +987,12 @@ class EditorBatalla:
         # Ventana de batalla
         self.dibujar_ventana_batalla(surface)
         
+        # Ventana de magia
+        self.dibujar_ventana_magia(surface)
+        
+        # Ventana emulador
+        self.dibujar_ventana_emulador(surface)
+        
         # Textos flotantes de demostración
         if self.mostrar_textos_flotantes:
             self.dibujar_textos_flotantes(surface)
@@ -853,15 +1017,179 @@ class EditorBatalla:
             pygame.draw.circle(surface, COLOR_HANDLE, (int(hx), int(hy)), tam)
             pygame.draw.circle(surface, COLOR_TEXTO, (int(hx), int(hy)), tam, 2)
         
-        # Comandos
+        # Comandos con texto escalado automáticamente
+        tamano_texto_escalado = v.get_tamano_texto_escalado()
+        fuente_escalada = pygame.font.Font(None, tamano_texto_escalado)
+        
         espacio_entre_comandos = v.ancho // len(v.comandos)
         for i, comando in enumerate(v.comandos):
             x_texto = v.x + 40 + (i * espacio_entre_comandos)
-            y_texto = v.y + v.alto // 2 - 10
+            y_texto = v.y + v.alto // 2 - tamano_texto_escalado // 2
             
             color = COLOR_TEXTO_SEL if i == v.seleccionado else COLOR_TEXTO
-            texto = self.fuente.render(comando, True, color)
+            texto = fuente_escalada.render(comando, True, color)
             surface.blit(texto, (x_texto, y_texto))
+    
+    def dibujar_ventana_magia(self, surface):
+        """Dibuja la ventana de magias/habilidades"""
+        if not self.mostrar_ventana_magia:
+            return
+        
+        v = self.ventana_magia
+        
+        # Fondo semitransparente
+        fondo = pygame.Surface((v.ancho, v.alto))
+        fondo.set_alpha(230)
+        fondo.fill((25, 25, 50))
+        surface.blit(fondo, (int(v.x), int(v.y)))
+        
+        # Borde
+        pygame.draw.rect(surface, COLOR_TEXTO, v.rect, 3, border_radius=8)
+        
+        # Handles para redimensionar
+        tam = 8
+        handles = [
+            (v.x, v.y),
+            (v.x + v.ancho, v.y),
+            (v.x, v.y + v.alto),
+            (v.x + v.ancho, v.y + v.alto)
+        ]
+        for hx, hy in handles:
+            pygame.draw.circle(surface, COLOR_HANDLE, (int(hx), int(hy)), tam)
+            pygame.draw.circle(surface, COLOR_TEXTO, (int(hx), int(hy)), tam, 2)
+        
+        # Título con texto escalado
+        tamano_titulo = int(v.get_tamano_texto_escalado() * 1.3)
+        fuente_titulo = pygame.font.Font(None, tamano_titulo)
+        texto_titulo = fuente_titulo.render("MAGIAS", True, COLOR_TEXTO)
+        surface.blit(texto_titulo, (int(v.x + 10), int(v.y + 10)))
+        
+        # Lista de magias con texto escalado
+        tamano_texto = v.get_tamano_texto_escalado()
+        fuente_magias = pygame.font.Font(None, tamano_texto)
+        
+        y_inicio = v.y + 40 + (tamano_titulo - 20)
+        espacio_vertical = max(25, int(v.alto - 60) / len(v.magias))
+        
+        for i, magia in enumerate(v.magias):
+            y_pos = y_inicio + i * espacio_vertical
+            
+            # Highlight de selección
+            if i == v.seleccionado:
+                rect_sel = pygame.Rect(int(v.x + 5), int(y_pos - 5), v.ancho - 10, espacio_vertical)
+                pygame.draw.rect(surface, (50, 50, 100), rect_sel, border_radius=5)
+            
+            # Nombre y MP
+            texto_magia = fuente_magias.render(f"{magia['nombre']} - MP: {magia['mp']}", True, COLOR_TEXTO)
+            surface.blit(texto_magia, (int(v.x + 15), int(y_pos)))
+    
+    def dibujar_ventana_emulador(self, surface):
+        """Dibuja la ventana de emulación completa de batalla"""
+        if not self.mostrar_ventana_emulador:
+            return
+        
+        v = self.ventana_emulador
+        
+        # Fondo semitransparente
+        fondo = pygame.Surface((v.ancho, v.alto))
+        fondo.set_alpha(200)
+        fondo.fill((15, 15, 30))
+        surface.blit(fondo, (int(v.x), int(v.y)))
+        
+        # Borde
+        pygame.draw.rect(surface, COLOR_TEXTO, v.rect, 3, border_radius=8)
+        
+        # Handles para redimensionar
+        tam = 8
+        handles = [
+            (v.x, v.y),
+            (v.x + v.ancho, v.y),
+            (v.x, v.y + v.alto),
+            (v.x + v.ancho, v.y + v.alto)
+        ]
+        for hx, hy in handles:
+            pygame.draw.circle(surface, COLOR_HANDLE, (int(hx), int(hy)), tam)
+            pygame.draw.circle(surface, COLOR_TEXTO, (int(hx), int(hy)), tam, 2)
+        
+        # Título con texto escalado
+        tamano_titulo = v.get_tamano_texto_escalado(28)
+        fuente_titulo = pygame.font.Font(None, tamano_titulo)
+        texto_titulo = fuente_titulo.render("VISTA DE BATALLA", True, COLOR_TEXTO)
+        surface.blit(texto_titulo, (int(v.x + 10), int(v.y + 5)))
+        
+        # Dividir en 3 secciones
+        margen = 10
+        
+        # 1. Menú de acción (izquierda, 25%)
+        ancho_menu = int(v.ancho * 0.25)
+        rect_menu = pygame.Rect(int(v.x + margen), int(v.y + 35), ancho_menu - margen, v.alto - 45)
+        pygame.draw.rect(surface, (30, 30, 60), rect_menu, border_radius=5)
+        pygame.draw.rect(surface, COLOR_TEXTO_SEC, rect_menu, 2, border_radius=5)
+        
+        # Texto del menú escalado
+        tamano_menu = v.get_tamano_texto_escalado(16)
+        fuente_menu = pygame.font.Font(None, tamano_menu)
+        texto_menu = fuente_menu.render("Menú", True, COLOR_TEXTO_SEC)
+        surface.blit(texto_menu, (rect_menu.x + 5, rect_menu.y + 5))
+        
+        # 2. Zona de héroes (arriba, 20%)
+        x_heroes = v.x + ancho_menu + margen
+        ancho_centro = v.ancho - ancho_menu - (margen * 2)
+        alto_heroes = int(v.alto * 0.20)
+        
+        rect_heroes = pygame.Rect(int(x_heroes), int(v.y + 35), ancho_centro, alto_heroes)
+        pygame.draw.rect(surface, (50, 100, 50), rect_heroes, border_radius=5)
+        pygame.draw.rect(surface, (100, 200, 100), rect_heroes, 2, border_radius=5)
+        
+        # Dibujar héroes colocados
+        heroes_en_batalla = [s for s in self.sprites_colocados if s.tipo == "heroe" and s.slot_numero <= self.cantidad_heroes_seleccionada]
+        if heroes_en_batalla:
+            for heroe in heroes_en_batalla:
+                # Escalar miniatura proporcionalmente
+                factor_x = ancho_centro / AREA_BATALLA_ANCHO
+                factor_y = alto_heroes / (ALTO * 0.20)
+                
+                x_mini = rect_heroes.x + int((heroe.x - PANEL_ANCHO) * factor_x)
+                y_mini = rect_heroes.y + int(heroe.y * factor_y)
+                ancho_mini = max(20, int(heroe.ancho * factor_x))
+                alto_mini = max(20, int(heroe.alto * factor_y))
+                
+                pygame.draw.rect(surface, (100, 255, 100), (x_mini, y_mini, ancho_mini, alto_mini), border_radius=2)
+                
+                # Número de slot escalado
+                tamano_num_slot = v.get_tamano_texto_escalado(12)
+                fuente_num = pygame.font.Font(None, tamano_num_slot)
+                texto_num = fuente_num.render(str(heroe.slot_numero), True, (0, 0, 0))
+                surface.blit(texto_num, (x_mini + 3, y_mini + 2))
+        
+        # 3. Zona de monstruos (centro, 50%)
+        y_monstruos = v.y + 35 + alto_heroes + margen
+        alto_monstruos = v.alto - alto_heroes - 50 - margen
+        
+        rect_monstruos = pygame.Rect(int(x_heroes), int(y_monstruos), ancho_centro, alto_monstruos)
+        pygame.draw.rect(surface, (100, 50, 50), rect_monstruos, border_radius=5)
+        pygame.draw.rect(surface, (200, 100, 100), rect_monstruos, 2, border_radius=5)
+        
+        # Dibujar monstruos colocados
+        monstruos_en_batalla = [s for s in self.sprites_colocados if s.tipo == "monstruo" and s.slot_numero <= self.cantidad_monstruos_seleccionada]
+        if monstruos_en_batalla:
+            for monstruo in monstruos_en_batalla:
+                # Escalar miniatura proporcionalmente
+                factor_x = ancho_centro / AREA_BATALLA_ANCHO
+                factor_y = alto_monstruos / (ALTO * 0.50)
+                
+                x_mini = rect_monstruos.x + int((monstruo.x - PANEL_ANCHO) * factor_x)
+                y_mini = rect_monstruos.y + int((monstruo.y - alto_heroes - 35) * factor_y)
+                ancho_mini = max(20, int(monstruo.ancho * factor_x))
+                alto_mini = max(20, int(monstruo.alto * factor_y))
+                
+                pygame.draw.rect(surface, (255, 100, 100), (x_mini, y_mini, ancho_mini, alto_mini), border_radius=2)
+                
+                # Número de slot escalado
+                tamano_num_slot = v.get_tamano_texto_escalado(12)
+                fuente_num = pygame.font.Font(None, tamano_num_slot)
+                texto_num = fuente_num.render(str(monstruo.slot_numero), True, (0, 0, 0))
+                surface.blit(texto_num, (x_mini + 3, y_mini + 2))
     
     def dibujar_textos_flotantes(self, surface):
         """Dibuja los textos flotantes de demostración"""
@@ -1048,31 +1376,56 @@ class EditorBatalla:
         # Ajustar posiciones de secciones según expansión  
         y_secciones_inicio = y_contadores + 30
         self.seccion_heroes.rect_titulo.y = y_secciones_inicio
-        self.seccion_heroes.dibujar(surface)
+        self.seccion_heroes.dibujar(surface, self.scroll_heroes, self.items_visibles_max)
         
         self.seccion_monstruos.rect_titulo.y = y_secciones_inicio + self.seccion_heroes.get_alto_total() + 10
-        self.seccion_monstruos.dibujar(surface)
+        self.seccion_monstruos.dibujar(surface, self.scroll_monstruos, self.items_visibles_max)
         
         # Botones de acción en la parte inferior
         y_botones = ALTO - 230
         
         # Botón Textos Flotantes
-        rect_textos = pygame.Rect(10, y_botones, PANEL_ANCHO - 20, 35)
+        rect_textos = pygame.Rect(10, y_botones, PANEL_ANCHO - 20, 30)
         color_t = (150, 100, 255) if self.mostrar_textos_flotantes else (80, 50, 120)
         if rect_textos.collidepoint(mouse_pos):
             color_t = (180, 130, 255)
         pygame.draw.rect(surface, color_t, rect_textos, border_radius=5)
         pygame.draw.rect(surface, COLOR_TEXTO, rect_textos, 2, border_radius=5)
         texto_t = self.fuente_pequena.render("Textos Flotantes", True, COLOR_TEXTO)
-        surface.blit(texto_t, (rect_textos.x + 50, rect_textos.y + 10))
+        surface.blit(texto_t, (rect_textos.x + 50, rect_textos.y + 8))
+        
+        # Botón Ventana de Magia
+        y_botones += 35
+        rect_magia = pygame.Rect(10, y_botones, PANEL_ANCHO - 20, 30)
+        color_m = (100, 150, 255) if self.mostrar_ventana_magia else (50, 80, 120)
+        if rect_magia.collidepoint(mouse_pos):
+            color_m = (130, 180, 255)
+        pygame.draw.rect(surface, color_m, rect_magia, border_radius=5)
+        pygame.draw.rect(surface, COLOR_TEXTO, rect_magia, 2, border_radius=5)
+        texto_m = self.fuente_pequena.render("Ventana Magia", True, COLOR_TEXTO)
+        surface.blit(texto_m, (rect_magia.x + 60, rect_magia.y + 8))
+        
+        # Botón Ventana Emulador
+        y_botones += 35
+        rect_emulador = pygame.Rect(10, y_botones, PANEL_ANCHO - 20, 30)
+        color_e = (255, 150, 100) if self.mostrar_ventana_emulador else (120, 80, 50)
+        if rect_emulador.collidepoint(mouse_pos):
+            color_e = (255, 180, 130)
+        pygame.draw.rect(surface, color_e, rect_emulador, border_radius=5)
+        pygame.draw.rect(surface, COLOR_TEXTO, rect_emulador, 2, border_radius=5)
+        texto_e = self.fuente_pequena.render("Ventana Emulador", True, COLOR_TEXTO)
+        surface.blit(texto_e, (rect_emulador.x + 50, rect_emulador.y + 8))
+        
+        # Ajustar posición de instrucción
+        y_botones += 35
         
         # Instrucción de arrastre si los textos están activos
         if self.mostrar_textos_flotantes:
             instruccion = self.fuente_pequena.render("Arrastra colores ->", True, (150, 255, 150))
-            surface.blit(instruccion, (10, y_botones + 40))
+            surface.blit(instruccion, (10, y_botones + 5))
             
             # Botón para abrir paleta de colores
-            rect_paleta = pygame.Rect(160, y_botones + 38, 130, 20)
+            rect_paleta = pygame.Rect(160, y_botones + 3, 130, 20)
             color_paleta = (255, 150, 50) if rect_paleta.collidepoint(mouse_pos) else (200, 100, 30)
             pygame.draw.rect(surface, color_paleta, rect_paleta, border_radius=3)
             texto_paleta = self.fuente_pequena.render("[Editar Colores]", True, COLOR_TEXTO)
@@ -1080,7 +1433,7 @@ class EditorBatalla:
         
         # Botones de paleta de colores (2x2 grid)
         tipos_colores = ["normal", "critico", "curacion", "miss"]
-        y_inicio_botones = y_botones + 60 if self.mostrar_textos_flotantes else y_botones + 45
+        y_inicio_botones = y_botones + 25 if self.mostrar_textos_flotantes else y_botones + 10
         for i, tipo in enumerate(tipos_colores):
             col = i % 2
             fila = i // 2
@@ -1099,26 +1452,10 @@ class EditorBatalla:
                 texto_col = self.fuente_pequena.render(tipo.capitalize(), True, (0, 0, 0) if sum(self.colores_config[tipo]) > 400 else COLOR_TEXTO)
             surface.blit(texto_col, (rect_color.x + 35, rect_color.y + 10))
         
-        y_botones_principales = ALTO - 150
-        
-        # Guardar
-        rect_guardar = pygame.Rect(10, y_botones_principales, (PANEL_ANCHO - 30) // 2, 40)
-        color_g = (50, 200, 50) if rect_guardar.collidepoint(mouse_pos) else (30, 150, 30)
-        pygame.draw.rect(surface, color_g, rect_guardar, border_radius=5)
-        pygame.draw.rect(surface, COLOR_TEXTO, rect_guardar, 2, border_radius=5)
-        texto_g = self.fuente.render("Guardar", True, COLOR_TEXTO)
-        surface.blit(texto_g, (rect_guardar.x + 20, rect_guardar.y + 10))
-        
-        # Cargar
-        rect_cargar = pygame.Rect(10 + (PANEL_ANCHO - 30) // 2 + 10, y_botones_principales, (PANEL_ANCHO - 30) // 2, 40)
-        color_c = (50, 150, 200) if rect_cargar.collidepoint(mouse_pos) else (30, 100, 150)
-        pygame.draw.rect(surface, color_c, rect_cargar, border_radius=5)
-        pygame.draw.rect(surface, COLOR_TEXTO, rect_cargar, 2, border_radius=5)
-        texto_c = self.fuente.render("Cargar", True, COLOR_TEXTO)
-        surface.blit(texto_c, (rect_cargar.x + 20, rect_cargar.y + 10))
+        # Nota: Botones Guardar/Cargar ahora están en la derecha (ver dibujar_botones_derecha)
         
         # Info del sprite/texto seleccionado
-        y_info = y_botones_principales + 55
+        y_info = y_inicio_botones + 85
         if self.sprite_seleccionado:
             s = self.sprite_seleccionado
             info = [
@@ -1141,6 +1478,40 @@ class EditorBatalla:
             for i, linea in enumerate(info):
                 texto = self.fuente_pequena.render(linea, True, COLOR_TEXTO if i == 0 else COLOR_TEXTO_SEC)
                 surface.blit(texto, (10, y_info + i * 18))
+    
+    def dibujar_botones_derecha(self, surface):
+        """Dibuja los botones Guardar/Cargar en la parte derecha de la pantalla"""
+        mouse_pos = pygame.mouse.get_pos()
+        
+        # Posición en la derecha
+        btn_ancho = 140
+        btn_alto = 50
+        margen = 20
+        x_botones = ANCHO - btn_ancho - margen
+        y_inicio = 50
+        espacio = 20
+        
+        # Botón Guardar
+        rect_guardar = pygame.Rect(x_botones, y_inicio, btn_ancho, btn_alto)
+        color_g = (50, 200, 50) if rect_guardar.collidepoint(mouse_pos) else (30, 150, 30)
+        pygame.draw.rect(surface, color_g, rect_guardar, border_radius=8)
+        pygame.draw.rect(surface, COLOR_TEXTO, rect_guardar, 3, border_radius=8)
+        texto_g = self.fuente.render("Guardar", True, COLOR_TEXTO)
+        texto_rect_g = texto_g.get_rect(center=rect_guardar.center)
+        surface.blit(texto_g, texto_rect_g)
+        
+        # Botón Cargar
+        rect_cargar = pygame.Rect(x_botones, y_inicio + btn_alto + espacio, btn_ancho, btn_alto)
+        color_c = (50, 150, 200) if rect_cargar.collidepoint(mouse_pos) else (30, 100, 150)
+        pygame.draw.rect(surface, color_c, rect_cargar, border_radius=8)
+        pygame.draw.rect(surface, COLOR_TEXTO, rect_cargar, 3, border_radius=8)
+        texto_c = self.fuente.render("Cargar", True, COLOR_TEXTO)
+        texto_rect_c = texto_c.get_rect(center=rect_cargar.center)
+        surface.blit(texto_c, texto_rect_c)
+        
+        # Guardar las posiciones para eventos
+        self.rect_guardar_derecha = rect_guardar
+        self.rect_cargar_derecha = rect_cargar
     
     def dibujar_barra_estado(self, surface):
         """Dibuja barra de estado"""
@@ -1204,6 +1575,35 @@ class EditorBatalla:
                             self.mostrar_paleta = False
                             self.tipo_color_editando = None
                     self.mostrar_mensaje(f"Textos: {'ON' if self.mostrar_textos_flotantes else 'OFF'}")
+                
+                # Manejo de scroll con flechas
+                elif evento.key in (pygame.K_UP, pygame.K_DOWN):
+                    tiempo_actual = pygame.time.get_ticks()
+                    if tiempo_actual - self.tiempo_ultimo_scroll > self.cooldown_scroll:
+                        # Determinar qué sección está expandida para aplicar scroll
+                        if self.seccion_heroes.expandida:
+                            total_heroes = len(self.seccion_heroes.items)
+                            if total_heroes > self.items_visibles_max:
+                                if evento.key == pygame.K_DOWN:
+                                    # Scroll hacia abajo
+                                    max_scroll = total_heroes - self.items_visibles_max
+                                    self.scroll_heroes = min(self.scroll_heroes + 1, max_scroll)
+                                elif evento.key == pygame.K_UP:
+                                    # Scroll hacia arriba
+                                    self.scroll_heroes = max(self.scroll_heroes - 1, 0)
+                                self.tiempo_ultimo_scroll = tiempo_actual
+                                
+                        elif self.seccion_monstruos.expandida:
+                            total_monstruos = len(self.seccion_monstruos.items)
+                            if total_monstruos > self.items_visibles_max:
+                                if evento.key == pygame.K_DOWN:
+                                    # Scroll hacia abajo
+                                    max_scroll = total_monstruos - self.items_visibles_max
+                                    self.scroll_monstruos = min(self.scroll_monstruos + 1, max_scroll)
+                                elif evento.key == pygame.K_UP:
+                                    # Scroll hacia arriba
+                                    self.scroll_monstruos = max(self.scroll_monstruos - 1, 0)
+                                self.tiempo_ultimo_scroll = tiempo_actual
             
             elif evento.type == pygame.MOUSEBUTTONDOWN:
                 if evento.button == 1:  # Click izquierdo
@@ -1253,14 +1653,18 @@ class EditorBatalla:
                         # Click en título de sección
                         if self.seccion_heroes.click_en_titulo(mouse_pos):
                             self.seccion_heroes.toggle()
+                            # Resetear scroll al alternar sección
+                            self.scroll_heroes = 0
                         elif self.seccion_monstruos.click_en_titulo(mouse_pos):
                             self.seccion_monstruos.toggle()
+                            # Resetear scroll al alternar sección
+                            self.scroll_monstruos = 0
                         
                         # Click en item de sección (iniciar drag)
                         else:
-                            item = self.seccion_heroes.get_item_en_posicion(mouse_pos)
+                            item = self.seccion_heroes.get_item_en_posicion(mouse_pos, self.scroll_heroes, self.items_visibles_max)
                             if not item:
-                                item = self.seccion_monstruos.get_item_en_posicion(mouse_pos)
+                                item = self.seccion_monstruos.get_item_en_posicion(mouse_pos, self.scroll_monstruos, self.items_visibles_max)
                             
                             if item:
                                 self.sprite_siendo_arrastrado = item
@@ -1270,7 +1674,7 @@ class EditorBatalla:
                         
                         # Botón textos flotantes
                         y_botones_extra = ALTO - 230
-                        rect_textos = pygame.Rect(10, y_botones_extra, PANEL_ANCHO - 20, 35)
+                        rect_textos = pygame.Rect(10, y_botones_extra, PANEL_ANCHO - 20, 30)
                         if rect_textos.collidepoint(mouse_pos):
                             self.mostrar_textos_flotantes = not self.mostrar_textos_flotantes
                             if self.mostrar_textos_flotantes and not self.textos_flotantes_demo:
@@ -1283,9 +1687,23 @@ class EditorBatalla:
                             self.mostrar_mensaje(f"Textos: {'ON' if self.mostrar_textos_flotantes else 'OFF'}")
                             continue
                         
+                        # Botón ventana de magia
+                        rect_magia = pygame.Rect(10, y_botones_extra + 35, PANEL_ANCHO - 20, 30)
+                        if rect_magia.collidepoint(mouse_pos):
+                            self.mostrar_ventana_magia = not self.mostrar_ventana_magia
+                            self.mostrar_mensaje(f"Ventana Magia: {'ON' if self.mostrar_ventana_magia else 'OFF'}")
+                            continue
+                        
+                        # Botón ventana emulador
+                        rect_emulador = pygame.Rect(10, y_botones_extra + 70, PANEL_ANCHO - 20, 30)
+                        if rect_emulador.collidepoint(mouse_pos):
+                            self.mostrar_ventana_emulador = not self.mostrar_ventana_emulador
+                            self.mostrar_mensaje(f"Ventana Emulador: {'ON' if self.mostrar_ventana_emulador else 'OFF'}")
+                            continue
+                        
                         # Botón para abrir paleta de colores (solo si textos están activados)
                         if self.mostrar_textos_flotantes:
-                            rect_paleta = pygame.Rect(160, y_botones_extra + 38, 130, 20)
+                            rect_paleta = pygame.Rect(160, y_botones_extra + 3, 130, 20)
                             if rect_paleta.collidepoint(mouse_pos):
                                 if not self.mostrar_paleta:
                                     self.mostrar_paleta = True
@@ -1299,7 +1717,7 @@ class EditorBatalla:
                         
                         # Botones de paleta de colores (arrastrar para crear textos)
                         tipos_colores = ["normal", "critico", "curacion", "miss"]
-                        y_inicio_botones = y_botones_extra + 60 if self.mostrar_textos_flotantes else y_botones_extra + 45
+                        y_inicio_botones = y_botones_extra + 130 if self.mostrar_textos_flotantes else y_botones_extra + 105
                         for i, tipo in enumerate(tipos_colores):
                             col = i % 2
                             fila = i // 2
@@ -1318,14 +1736,10 @@ class EditorBatalla:
                                     self.mostrar_mensaje(f"Editando color: {tipo}")
                                 continue
                         
-                        # Botones guardar/cargar
-                        y_botones = ALTO - 150
-                        rect_guardar = pygame.Rect(10, y_botones, (PANEL_ANCHO - 30) // 2, 40)
-                        if rect_guardar.collidepoint(mouse_pos):
+                        # Botones guardar/cargar (ahora en la derecha)
+                        if hasattr(self, 'rect_guardar_derecha') and self.rect_guardar_derecha and self.rect_guardar_derecha.collidepoint(mouse_pos):
                             self.guardar_configuracion()
-                        
-                        rect_cargar = pygame.Rect(10 + (PANEL_ANCHO - 30) // 2 + 10, y_botones, (PANEL_ANCHO - 30) // 2, 40)
-                        if rect_cargar.collidepoint(mouse_pos):
+                        elif hasattr(self, 'rect_cargar_derecha') and self.rect_cargar_derecha and self.rect_cargar_derecha.collidepoint(mouse_pos):
                             self.cargar_configuracion()
                     
                     # Click en paleta de colores (sliders y selector de tipo)
@@ -1365,69 +1779,110 @@ class EditorBatalla:
                                 self.actualizar_colores_textos()
                                 continue
                     
-                    # Click en área de batalla
-                    else:
+                    # Click en área de batalla (siempre procesar, independiente de la paleta)
+                    if mouse_pos[0] >= PANEL_ANCHO:
                         x_batalla = mouse_pos[0] - PANEL_ANCHO
                         y_batalla = mouse_pos[1]
                         
-                        # Verificar click en texto flotante
-                        texto_clickeado = None
-                        if self.mostrar_textos_flotantes:
-                            for texto in reversed(self.textos_flotantes_demo):
-                                if texto.contiene_punto(x_batalla, y_batalla):
-                                    texto_clickeado = texto
-                                    break
+                        # Variable para saber si se clickeó alguna ventana
+                        ventana_clickeada = False
                         
-                        if texto_clickeado:
-                            self.texto_seleccionado = texto_clickeado
-                            self.sprite_seleccionado = None
-                            
-                            # Verificar handle
-                            handle = texto_clickeado.get_handle_en_punto(x_batalla, y_batalla, 8)
-                            if handle:
-                                texto_clickeado.escalando = True
-                                texto_clickeado.handle_activo = handle
-                            else:
-                                texto_clickeado.arrastrando = True
-                                texto_clickeado.offset_x = texto_clickeado.x - x_batalla
-                                texto_clickeado.offset_y = texto_clickeado.y - y_batalla
-                        else:
-                            # Verificar click en ventana de batalla
-                            v = self.ventana_batalla
-                            if v.contiene_punto(x_batalla, y_batalla):
+                        # Verificar click en ventana de magia
+                        if self.mostrar_ventana_magia and not ventana_clickeada:
+                            vm = self.ventana_magia
+                            if vm.contiene_punto(x_batalla, y_batalla):
                                 self.sprite_seleccionado = None
                                 self.texto_seleccionado = None
+                                ventana_clickeada = True
                                 
                                 # Verificar handle
-                                handle = v.get_handle_en_punto(x_batalla, y_batalla, 10)
+                                handle = vm.get_handle_en_punto(x_batalla, y_batalla, 10)
                                 if handle:
-                                    v.escalando = True
-                                    v.handle_activo = handle
+                                    vm.escalando = True
+                                    vm.handle_activo = handle
                                 else:
-                                    v.arrastrando = True
-                                    v.offset_x = v.x - x_batalla
-                                    v.offset_y = v.y - y_batalla
-                            else:
-                                # Click en sprite
-                                sprite = self.get_sprite_en_posicion(x_batalla, y_batalla)
+                                    vm.arrastrando = True
+                                    vm.offset_x = vm.x - x_batalla
+                                    vm.offset_y = vm.y - y_batalla
+                        
+                        # Verificar click en ventana emulador
+                        if self.mostrar_ventana_emulador and not ventana_clickeada:
+                            ve = self.ventana_emulador
+                            if ve.contiene_punto(x_batalla, y_batalla):
+                                self.sprite_seleccionado = None
+                                self.texto_seleccionado = None
+                                ventana_clickeada = True
                                 
-                                if sprite:
-                                    self.sprite_seleccionado = sprite
-                                    self.texto_seleccionado = None
-                                    
-                                    # Verificar si clickeó un handle
-                                    handle = sprite.get_handle_en_punto(x_batalla, y_batalla, 10)
-                                    
-                                    if handle:
-                                        sprite.escalando = True
-                                        sprite.handle_activo = handle
-                                    else:
-                                        sprite.arrastrando = True
-                                        sprite.offset_x = sprite.x - x_batalla
-                                        sprite.offset_y = sprite.y - y_batalla
+                                # Verificar handle
+                                handle = ve.get_handle_en_punto(x_batalla, y_batalla, 10)
+                                if handle:
+                                    ve.escalando = True
+                                    ve.handle_activo = handle
                                 else:
+                                    ve.arrastrando = True
+                                    ve.offset_x = ve.x - x_batalla
+                                    ve.offset_y = ve.y - y_batalla
+                        
+                        # Solo procesar otros elementos si no se clickeó una ventana
+                        if not ventana_clickeada:
+                            # Verificar click en texto flotante
+                            texto_clickeado = None
+                            if self.mostrar_textos_flotantes:
+                                for texto in reversed(self.textos_flotantes_demo):
+                                    if texto.contiene_punto(x_batalla, y_batalla):
+                                        texto_clickeado = texto
+                                        break
+                        
+                            if texto_clickeado:
+                                self.texto_seleccionado = texto_clickeado
+                                self.sprite_seleccionado = None
+                                
+                                # Verificar handle
+                                handle = texto_clickeado.get_handle_en_punto(x_batalla, y_batalla, 8)
+                                if handle:
+                                    texto_clickeado.escalando = True
+                                    texto_clickeado.handle_activo = handle
+                                else:
+                                    texto_clickeado.arrastrando = True
+                                    texto_clickeado.offset_x = texto_clickeado.x - x_batalla
+                                    texto_clickeado.offset_y = texto_clickeado.y - y_batalla
+                            else:
+                                # Verificar click en ventana de batalla
+                                v = self.ventana_batalla
+                                if v.contiene_punto(x_batalla, y_batalla):
                                     self.sprite_seleccionado = None
                                     self.texto_seleccionado = None
+                                    
+                                    # Verificar handle
+                                    handle = v.get_handle_en_punto(x_batalla, y_batalla, 10)
+                                    if handle:
+                                        v.escalando = True
+                                        v.handle_activo = handle
+                                    else:
+                                        v.arrastrando = True
+                                        v.offset_x = v.x - x_batalla
+                                        v.offset_y = v.y - y_batalla
+                                else:
+                                    # Click en sprite
+                                    sprite = self.get_sprite_en_posicion(x_batalla, y_batalla)
+                                    
+                                    if sprite:
+                                        self.sprite_seleccionado = sprite
+                                        self.texto_seleccionado = None
+                                        
+                                        # Verificar si clickeó un handle
+                                        handle = sprite.get_handle_en_punto(x_batalla, y_batalla, 10)
+                                        
+                                        if handle:
+                                            sprite.escalando = True
+                                            sprite.handle_activo = handle
+                                        else:
+                                            sprite.arrastrando = True
+                                            sprite.offset_x = sprite.x - x_batalla
+                                            sprite.offset_y = sprite.y - y_batalla
+                                    else:
+                                        self.sprite_seleccionado = None
+                                        self.texto_seleccionado = None
                 
                 elif evento.button == 3:  # Click derecho - eliminar
                     if mouse_pos[0] >= PANEL_ANCHO:
@@ -1475,6 +1930,16 @@ class EditorBatalla:
                     self.ventana_batalla.arrastrando = False
                     self.ventana_batalla.escalando = False
                     self.ventana_batalla.handle_activo = None
+                    
+                    # Soltar ventana de magia
+                    self.ventana_magia.arrastrando = False
+                    self.ventana_magia.escalando = False
+                    self.ventana_magia.handle_activo = None
+                    
+                    # Soltar ventana emulador
+                    self.ventana_emulador.arrastrando = False
+                    self.ventana_emulador.escalando = False
+                    self.ventana_emulador.handle_activo = None
             
             elif evento.type == pygame.MOUSEMOTION:
                 if mouse_pos[0] >= PANEL_ANCHO:
@@ -1508,6 +1973,60 @@ class EditorBatalla:
                         
                         v.actualizar_rect()
                     
+                    # Arrastrar/escalar ventana de magia
+                    vm = self.ventana_magia
+                    if vm.arrastrando:
+                        vm.x = x_batalla + vm.offset_x
+                        vm.y = y_batalla + vm.offset_y
+                        vm.actualizar_rect()
+                    elif vm.escalando and vm.handle_activo:
+                        if 'e' in vm.handle_activo:
+                            nuevo_ancho = max(200, x_batalla - vm.x)
+                            vm.ancho = nuevo_ancho
+                        elif 'w' in vm.handle_activo:
+                            nuevo_ancho = max(200, vm.x + vm.ancho - x_batalla)
+                            if nuevo_ancho >= 200:
+                                vm.x = x_batalla
+                                vm.ancho = nuevo_ancho
+                        
+                        if 's' in vm.handle_activo:
+                            nuevo_alto = max(100, y_batalla - vm.y)
+                            vm.alto = nuevo_alto
+                        elif 'n' in vm.handle_activo:
+                            nuevo_alto = max(100, vm.y + vm.alto - y_batalla)
+                            if nuevo_alto >= 100:
+                                vm.y = y_batalla
+                                vm.alto = nuevo_alto
+                        
+                        vm.actualizar_rect()
+                    
+                    # Arrastrar/escalar ventana emulador
+                    ve = self.ventana_emulador
+                    if ve.arrastrando:
+                        ve.x = x_batalla + ve.offset_x
+                        ve.y = y_batalla + ve.offset_y
+                        ve.actualizar_rect()
+                    elif ve.escalando and ve.handle_activo:
+                        if 'e' in ve.handle_activo:
+                            nuevo_ancho = max(300, x_batalla - ve.x)
+                            ve.ancho = nuevo_ancho
+                        elif 'w' in ve.handle_activo:
+                            nuevo_ancho = max(300, ve.x + ve.ancho - x_batalla)
+                            if nuevo_ancho >= 300:
+                                ve.x = x_batalla
+                                ve.ancho = nuevo_ancho
+                        
+                        if 's' in ve.handle_activo:
+                            nuevo_alto = max(200, y_batalla - ve.y)
+                            ve.alto = nuevo_alto
+                        elif 'n' in ve.handle_activo:
+                            nuevo_alto = max(200, ve.y + ve.alto - y_batalla)
+                            if nuevo_alto >= 200:
+                                ve.y = y_batalla
+                                ve.alto = nuevo_alto
+                        
+                        ve.actualizar_rect()
+                    
                     # Arrastrar/escalar textos flotantes
                     for texto in self.textos_flotantes_demo:
                         if texto.arrastrando:
@@ -1515,10 +2034,17 @@ class EditorBatalla:
                             texto.y = y_batalla + texto.offset_y
                             texto.actualizar_rect()
                         elif texto.escalando and texto.handle_activo:
-                            # Escalar tamaño de fuente según distancia
-                            if 'e' in texto.handle_activo or 's' in texto.handle_activo:
-                                dist = abs(x_batalla - texto.x) + abs(y_batalla - texto.y)
-                                texto.tamano = max(10, min(60, int(dist / 2)))
+                            # Escalar tamaño de fuente según distancia del handle
+                            if 'e' in texto.handle_activo or 'se' in texto.handle_activo:
+                                # Handle derecho o esquina inferior derecha
+                                dist_x = x_batalla - texto.x
+                                nuevo_tamano = max(10, min(100, int(dist_x / 3)))
+                                texto.tamano = nuevo_tamano
+                            elif 's' in texto.handle_activo:
+                                # Handle inferior
+                                dist_y = y_batalla - texto.y
+                                nuevo_tamano = max(10, min(100, int(dist_y / 2)))
+                                texto.tamano = nuevo_tamano
                     
                     # Arrastrar sprites
                     for sprite in self.sprites_colocados:
@@ -1579,6 +2105,9 @@ class EditorBatalla:
             
             # Panel lateral
             self.dibujar_panel_lateral(self.pantalla)
+            
+            # Botones en la derecha
+            self.dibujar_botones_derecha(self.pantalla)
             
             # Paleta de colores
             if self.mostrar_paleta:
