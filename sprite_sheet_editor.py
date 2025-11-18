@@ -7,6 +7,7 @@ Herramienta profesional para cortar y organizar sprites desde spritesheets.
 CARACTERÍSTICAS:
 ✓ Carga spritesheets completos
 ✓ **NUEVO: Drag & Drop - Arrastra imágenes desde tu explorador**
+✓ **NUEVO: Quitar Fondo - Elimina fondos automáticamente**
 ✓ Selección de áreas con mouse (click y arrastrar)
 ✓ Múltiples selecciones
 ✓ Nombrar cada sprite cortado
@@ -19,11 +20,16 @@ CARACTERÍSTICAS:
 CONTROLES:
 - **Arrastra imagen .png/.jpg/.bmp/.gif desde el explorador**: Cargar spritesheet
 - Click izquierdo + arrastrar: Seleccionar área
-- Click derecho: Cancelar selección actual
-- CTRL + Click: Múltiples selecciones
-- N: Nombrar sprite seleccionado
+- Click derecho + arrastrar: Mover cámara (pan)
+- **Click derecho en cuadrado**: Eliminar selección
+- **Arrastrar bordes/esquinas**: Redimensionar selección
+- Click en checkbox: Marcar/desmarcar sprite para exportar
+- Rueda del mouse (en canvas): Zoom in/out
+- **Rueda del mouse (en lista)**: Scroll de la lista
+- **Botón "Quitar Fondo"**: Elimina el fondo del sprite seleccionado
 - S: Guardar sprite actual
-- E: Exportar todos
+- E: Exportar todos los sprites marcados
+- P: Toggle preview de animación
 - Z: Deshacer
 - Y: Rehacer
 - G: Toggle Grid
@@ -41,14 +47,14 @@ from enum import Enum
 # ========================================
 # CONFIGURACIÓN
 # ========================================
-ANCHO = 1400
-ALTO = 900
+ANCHO = 800
+ALTO = 600
 FPS = 60
 
 # Áreas de la ventana
-AREA_PREVIEW_ANCHO = 300
-AREA_SPRITESHEET_ANCHO = ANCHO - AREA_PREVIEW_ANCHO - 300
-PANEL_CONTROL_ANCHO = 300
+AREA_PREVIEW_ANCHO = 200
+AREA_SPRITESHEET_ANCHO = ANCHO - AREA_PREVIEW_ANCHO - 200
+PANEL_CONTROL_ANCHO = 200
 
 # Colores
 COLOR_FONDO = (20, 20, 25)
@@ -83,14 +89,71 @@ class SeleccionSprite:
     nombre: str = ""
     categoria: CategoriaSprite = CategoriaSprite.HEROE_BATALLA
     guardado: bool = False
+    seleccionado: bool = True  # Checkbox para exportar
     
     def get_rect(self):
         """Retorna el rect de la selección"""
         return pygame.Rect(self.x, self.y, self.ancho, self.alto)
     
+    def get_rect_valido(self, spritesheet):
+        """Retorna el rect validado para no salir de los límites del spritesheet"""
+        if not spritesheet:
+            return self.get_rect()
+        
+        max_x = spritesheet.get_width()
+        max_y = spritesheet.get_height()
+        
+        # Ajustar coordenadas para que estén dentro del spritesheet
+        x = max(0, min(self.x, max_x - 1))
+        y = max(0, min(self.y, max_y - 1))
+        ancho = max(1, min(self.ancho, max_x - x))
+        alto = max(1, min(self.alto, max_y - y))
+        
+        return pygame.Rect(x, y, ancho, alto)
+    
     def contiene_punto(self, px, py):
         """Verifica si un punto está dentro"""
         return self.get_rect().collidepoint(px, py)
+    
+    def get_borde_cercano(self, px, py, offset_x, offset_y, zoom, tolerancia=15):
+        """Detecta si el punto está cerca de un borde/esquina para redimensionar"""
+        rect = self.get_rect()
+        
+        # Convertir a coordenadas de pantalla con zoom y offset
+        x1 = rect.x * zoom + offset_x
+        y1 = rect.y * zoom + offset_y
+        x2 = (rect.x + rect.width) * zoom + offset_x
+        y2 = (rect.y + rect.height) * zoom + offset_y
+        
+        cerca_izq = abs(px - x1) < tolerancia
+        cerca_der = abs(px - x2) < tolerancia
+        cerca_arr = abs(py - y1) < tolerancia
+        cerca_aba = abs(py - y2) < tolerancia
+        
+        dentro_x = x1 - tolerancia < px < x2 + tolerancia
+        dentro_y = y1 - tolerancia < py < y2 + tolerancia
+        
+        # Esquinas (prioridad)
+        if cerca_izq and cerca_arr and dentro_x and dentro_y:
+            return 'tl'  # top-left
+        if cerca_der and cerca_arr and dentro_x and dentro_y:
+            return 'tr'  # top-right
+        if cerca_izq and cerca_aba and dentro_x and dentro_y:
+            return 'bl'  # bottom-left
+        if cerca_der and cerca_aba and dentro_x and dentro_y:
+            return 'br'  # bottom-right
+        
+        # Bordes
+        if cerca_arr and dentro_x:
+            return 'top'
+        if cerca_aba and dentro_x:
+            return 'bottom'
+        if cerca_izq and dentro_y:
+            return 'left'
+        if cerca_der and dentro_y:
+            return 'right'
+        
+        return None
     
     def to_dict(self):
         """Convierte a diccionario para guardar"""
@@ -101,7 +164,8 @@ class SeleccionSprite:
             "alto": self.alto,
             "nombre": self.nombre,
             "categoria": self.categoria.value,
-            "guardado": self.guardado
+            "guardado": self.guardado,
+            "seleccionado": self.seleccionado
         }
 
 
@@ -199,6 +263,11 @@ class SpriteSheetEditor:
         pygame.display.set_caption("Sprite Sheet Editor - CodeVerso RPG - Arrastra imágenes aquí")
         self.reloj = pygame.time.Clock()
         
+        # Control de ventana
+        self.fullscreen = False
+        self.ventana_ancho = ANCHO
+        self.ventana_alto = ALTO
+        
         # Fuentes
         self.fuente = pygame.font.Font(None, 24)
         self.fuente_pequena = pygame.font.Font(None, 18)
@@ -212,23 +281,42 @@ class SpriteSheetEditor:
         self.offset_x = 0
         self.offset_y = 0
         
+        # Pan de cámara
+        self.panning = False
+        self.pan_inicio = (0, 0)
+        
         # Selecciones
         self.selecciones: List[SeleccionSprite] = []
         self.seleccion_actual: Optional[SeleccionSprite] = None
         self.seleccionando = False
         self.punto_inicio = (0, 0)
         
+        # Redimensionamiento de selecciones
+        self.redimensionando = False
+        self.borde_seleccionado = None  # 'top', 'bottom', 'left', 'right', 'tl', 'tr', 'bl', 'br'
+        self.punto_resize_inicio = (0, 0)
+        
+        # Scroll en lista de sprites
+        self.scroll_lista_offset = 0
+        self.scroll_lista_max = 0
+        
         # Historial (deshacer/rehacer)
         self.historial = []
         self.historial_index = -1
         
         # UI
-        self.input_nombre = InputTexto(ANCHO - 280, 100, 260, 35, "Nombre del sprite...")
+        self.input_nombre = InputTexto(self.ventana_ancho - (PANEL_CONTROL_ANCHO - 20), 80, PANEL_CONTROL_ANCHO - 40, 30, "Nombre del sprite...")
         self.mensaje = ""
         self.mensaje_timer = 0
         
         # Drag and drop
         self.arrastrando_archivo = False
+        
+        # Preview de animación
+        self.ventana_preview_activa = False
+        self.preview_frame_actual = 0
+        self.preview_timer = 0
+        self.preview_velocidad = 10  # frames entre cambios
         
         # Botones de categoría
         self.botones_categoria = []
@@ -243,6 +331,12 @@ class SpriteSheetEditor:
         self.mostrar_grid = True
         self.tamano_grid = 32
         
+        # Checkboxes
+        self.checkbox_rects = []
+        
+        # Quitar fondo
+        self.tolerancia_fondo = 30  # Tolerancia para detectar colores similares
+        
         print("✓ Sprite Sheet Editor iniciado")
         print("✓ Arrastra imágenes desde el explorador para cargarlas")
     
@@ -256,35 +350,65 @@ class SpriteSheetEditor:
             ("Cofre", CategoriaSprite.COFRE),
         ]
         
-        x = ANCHO - 280
-        y = 200
+        x = self.ventana_ancho - (PANEL_CONTROL_ANCHO - 20)
+        y = 180
         
         for nombre, categoria in categorias:
-            boton = Boton(x, y, 260, 35, nombre, 
+            boton = Boton(x, y, PANEL_CONTROL_ANCHO - 40, 30, nombre, 
                          lambda c=categoria: self.cambiar_categoria(c))
             if categoria == self.categoria_actual:
                 boton.activo = True
             self.botones_categoria.append(boton)
-            y += 45
+            y += 38
+    
+    def actualizar_input_posicion(self):
+        """Actualiza la posición del input cuando cambia el tamaño de ventana"""
+        self.input_nombre.rect.x = self.ventana_ancho - (PANEL_CONTROL_ANCHO - 20)
+        self.input_nombre.rect.y = 80
+        self.input_nombre.rect.width = PANEL_CONTROL_ANCHO - 40
     
     def crear_botones_accion(self):
         """Crea botones de acción"""
         acciones = [
-            ("Cargar Spritesheet", self.cargar_spritesheet),
-            ("Guardar Sprite (S)", self.guardar_sprite_actual),
-            ("Exportar Todos (E)", self.exportar_todos),
-            ("Limpiar Todo", self.limpiar_todo),
+            ("Cargar", self.cargar_spritesheet),
+            ("Preview", self.toggle_preview),
+            ("Quitar Fondo", self.quitar_fondo_sprite),
+            ("Guardar (S)", self.guardar_sprite_actual),
+            ("Exportar (E)", self.exportar_todos),
+            ("Limpiar", self.limpiar_todo),
             ("Deshacer (Z)", self.deshacer),
             ("Rehacer (Y)", self.rehacer),
+            ("Fullscreen (F)", self.toggle_fullscreen),
         ]
         
-        x = ANCHO - 280
-        y = 500
+        x = self.ventana_ancho - (PANEL_CONTROL_ANCHO - 20)
+        y = 450
         
         for nombre, callback in acciones:
-            boton = Boton(x, y, 260, 35, nombre, callback)
+            boton = Boton(x, y, PANEL_CONTROL_ANCHO - 40, 30, nombre, callback)
             self.botones_accion.append(boton)
-            y += 45
+            y += 38
+    
+    def toggle_fullscreen(self):
+        """Alterna entre modo ventana y pantalla completa"""
+        self.fullscreen = not self.fullscreen
+        if self.fullscreen:
+            self.pantalla = pygame.display.set_mode((0, 0), pygame.FULLSCREEN | pygame.RESIZABLE)
+            self.ventana_ancho = self.pantalla.get_width()
+            self.ventana_alto = self.pantalla.get_height()
+            self.mostrar_mensaje("✓ Pantalla completa (F para salir)")
+        else:
+            self.pantalla = pygame.display.set_mode((ANCHO, ALTO), pygame.RESIZABLE)
+            self.ventana_ancho = ANCHO
+            self.ventana_alto = ALTO
+            self.mostrar_mensaje("✓ Modo ventana")
+        
+        # Recrear botones para nueva posición
+        self.botones_categoria = []
+        self.botones_accion = []
+        self.crear_botones_categoria()
+        self.crear_botones_accion()
+        self.actualizar_input_posicion()
     
     def cambiar_categoria(self, categoria):
         """Cambia la categoría actual"""
@@ -340,13 +464,18 @@ class SpriteSheetEditor:
         # Extraer el sprite
         if self.spritesheet_original:
             sprite_surface = self.spritesheet_original.subsurface(
-                self.seleccion_actual.get_rect()
+                self.seleccion_actual.get_rect_valido(self.spritesheet_original)
             ).copy()
             
             # Guardar
             ruta_destino = Path(f"assets/sprites/{self.categoria_actual.value}")
             ruta_destino.mkdir(parents=True, exist_ok=True)
             ruta_archivo = ruta_destino / f"{self.input_nombre.texto}.png"
+            
+            # Verificar si existe y preguntar
+            if ruta_archivo.exists():
+                print(f"⚠️ El archivo {ruta_archivo.name} ya existe")
+                self.mostrar_mensaje(f"⚠️ Archivo existe, se reemplazará")
             
             try:
                 pygame.image.save(sprite_surface, str(ruta_archivo))
@@ -364,30 +493,139 @@ class SpriteSheetEditor:
                 self.mostrar_mensaje(f"❌ Error: {str(e)}")
                 print(f"❌ Error guardando: {e}")
     
+    def quitar_fondo_sprite(self):
+        """Quita el fondo del sprite seleccionado haciéndolo transparente"""
+        if not self.seleccion_actual:
+            self.mostrar_mensaje("⚠️ No hay selección activa")
+            return
+        
+        if not self.spritesheet_original:
+            self.mostrar_mensaje("⚠️ No hay spritesheet cargado")
+            return
+        
+        try:
+            # Extraer el sprite
+            sprite_rect = self.seleccion_actual.get_rect_valido(self.spritesheet_original)
+            sprite_surface = self.spritesheet_original.subsurface(sprite_rect).copy()
+            
+            # Obtener el color de fondo (esquina superior izquierda)
+            color_fondo = sprite_surface.get_at((0, 0))[:3]  # Solo RGB, sin alpha
+            
+            # Crear una nueva superficie con transparencia
+            nueva_surface = pygame.Surface(sprite_surface.get_size(), pygame.SRCALPHA)
+            nueva_surface.fill((0, 0, 0, 0))  # Totalmente transparente
+            
+            # Copiar píxeles que no sean del color de fondo
+            ancho, alto = sprite_surface.get_size()
+            pixeles_cambiados = 0
+            
+            for x in range(ancho):
+                for y in range(alto):
+                    color_pixel = sprite_surface.get_at((x, y))
+                    
+                    # Calcular diferencia de color con tolerancia
+                    diff = abs(color_pixel[0] - color_fondo[0]) + \
+                           abs(color_pixel[1] - color_fondo[1]) + \
+                           abs(color_pixel[2] - color_fondo[2])
+                    
+                    if diff > self.tolerancia_fondo:
+                        # No es color de fondo, copiar con alpha 255 (opaco)
+                        nueva_surface.set_at((x, y), (color_pixel[0], color_pixel[1], color_pixel[2], 255))
+                    else:
+                        # Es color de fondo, dejar transparente (alpha 0)
+                        pixeles_cambiados += 1
+            
+            # CLAVE: Recrear el spritesheet completo con soporte alpha
+            nuevo_spritesheet = pygame.Surface(self.spritesheet_original.get_size(), pygame.SRCALPHA, 32)
+            nuevo_spritesheet = nuevo_spritesheet.convert_alpha()
+            
+            # Copiar todo el spritesheet original
+            nuevo_spritesheet.blit(self.spritesheet_original, (0, 0))
+            
+            # Reemplazar el área del sprite con la versión sin fondo
+            # Limpiar área primero rellenando con transparencia
+            nuevo_spritesheet.fill((0, 0, 0, 0), sprite_rect)
+            # Pegar sprite sin fondo (sin special_flags para evitar problemas)
+            nuevo_spritesheet.blit(nueva_surface, sprite_rect.topleft)
+            
+            # Actualizar el spritesheet
+            self.spritesheet_original = nuevo_spritesheet
+            
+            porcentaje = (pixeles_cambiados / (ancho * alto)) * 100
+            self.mostrar_mensaje(f"✓ Fondo eliminado ({porcentaje:.1f}% transparente)")
+            print(f"✓ Fondo eliminado: {pixeles_cambiados} píxeles ({porcentaje:.1f}%)")
+            print(f"  Color detectado: RGB{color_fondo}")
+            print(f"  Sprite actualizado en spritesheet")
+            
+        except Exception as e:
+            self.mostrar_mensaje(f"❌ Error: {str(e)}")
+            print(f"❌ Error quitando fondo: {e}")
+            import traceback
+            traceback.print_exc()
+
+    
     def exportar_todos(self):
-        """Exporta todas las selecciones"""
+        """Exporta todas las selecciones marcadas con checkbox"""
         if not self.selecciones:
             self.mostrar_mensaje("⚠️ No hay selecciones")
             return
         
+        # Filtrar solo los seleccionados con checkbox
+        selecciones_a_exportar = [s for s in self.selecciones if s.seleccionado and not s.guardado]
+        
+        if not selecciones_a_exportar:
+            self.mostrar_mensaje("⚠️ No hay sprites marcados para exportar")
+            return
+        
+        # Verificar que todos tengan nombre
+        sin_nombre = [s for s in selecciones_a_exportar if not s.nombre]
+        if sin_nombre:
+            self.mostrar_mensaje(f"⚠️ {len(sin_nombre)} sprites sin nombre")
+            return
+        
         contador = 0
-        for i, sel in enumerate(self.selecciones):
-            if not sel.guardado and sel.nombre:
-                # Extraer y guardar
-                sprite_surface = self.spritesheet_original.subsurface(sel.get_rect()).copy()
+        errores = 0
+        
+        # Exportar cada sprite con su nombre tal cual
+        for sel in selecciones_a_exportar:
+            try:
+                sprite_surface = self.spritesheet_original.subsurface(sel.get_rect_valido(self.spritesheet_original)).copy()
                 ruta_destino = Path(f"assets/sprites/{sel.categoria.value}")
                 ruta_destino.mkdir(parents=True, exist_ok=True)
                 ruta_archivo = ruta_destino / f"{sel.nombre}.png"
                 
-                try:
-                    pygame.image.save(sprite_surface, str(ruta_archivo))
-                    sel.guardado = True
-                    contador += 1
-                except Exception as e:
-                    print(f"❌ Error guardando {sel.nombre}: {e}")
+                pygame.image.save(sprite_surface, str(ruta_archivo))
+                sel.guardado = True
+                contador += 1
+                print(f"✓ Guardado: {sel.nombre}.png en {sel.categoria.value}")
+            except Exception as e:
+                errores += 1
+                print(f"❌ Error guardando {sel.nombre}: {e}")
         
-        self.mostrar_mensaje(f"✓ Exportados {contador} sprites")
-        print(f"✓ Exportados {contador} sprites")
+        if errores > 0:
+            self.mostrar_mensaje(f"✓ Exportados {contador} sprites ({errores} errores)")
+        else:
+            self.mostrar_mensaje(f"✓ Exportados {contador} sprites")
+        print(f"✓ Total exportados: {contador} sprites")
+        if errores > 0:
+            print(f"⚠️ Errores: {errores}")
+    
+    def toggle_preview(self):
+        """Activa/desactiva ventana de preview"""
+        # Solo si hay selecciones marcadas
+        selecciones_preview = [s for s in self.selecciones if s.seleccionado]
+        if not selecciones_preview:
+            self.mostrar_mensaje("⚠️ Marca sprites con checkbox para preview")
+            return
+        
+        self.ventana_preview_activa = not self.ventana_preview_activa
+        self.preview_frame_actual = 0
+        self.preview_timer = 0
+        
+        if self.ventana_preview_activa:
+            self.mostrar_mensaje("✓ Preview activado")
+        else:
+            self.mostrar_mensaje("✓ Preview desactivado")
     
     def limpiar_todo(self):
         """Limpia todas las selecciones"""
@@ -444,6 +682,7 @@ class SpriteSheetEditor:
                     categoria=CategoriaSprite(sel_dict.get("categoria", "heroes/batalla")),
                     guardado=sel_dict.get("guardado", False)
                 )
+                sel.seleccionado = sel_dict.get("seleccionado", True)
                 self.selecciones.append(sel)
     
     def mostrar_mensaje(self, texto):
@@ -466,13 +705,15 @@ class SpriteSheetEditor:
     
     def dibujar_spritesheet(self, surface):
         """Dibuja el spritesheet con zoom"""
+        area_sheet_ancho = self.ventana_ancho - AREA_PREVIEW_ANCHO - PANEL_CONTROL_ANCHO
+        
         if not self.spritesheet:
             # Mensaje si no hay spritesheet
-            texto1 = self.fuente_titulo.render("Arrastra una imagen aquí", True, COLOR_TEXTO)
-            texto2 = self.fuente.render("o usa el botón 'Cargar Spritesheet'", True, COLOR_TEXTO_SEC)
+            texto1 = self.fuente.render("Arrastra una imagen aquí", True, COLOR_TEXTO)
+            texto2 = self.fuente_pequena.render("o usa el botón 'Cargar'", True, COLOR_TEXTO_SEC)
             
-            rect1 = texto1.get_rect(center=(AREA_SPRITESHEET_ANCHO // 2, ALTO // 2 - 20))
-            rect2 = texto2.get_rect(center=(AREA_SPRITESHEET_ANCHO // 2, ALTO // 2 + 20))
+            rect1 = texto1.get_rect(center=(area_sheet_ancho // 2, self.ventana_alto // 2 - 20))
+            rect2 = texto2.get_rect(center=(area_sheet_ancho // 2, self.ventana_alto // 2 + 20))
             
             surface.blit(texto1, rect1)
             surface.blit(texto2, rect2)
@@ -480,7 +721,7 @@ class SpriteSheetEditor:
             # Indicador visual de zona de drop
             if self.arrastrando_archivo:
                 # Borde punteado cuando se arrastra
-                rect_drop = pygame.Rect(20, 20, AREA_SPRITESHEET_ANCHO - 40, ALTO - 40)
+                rect_drop = pygame.Rect(20, 20, area_sheet_ancho - 40, self.ventana_alto - 40)
                 for i in range(0, rect_drop.width, 20):
                     pygame.draw.line(surface, COLOR_BOTON_ACTIVO, 
                                    (rect_drop.x + i, rect_drop.y), 
@@ -499,7 +740,7 @@ class SpriteSheetEditor:
                 
                 # Texto adicional
                 texto_drop = self.fuente.render("¡Suelta aquí!", True, COLOR_BOTON_ACTIVO)
-                rect_drop_texto = texto_drop.get_rect(center=(AREA_SPRITESHEET_ANCHO // 2, ALTO // 2 + 60))
+                rect_drop_texto = texto_drop.get_rect(center=(area_sheet_ancho // 2, self.ventana_alto // 2 + 60))
                 surface.blit(texto_drop, rect_drop_texto)
             
             return
@@ -530,7 +771,8 @@ class SpriteSheetEditor:
         # Dibujar selección en progreso
         if self.seleccionando:
             mouse_x, mouse_y = pygame.mouse.get_pos()
-            if mouse_x < AREA_SPRITESHEET_ANCHO:
+            area_sheet_ancho = self.ventana_ancho - AREA_PREVIEW_ANCHO - PANEL_CONTROL_ANCHO
+            if mouse_x < area_sheet_ancho:
                 x1, y1 = self.punto_inicio
                 ancho = mouse_x - x1
                 alto = mouse_y - y1
@@ -607,24 +849,25 @@ class SpriteSheetEditor:
     def dibujar_panel_control(self, surface):
         """Dibuja panel de control derecho"""
         # Fondo
+        panel_x = self.ventana_ancho - PANEL_CONTROL_ANCHO
         pygame.draw.rect(surface, COLOR_PANEL, 
-                        (ANCHO - PANEL_CONTROL_ANCHO, 0, PANEL_CONTROL_ANCHO, ALTO))
+                        (panel_x, 0, PANEL_CONTROL_ANCHO, self.ventana_alto))
         
         # Título
-        x = ANCHO - 280
+        x = panel_x + 20
         y = 20
-        titulo = self.fuente_titulo.render("Controles", True, COLOR_TEXTO)
+        titulo = self.fuente.render("Controles", True, COLOR_TEXTO)
         surface.blit(titulo, (x, y))
         
-        y += 60
+        y += 50
         
         # Input de nombre
         self.input_nombre.draw(surface)
         
-        y = 150
+        y = 130
         
         # Texto "Categoría:"
-        texto_cat = self.fuente.render("Categoría:", True, COLOR_TEXTO)
+        texto_cat = self.fuente_pequena.render("Categoría:", True, COLOR_TEXTO)
         surface.blit(texto_cat, (x, y))
         
         # Botones de categoría
@@ -637,103 +880,267 @@ class SpriteSheetEditor:
     
     def dibujar_panel_preview(self, surface):
         """Dibuja panel de preview izquierdo"""
+        # Calcular área del spritesheet según tamaño de ventana
+        area_sheet_ancho = self.ventana_ancho - AREA_PREVIEW_ANCHO - PANEL_CONTROL_ANCHO
+        
         # Fondo
         pygame.draw.rect(surface, COLOR_PANEL, 
-                        (AREA_SPRITESHEET_ANCHO, 0, AREA_PREVIEW_ANCHO, ALTO))
+                        (area_sheet_ancho, 0, AREA_PREVIEW_ANCHO, self.ventana_alto))
         
-        x = AREA_SPRITESHEET_ANCHO + 20
+        x = area_sheet_ancho + 10
         y = 20
         
         # Título
         titulo = self.fuente.render("Preview", True, COLOR_TEXTO)
         surface.blit(titulo, (x, y))
-        y += 40
+        y += 30
         
-        # Preview del sprite actual
+        # Info primero (antes del preview)
         if self.seleccion_actual and self.spritesheet_original:
+            info = [
+                f"Tamaño: {self.seleccion_actual.ancho}x{self.seleccion_actual.alto}",
+                f"Pos: ({self.seleccion_actual.x}, {self.seleccion_actual.y})",
+            ]
+            
+            for linea in info:
+                texto = self.fuente_pequena.render(linea, True, COLOR_TEXTO_SEC)
+                surface.blit(texto, (x, y))
+                y += 18
+            
+            y += 5  # Espacio antes del preview
+            
+            # Preview del sprite actual DEBAJO de la info
             try:
                 sprite = self.spritesheet_original.subsurface(
-                    self.seleccion_actual.get_rect()
+                    self.seleccion_actual.get_rect_valido(self.spritesheet_original)
                 ).copy()
                 
+                # Calcular espacio disponible para el preview
+                espacio_disponible = (self.ventana_alto // 2) - y - 30
+                max_tam = min(AREA_PREVIEW_ANCHO - 20, espacio_disponible)
+                
                 # Escalar para que quepa en el panel
-                max_tam = AREA_PREVIEW_ANCHO - 40
-                factor = min(max_tam / sprite.get_width(), max_tam / sprite.get_height())
-                if factor < 1:
+                factor = min(max_tam / sprite.get_width(), max_tam / sprite.get_height(), 3.0)
+                if factor < 1 or factor > 1:
                     nuevo_ancho = int(sprite.get_width() * factor)
                     nuevo_alto = int(sprite.get_height() * factor)
-                    sprite = pygame.transform.scale(sprite, (nuevo_ancho, nuevo_alto))
+                    if nuevo_ancho > 0 and nuevo_alto > 0:
+                        sprite = pygame.transform.scale(sprite, (nuevo_ancho, nuevo_alto))
                 
-                # Centrar
-                pos_x = x + (max_tam - sprite.get_width()) // 2
-                surface.blit(sprite, (pos_x, y))
-                y += sprite.get_height() + 20
+                # Fondo de cuadrícula para transparencias
+                for i in range(0, sprite.get_width(), 8):
+                    for j in range(0, sprite.get_height(), 8):
+                        color = (40, 40, 50) if (i // 8 + j // 8) % 2 == 0 else (50, 50, 60)
+                        pygame.draw.rect(surface, color, (x + i, y + j, 8, 8))
                 
-                # Info
-                info = [
-                    f"Tamaño: {self.seleccion_actual.ancho}x{self.seleccion_actual.alto}",
-                    f"Pos: ({self.seleccion_actual.x}, {self.seleccion_actual.y})",
-                    f"Nombre: {self.seleccion_actual.nombre or 'Sin nombre'}",
-                ]
-                
-                for linea in info:
-                    texto = self.fuente_pequena.render(linea, True, COLOR_TEXTO_SEC)
-                    surface.blit(texto, (x, y))
-                    y += 25
+                # Dibujar sprite
+                surface.blit(sprite, (x, y))
+                y += sprite.get_height() + 10
             
-            except:
+            except Exception as e:
                 texto = self.fuente_pequena.render("Error en preview", True, (255, 100, 100))
                 surface.blit(texto, (x, y))
+                y += 20
         else:
             texto = self.fuente_pequena.render("Selecciona un área", True, COLOR_TEXTO_SEC)
             surface.blit(texto, (x, y))
+            y += 20
         
-        # Lista de selecciones
-        y = ALTO // 2
-        titulo_lista = self.fuente.render("Selecciones:", True, COLOR_TEXTO)
-        surface.blit(titulo_lista, (x, y))
-        y += 30
+        # Lista de selecciones con checkboxes y SCROLL
+        # Ajustar posición si hay preview de animación activo
+        if self.ventana_preview_activa:
+            y_lista_inicio = y + 10  # Justo después del preview del sprite actual
+            lista_alto = (self.ventana_alto - y_lista_inicio - 250)  # Dejar espacio para animación abajo
+        else:
+            y_lista_inicio = self.ventana_alto // 2
+            lista_alto = self.ventana_alto - y_lista_inicio - 50  # Sin preview de animación
         
-        for i, sel in enumerate(self.selecciones[-10:]):  # Últimas 10
-            nombre = sel.nombre if sel.nombre else f"Sprite {i+1}"
-            check = "✓" if sel.guardado else "○"
-            texto = self.fuente_pequena.render(f"{check} {nombre}", True, 
-                                              (0, 255, 0) if sel.guardado else COLOR_TEXTO_SEC)
-            surface.blit(texto, (x, y))
+        titulo_lista = self.fuente_pequena.render(f"Sprites: {len(self.selecciones)}", True, COLOR_TEXTO)
+        surface.blit(titulo_lista, (x, y_lista_inicio))
+        y_lista_inicio += 25
+        
+        # Área de la lista (con scroll)
+        lista_ancho = AREA_PREVIEW_ANCHO - 20
+        
+        # Crear superficie para la lista con clip
+        clip_rect = pygame.Rect(x, y_lista_inicio, lista_ancho, lista_alto)
+        
+        # Guardar posiciones de checkboxes para detección de clicks
+        self.checkbox_rects = []
+        
+        y = y_lista_inicio - self.scroll_lista_offset
+        altura_total = 0
+        
+        for i, sel in enumerate(self.selecciones):
+            # Solo dibujar si está visible
+            if y + 25 >= y_lista_inicio and y < y_lista_inicio + lista_alto:
+                nombre = sel.nombre if sel.nombre else f"Sprite {i+1}"
+                
+                # Dibujar checkbox
+                checkbox_rect = pygame.Rect(x, y, 18, 18)
+                self.checkbox_rects.append((checkbox_rect, sel))
+                
+                # Fondo del checkbox
+                pygame.draw.rect(surface, (60, 60, 80), checkbox_rect, border_radius=3)
+                pygame.draw.rect(surface, COLOR_TEXTO, checkbox_rect, 2, border_radius=3)
+                
+                # Marca si está seleccionado
+                if sel.seleccionado:
+                    pygame.draw.line(surface, (100, 255, 100), 
+                                   (x + 3, y + 9), (x + 7, y + 14), 3)
+                    pygame.draw.line(surface, (100, 255, 100), 
+                                   (x + 7, y + 14), (x + 15, y + 4), 3)
+                
+                # Indicador de guardado
+                guardado_icon = "✓" if sel.guardado else "○"
+                color_texto = (0, 255, 0) if sel.guardado else COLOR_TEXTO_SEC
+                
+                # Resaltar si es el sprite actual
+                if sel == self.seleccion_actual:
+                    pygame.draw.rect(surface, (70, 70, 100), (x - 5, y - 2, lista_ancho, 22), border_radius=3)
+                
+                texto = self.fuente_pequena.render(f"{guardado_icon} {nombre}", True, color_texto)
+                surface.blit(texto, (x + 25, y))
+            
             y += 25
+            altura_total += 25
+        
+        # Actualizar scroll máximo
+        self.scroll_lista_max = max(0, altura_total - lista_alto)
+        
+        # Dibujar scrollbar si es necesario
+        if self.scroll_lista_max > 0:
+            scrollbar_x = x + lista_ancho + 5
+            scrollbar_alto = lista_alto
+            scrollbar_ancho = 8
+            
+            # Barra de fondo
+            pygame.draw.rect(surface, (50, 50, 70), 
+                           (scrollbar_x, y_lista_inicio, scrollbar_ancho, scrollbar_alto), border_radius=4)
+            
+            # Thumb de scroll
+            thumb_alto = max(20, scrollbar_alto * (lista_alto / altura_total))
+            thumb_y = y_lista_inicio + (self.scroll_lista_offset / self.scroll_lista_max) * (scrollbar_alto - thumb_alto) if self.scroll_lista_max > 0 else y_lista_inicio
+            pygame.draw.rect(surface, (100, 100, 200), 
+                           (scrollbar_x, thumb_y, scrollbar_ancho, thumb_alto), border_radius=4)
+        
+        y = y_lista_inicio + lista_alto
+        
+        # Si el preview está activo, mostrarlo más abajo (después de la lista)
+        if self.ventana_preview_activa:
+            self.dibujar_preview_animacion(surface, area_sheet_ancho, y + 10)
     
     def dibujar_barra_estado(self, surface):
         """Dibuja barra de estado inferior"""
-        barra_alto = 30
-        pygame.draw.rect(surface, (20, 20, 30), (0, ALTO - barra_alto, ANCHO, barra_alto))
+        barra_alto = 25
+        pygame.draw.rect(surface, (20, 20, 30), (0, self.ventana_alto - barra_alto, self.ventana_ancho, barra_alto))
         
         # Info
-        texto_info = f"Zoom: {self.zoom:.2f}x | Selecciones: {len(self.selecciones)} | "
-        texto_info += f"Guardados: {sum(1 for s in self.selecciones if s.guardado)}"
+        texto_info = f"Zoom: {self.zoom:.1f}x | Sprites: {len(self.selecciones)} | "
+        texto_info += f"Marcados: {sum(1 for s in self.selecciones if s.seleccionado)}"
         
         if self.spritesheet_original:
             texto_info += f" | Sheet: {self.spritesheet_original.get_width()}x{self.spritesheet_original.get_height()}"
         
         texto = self.fuente_pequena.render(texto_info, True, COLOR_TEXTO)
-        surface.blit(texto, (10, ALTO - barra_alto + 8))
+        surface.blit(texto, (10, self.ventana_alto - barra_alto + 5))
         
         # Mensaje temporal
         if self.mensaje and pygame.time.get_ticks() - self.mensaje_timer < 3000:
             mensaje_surf = self.fuente.render(self.mensaje, True, (100, 255, 100))
-            pos_x = ANCHO // 2 - mensaje_surf.get_width() // 2
-            surface.blit(mensaje_surf, (pos_x, ALTO - barra_alto - 40))
+            pos_x = self.ventana_ancho // 2 - mensaje_surf.get_width() // 2
+            surface.blit(mensaje_surf, (pos_x, self.ventana_alto - barra_alto - 30))
+    
+    def dibujar_preview_animacion(self, surface, x_base, y_inicio):
+        """Dibuja la ventana de preview de animación"""
+        # Obtener sprites seleccionados con checkbox
+        sprites_animacion = [s for s in self.selecciones if s.seleccionado]
+        
+        if not sprites_animacion or not self.spritesheet_original:
+            return
+        
+        # Calcular posición y tamaño
+        x_panel = x_base + 10
+        ancho_preview = AREA_PREVIEW_ANCHO - 20
+        alto_preview = min(220, self.ventana_alto - y_inicio - 30)  # Ajustar al espacio disponible
+        
+        # Fondo del preview
+        rect_preview = pygame.Rect(x_panel, y_inicio, ancho_preview, alto_preview)
+        pygame.draw.rect(surface, (40, 40, 60), rect_preview, border_radius=5)
+        pygame.draw.rect(surface, COLOR_BOTON_ACTIVO, rect_preview, 2, border_radius=5)
+        
+        # Título
+        titulo = self.fuente.render("Animación", True, COLOR_TEXTO)
+        surface.blit(titulo, (x_panel + 10, y_inicio + 10))
+        
+        # Actualizar frame de animación
+        self.preview_timer += 1
+        if self.preview_timer >= self.preview_velocidad:
+            self.preview_timer = 0
+            self.preview_frame_actual = (self.preview_frame_actual + 1) % len(sprites_animacion)
+        
+        # Dibujar sprite actual de la animación
+        sprite_actual = sprites_animacion[self.preview_frame_actual]
+        try:
+            sprite_surface = self.spritesheet_original.subsurface(sprite_actual.get_rect_valido(self.spritesheet_original)).copy()
+            
+            # Escalar para que quepa - usar más espacio vertical
+            max_ancho = ancho_preview - 20
+            max_alto = alto_preview - 70
+            escala = min(max_ancho / sprite_surface.get_width(),
+                        max_alto / sprite_surface.get_height(), 4.0)
+            
+            nuevo_ancho = int(sprite_surface.get_width() * escala)
+            nuevo_alto = int(sprite_surface.get_height() * escala)
+            
+            if nuevo_ancho > 0 and nuevo_alto > 0:
+                sprite_escalado = pygame.transform.scale(sprite_surface, (nuevo_ancho, nuevo_alto))
+                
+                # Centrar en el área de preview
+                x_sprite = x_panel + (ancho_preview - nuevo_ancho) // 2
+                y_sprite = y_inicio + 40 + (alto_preview - 70 - nuevo_alto) // 2
+                
+                # Fondo de cuadrícula para ver transparencias
+                for i in range(0, nuevo_ancho, 10):
+                    for j in range(0, nuevo_alto, 10):
+                        color = (50, 50, 60) if (i // 10 + j // 10) % 2 == 0 else (60, 60, 70)
+                        pygame.draw.rect(surface, color, (x_sprite + i, y_sprite + j, 10, 10))
+                
+                surface.blit(sprite_escalado, (x_sprite, y_sprite))
+        
+        except Exception as e:
+            texto_error = self.fuente_pequena.render(f"Error: {str(e)}", True, (255, 100, 100))
+            surface.blit(texto_error, (x_panel + 10, y_inicio + 50))
+        
+        # Info de frame actual - en la parte inferior
+        info = f"Frame {self.preview_frame_actual + 1}/{len(sprites_animacion)}"
+        texto_info = self.fuente_pequena.render(info, True, COLOR_TEXTO_SEC)
+        surface.blit(texto_info, (x_panel + 10, y_inicio + alto_preview - 20))
     
     def manejar_eventos(self):
         """Maneja eventos"""
         mouse_pos = pygame.mouse.get_pos()
         click = False
         eventos_texto = []
+        area_sheet_ancho = self.ventana_ancho - AREA_PREVIEW_ANCHO - PANEL_CONTROL_ANCHO
         
         for evento in pygame.event.get():
             eventos_texto.append(evento)
             
             if evento.type == pygame.QUIT:
                 return False
+            
+            # Redimensionamiento de ventana
+            elif evento.type == pygame.VIDEORESIZE:
+                self.ventana_ancho = evento.w
+                self.ventana_alto = evento.h
+                self.pantalla = pygame.display.set_mode((self.ventana_ancho, self.ventana_alto), pygame.RESIZABLE)
+                # Recrear botones para nuevas posiciones
+                self.botones_categoria = []
+                self.botones_accion = []
+                self.crear_botones_categoria()
+                self.crear_botones_accion()
+                self.actualizar_input_posicion()
             
             # ========================================
             # DRAG AND DROP DE ARCHIVOS
@@ -768,6 +1175,9 @@ class SpriteSheetEditor:
                 if evento.key == pygame.K_ESCAPE:
                     return False
                 
+                elif evento.key == pygame.K_f:
+                    self.toggle_fullscreen()
+                
                 elif evento.key == pygame.K_s and not self.input_nombre.activo:
                     self.guardar_sprite_actual()
                 
@@ -796,67 +1206,253 @@ class SpriteSheetEditor:
                 if evento.button == 1:  # Click izquierdo
                     click = True
                     
-                    # Área del spritesheet
-                    if mouse_pos[0] < AREA_SPRITESHEET_ANCHO and self.spritesheet:
-                        # Verificar si se clickeó una selección existente
+                    # Verificar click en checkboxes del panel preview
+                    checkbox_clickeado = False
+                    for checkbox_rect, sel in self.checkbox_rects:
+                        if checkbox_rect.collidepoint(mouse_pos):
+                            sel.seleccionado = not sel.seleccionado
+                            self.seleccion_actual = sel  # Seleccionar este sprite
+                            self.input_nombre.texto = sel.nombre
+                            self.mostrar_mensaje(f"✓ {'Marcado' if sel.seleccionado else 'Desmarcado'}: {sel.nombre or 'Sprite'}")
+                            checkbox_clickeado = True
+                            break
+                    
+                    # Si no se clickeó un checkbox, continuar con lógica normal
+                    if not checkbox_clickeado:
+                        # Área del spritesheet
+                        if mouse_pos[0] < area_sheet_ancho and self.spritesheet:
+                            # Verificar si se clickeó una selección existente o su borde
+                            x_sheet, y_sheet = self.convertir_coords_pantalla_a_sheet(
+                                mouse_pos[0], mouse_pos[1]
+                            )
+                            
+                            # Primero verificar bordes para redimensionamiento
+                            borde_encontrado = False
+                            for sel in reversed(self.selecciones):
+                                borde = sel.get_borde_cercano(mouse_pos[0], mouse_pos[1], self.offset_x, self.offset_y, self.zoom)
+                                if borde:
+                                    self.redimensionando = True
+                                    self.seleccion_actual = sel
+                                    self.borde_seleccionado = borde
+                                    self.punto_resize_inicio = (x_sheet, y_sheet)
+                                    self.input_nombre.texto = sel.nombre
+                                    borde_encontrado = True
+                                    break
+                            
+                            if not borde_encontrado:
+                                # Verificar click dentro de una selección
+                                seleccion_clickeada = None
+                                for sel in reversed(self.selecciones):
+                                    if sel.contiene_punto(x_sheet, y_sheet):
+                                        seleccion_clickeada = sel
+                                        break
+                                
+                                if seleccion_clickeada:
+                                    self.seleccion_actual = seleccion_clickeada
+                                    self.input_nombre.texto = seleccion_clickeada.nombre
+                                else:
+                                    # Iniciar nueva selección
+                                    self.seleccionando = True
+                                    self.punto_inicio = mouse_pos
+                
+                elif evento.button == 3:  # Click derecho
+                    # Verificar si está sobre una selección en el canvas para eliminarla
+                    if mouse_pos[0] < area_sheet_ancho and self.spritesheet:
                         x_sheet, y_sheet = self.convertir_coords_pantalla_a_sheet(
                             mouse_pos[0], mouse_pos[1]
                         )
                         
-                        seleccion_clickeada = None
+                        seleccion_a_eliminar = None
                         for sel in reversed(self.selecciones):
                             if sel.contiene_punto(x_sheet, y_sheet):
-                                seleccion_clickeada = sel
+                                seleccion_a_eliminar = sel
                                 break
                         
-                        if seleccion_clickeada:
-                            self.seleccion_actual = seleccion_clickeada
-                            self.input_nombre.texto = seleccion_clickeada.nombre
+                        if seleccion_a_eliminar:
+                            # Eliminar la selección
+                            self.selecciones.remove(seleccion_a_eliminar)
+                            if self.seleccion_actual == seleccion_a_eliminar:
+                                self.seleccion_actual = None
+                                self.input_nombre.texto = ""
+                            self.mostrar_mensaje("✓ Selección eliminada")
                         else:
-                            # Iniciar nueva selección
-                            self.seleccionando = True
-                            self.punto_inicio = mouse_pos
-            
-                elif evento.button == 4:  # Scroll up - Zoom in
-                    if mouse_pos[0] < AREA_SPRITESHEET_ANCHO:
-                        self.zoom = min(5.0, self.zoom * 1.1)
+                            # Si no hay selección, iniciar pan
+                            self.panning = True
+                            self.pan_inicio = mouse_pos
+                    else:
+                        # Pan en otras áreas
+                        if self.spritesheet:
+                            self.panning = True
+                            self.pan_inicio = mouse_pos
                 
-                elif evento.button == 5:  # Scroll down - Zoom out
-                    if mouse_pos[0] < AREA_SPRITESHEET_ANCHO:
+                elif evento.button == 4:  # Scroll up
+                    # Scroll en lista del panel preview si el mouse está ahí
+                    if mouse_pos[0] >= area_sheet_ancho:
+                        self.scroll_lista_offset = max(0, self.scroll_lista_offset - 25)
+                    # Zoom en spritesheet si está ahí
+                    elif mouse_pos[0] < area_sheet_ancho:
+                        old_zoom = self.zoom
+                        self.zoom = min(5.0, self.zoom * 1.1)
+                        # Ajustar offset para zoom hacia el cursor
+                        zoom_factor = self.zoom / old_zoom
+                        self.offset_x = mouse_pos[0] - (mouse_pos[0] - self.offset_x) * zoom_factor
+                        self.offset_y = mouse_pos[1] - (mouse_pos[1] - self.offset_y) * zoom_factor
+                
+                elif evento.button == 5:  # Scroll down
+                    # Scroll en lista del panel preview si el mouse está ahí
+                    if mouse_pos[0] >= area_sheet_ancho:
+                        self.scroll_lista_offset = min(self.scroll_lista_max, self.scroll_lista_offset + 25)
+                    # Zoom out en spritesheet si está ahí
+                    elif mouse_pos[0] < area_sheet_ancho:
+                        old_zoom = self.zoom
                         self.zoom = max(0.1, self.zoom / 1.1)
+                        # Ajustar offset para zoom hacia el cursor
+                        zoom_factor = self.zoom / old_zoom
+                        self.offset_x = mouse_pos[0] - (mouse_pos[0] - self.offset_x) * zoom_factor
+                        self.offset_y = mouse_pos[1] - (mouse_pos[1] - self.offset_y) * zoom_factor
             
             elif evento.type == pygame.MOUSEBUTTONUP:
-                if evento.button == 1 and self.seleccionando:
-                    # Finalizar selección
-                    self.seleccionando = False
-                    x1, y1 = self.punto_inicio
-                    x2, y2 = mouse_pos
+                if evento.button == 1:
+                    if self.seleccionando:
+                        # Finalizar selección
+                        self.seleccionando = False
+                        x1, y1 = self.punto_inicio
+                        x2, y2 = mouse_pos
+                        
+                        if mouse_pos[0] < area_sheet_ancho:
+                            # Convertir a coordenadas del sheet
+                            x1_sheet, y1_sheet = self.convertir_coords_pantalla_a_sheet(x1, y1)
+                            x2_sheet, y2_sheet = self.convertir_coords_pantalla_a_sheet(x2, y2)
+                            
+                            # Asegurar que x1,y1 sea la esquina superior izquierda
+                            x_min = min(x1_sheet, x2_sheet)
+                            y_min = min(y1_sheet, y2_sheet)
+                            ancho = abs(x2_sheet - x1_sheet)
+                            alto = abs(y2_sheet - y1_sheet)
+                            
+                            if ancho > 5 and alto > 5:  # Mínimo 5x5
+                                # Validar que la selección esté dentro del spritesheet
+                                max_x = self.spritesheet_original.get_width()
+                                max_y = self.spritesheet_original.get_height()
+                                
+                                # Ajustar si se sale de los límites
+                                if x_min < 0:
+                                    x_min = 0
+                                if y_min < 0:
+                                    y_min = 0
+                                if x_min + ancho > max_x:
+                                    ancho = max_x - x_min
+                                if y_min + alto > max_y:
+                                    alto = max_y - y_min
+                                
+                                # Solo crear si sigue siendo válida
+                                if ancho > 5 and alto > 5 and x_min >= 0 and y_min >= 0:
+                                    seleccion = SeleccionSprite(
+                                        x=x_min, y=y_min, ancho=ancho, alto=alto,
+                                        categoria=self.categoria_actual
+                                    )
+                                    self.selecciones.append(seleccion)
+                                    self.seleccion_actual = seleccion
+                                    self.mostrar_mensaje(f"✓ Área seleccionada: {ancho}x{alto}")
+                                else:
+                                    self.mostrar_mensaje("⚠️ Selección fuera de límites")
                     
-                    if mouse_pos[0] < AREA_SPRITESHEET_ANCHO:
-                        # Convertir a coordenadas del sheet
-                        x1_sheet, y1_sheet = self.convertir_coords_pantalla_a_sheet(x1, y1)
-                        x2_sheet, y2_sheet = self.convertir_coords_pantalla_a_sheet(x2, y2)
-                        
-                        # Asegurar que x1,y1 sea la esquina superior izquierda
-                        x_min = min(x1_sheet, x2_sheet)
-                        y_min = min(y1_sheet, y2_sheet)
-                        ancho = abs(x2_sheet - x1_sheet)
-                        alto = abs(y2_sheet - y1_sheet)
-                        
-                        if ancho > 5 and alto > 5:  # Mínimo 5x5
-                            seleccion = SeleccionSprite(
-                                x=x_min, y=y_min, ancho=ancho, alto=alto,
-                                categoria=self.categoria_actual
-                            )
-                            self.selecciones.append(seleccion)
-                            self.seleccion_actual = seleccion
-                            self.mostrar_mensaje(f"✓ Área seleccionada: {ancho}x{alto}")
+                    elif self.redimensionando:
+                        # Finalizar redimensionamiento
+                        self.redimensionando = False
+                        self.borde_seleccionado = None
+                        self.mostrar_mensaje(f"✓ Redimensionado a {self.seleccion_actual.ancho}x{self.seleccion_actual.alto}")
+                
+                elif evento.button == 3:  # Soltar botón derecho - Finalizar pan
+                    self.panning = False
+            
+            elif evento.type == pygame.MOUSEMOTION:
+                # Redimensionamiento si está activo
+                if self.redimensionando and self.seleccion_actual and self.spritesheet_original:
+                    x_sheet, y_sheet = self.convertir_coords_pantalla_a_sheet(mouse_pos[0], mouse_pos[1])
+                    sel = self.seleccion_actual
+                    borde = self.borde_seleccionado
+                    
+                    # Límites del spritesheet
+                    max_x = self.spritesheet_original.get_width()
+                    max_y = self.spritesheet_original.get_height()
+                    
+                    # Guardar posiciones originales
+                    x_orig = sel.x
+                    y_orig = sel.y
+                    ancho_orig = sel.ancho
+                    alto_orig = sel.alto
+                    
+                    # Aplicar cambios según el borde
+                    if 'top' in borde or borde == 'tl' or borde == 'tr':
+                        diff_y = y_sheet - y_orig
+                        sel.y = max(0, y_sheet)
+                        sel.alto = alto_orig - diff_y
+                    
+                    if 'bottom' in borde or borde == 'bl' or borde == 'br':
+                        sel.alto = min(y_sheet - y_orig, max_y - y_orig)
+                    
+                    if 'left' in borde or borde == 'tl' or borde == 'bl':
+                        diff_x = x_sheet - x_orig
+                        sel.x = max(0, x_sheet)
+                        sel.ancho = ancho_orig - diff_x
+                    
+                    if 'right' in borde or borde == 'tr' or borde == 'br':
+                        sel.ancho = min(x_sheet - x_orig, max_x - x_orig)
+                    
+                    # Validar tamaños mínimos
+                    if sel.ancho < 5:
+                        sel.ancho = 5
+                        if 'left' in borde or borde == 'tl' or borde == 'bl':
+                            sel.x = x_orig + ancho_orig - 5
+                    
+                    if sel.alto < 5:
+                        sel.alto = 5
+                        if 'top' in borde or borde == 'tl' or borde == 'tr':
+                            sel.y = y_orig + alto_orig - 5
+                    
+                    # Validar límites máximos
+                    if sel.x + sel.ancho > max_x:
+                        sel.ancho = max_x - sel.x
+                    if sel.y + sel.alto > max_y:
+                        sel.alto = max_y - sel.y
+                
+                # Pan de cámara si está activo
+                elif self.panning:
+                    dx = mouse_pos[0] - self.pan_inicio[0]
+                    dy = mouse_pos[1] - self.pan_inicio[1]
+                    self.offset_x += dx
+                    self.offset_y += dy
+                    self.pan_inicio = mouse_pos
         
         # Actualizar UI
         self.input_nombre.update(eventos_texto, mouse_pos, click)
         
         for boton in self.botones_categoria + self.botones_accion:
             boton.update(mouse_pos, click)
+        
+        # Actualizar cursor según contexto
+        if mouse_pos[0] < area_sheet_ancho and self.spritesheet and not self.panning and not self.seleccionando:
+            cursor_cambiado = False
+            for sel in reversed(self.selecciones):
+                borde = sel.get_borde_cercano(mouse_pos[0], mouse_pos[1], self.offset_x, self.offset_y, self.zoom)
+                if borde:
+                    # Cambiar cursor según el borde
+                    if borde in ['tl', 'br']:
+                        pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_SIZENWSE)
+                    elif borde in ['tr', 'bl']:
+                        pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_SIZENESW)
+                    elif borde in ['top', 'bottom']:
+                        pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_SIZENS)
+                    elif borde in ['left', 'right']:
+                        pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_SIZEWE)
+                    cursor_cambiado = True
+                    break
+            
+            if not cursor_cambiado:
+                pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
+        else:
+            pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
         
         return True
     
@@ -867,11 +1463,26 @@ class SpriteSheetEditor:
         while ejecutando:
             ejecutando = self.manejar_eventos()
             
+            # Actualizar tamaños si la ventana cambió
+            nuevo_ancho = self.pantalla.get_width()
+            nuevo_alto = self.pantalla.get_height()
+            if nuevo_ancho != self.ventana_ancho or nuevo_alto != self.ventana_alto:
+                self.ventana_ancho = nuevo_ancho
+                self.ventana_alto = nuevo_alto
+                # Recrear botones
+                self.botones_categoria = []
+                self.botones_accion = []
+                self.crear_botones_categoria()
+                self.crear_botones_accion()
+                self.actualizar_input_posicion()
+            
+            area_sheet_ancho = self.ventana_ancho - AREA_PREVIEW_ANCHO - PANEL_CONTROL_ANCHO
+            
             # Dibujar
             self.pantalla.fill(COLOR_FONDO)
             
             # Área del spritesheet
-            area_sheet = self.pantalla.subsurface((0, 0, AREA_SPRITESHEET_ANCHO, ALTO))
+            area_sheet = self.pantalla.subsurface((0, 0, area_sheet_ancho, self.ventana_alto))
             area_sheet.fill((25, 25, 30))
             self.dibujar_spritesheet(area_sheet)
             
@@ -900,19 +1511,21 @@ if __name__ == "__main__":
 ║  SPRITE SHEET EDITOR - CodeVerso RPG                 ║
 ║                                                       ║
 ║  CONTROLES:                                           ║
-║  • Arrastra imagen desde explorador = Cargar         ║
+║  • Arrastra imagen = Cargar                          ║
 ║  • Click + Arrastrar = Seleccionar área              ║
-║  • Scroll = Zoom                                     ║
-║  • N = Nombrar sprite                                ║
+║  • Arrastrar bordes = Redimensionar                  ║
+║  • Click derecho = Eliminar selección / Pan          ║
+║  • Scroll (canvas) = Zoom                            ║
+║  • Scroll (lista) = Desplazar                        ║
+║  • Botón "Quitar Fondo" = Eliminar fondo sprite      ║
 ║  • S = Guardar sprite                                ║
 ║  • E = Exportar todos                                ║
+║  • F = Pantalla completa                             ║
 ║  • G = Toggle grid                                   ║
 ║  • DEL = Eliminar selección                          ║
 ║  • CTRL+Z = Deshacer                                 ║
 ║  • CTRL+Y = Rehacer                                  ║
-║                                                       ║
-║  💡 NUEVO: Arrastra imágenes .png/.jpg desde tu      ║
-║     explorador directamente a la ventana             ║
+║  • ESC = Salir                                       ║
 ╚══════════════════════════════════════════════════════╝
     """)
     

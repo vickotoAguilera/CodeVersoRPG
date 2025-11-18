@@ -37,7 +37,7 @@ class Heroe:
         
         # --- ¡NUEVO! Sistema de Habilidades (Paso 7.14) ---
         self.clase = clase_data['clase']
-        self.ranuras_habilidad_max = clase_data['ranuras_habilidad_max']
+        self.ranuras_habilidad_max_base = clase_data['ranuras_habilidad_max']  # Ranuras base
         self.habilidades_activas = clase_data['habilidades_activas'].copy()
         self.inventario_habilidades = clase_data['inventario_habilidades'].copy()
 
@@ -729,53 +729,3 @@ class Heroe:
         # Establecer el nuevo máximo de ranuras
         self.ranuras_habilidad_max = cantidad_ranuras
         print(f"{self.nombre_en_juego} ahora tiene {self.ranuras_habilidad_max} ranuras de habilidad.")
-    
-    # --- SISTEMA CENTRALIZADO DE ITEMS ESPECIALES ---
-    def agregar_item_especial(self, item_id, cantidad, items_db, grupo_heroes=None):
-        """
-        Agrega un item especial al inventario y aplica su efecto automático.
-        
-        Args:
-            item_id: ID del item especial
-            cantidad: Cantidad a agregar
-            items_db: Base de datos de items
-            grupo_heroes: Lista de héroes (para efectos globales como expansor)
-        
-        Returns:
-            bool: True si se aplicó un efecto, False si solo se agregó al inventario
-        """
-        # Agregar al inventario especial
-        if item_id in self.inventario_especiales:
-            self.inventario_especiales[item_id] += cantidad
-        else:
-            self.inventario_especiales[item_id] = cantidad
-        
-        print(f"  → {item_id} x{cantidad} agregado a items especiales")
-        
-        # Verificar si tiene efecto automático
-        if items_db and item_id in items_db:
-            item_data = items_db[item_id]
-            efecto = item_data.get("efecto")
-            
-            # EXPANSOR DE RANURAS - Efecto Global
-            if efecto == "AUMENTA_RANURAS_HABILIDAD":
-                incremento = item_data.get("poder", 2) * cantidad
-                
-                # Si hay grupo, aplicar a todos
-                if grupo_heroes:
-                    for heroe in grupo_heroes:
-                        heroe.ranuras_habilidad_max += incremento
-                        print(f"  ✨ {heroe.nombre_en_juego}: Ranuras aumentadas a {heroe.ranuras_habilidad_max}")
-                else:
-                    # Solo a este héroe
-                    self.ranuras_habilidad_max += incremento
-                    print(f"  ✨ {self.nombre_en_juego}: Ranuras aumentadas a {self.ranuras_habilidad_max}")
-                
-                return True
-            
-            # LLAVES - No tienen efecto automático, solo se verifican
-            elif efecto == "LLAVE":
-                print(f"  🔑 Llave obtenida: {item_data.get('nombre', item_id)}")
-                return False
-        
-        return False

@@ -17,7 +17,6 @@ from src.pantalla_estado import PantallaEstado
 from src.pantalla_equipo import PantallaEquipo
 from src.pantalla_inventario import PantallaInventario
 from src.pantalla_habilidades import PantallaHabilidades  # ¡NUEVO! (Paso 7.18)
-from src.pantalla_recompensa_cofre import PantallaRecompensaCofre  # ¡NUEVO! Sistema de Cofres
 # --- NUEVAS IMPORTACIONES (Paso 53.6) ---
 from src.asset_coords_db import pillar_coords, COORDS_TERRA as COORDS_TERRA_FALLBACK
  
@@ -79,7 +78,6 @@ mi_pantalla_estado = None
 mi_pantalla_equipo = None
 mi_pantalla_inventario = None
 mi_pantalla_habilidades = None  # ¡NUEVO! (Paso 7.18)
-mi_pantalla_recompensa = None  # ¡NUEVO! Sistema de Cofres
 # --- FIN OBJETOS ---
 
 # --- Variables de estado del juego (Sin cambios) ---
@@ -97,12 +95,6 @@ SLOT_AUTOGUARDADO = 3
 tiempo_ultimo_autoguardado = None 
 aviso_autoguardado_activo = False
 aviso_autoguardado_inicio = 0
-
-# Variables para popup de cofre cerrado
-popup_cofre_activo = False
-popup_cofre_mensaje = ""
-popup_cofre_inicio = 0
-DURACION_POPUP_COFRE = 3000  # 3 segundos
 
 # 4. Bucle principal del juego
 while True:
@@ -175,13 +167,6 @@ while True:
                         estado_juego = "menu_pausa"
                         mi_menu_pausa = MenuPausa(ANCHO, ALTO, CURSOR_IMG)
                         mi_pantalla_habilidades = None
-                
-                # ¡NUEVO! - Manejo de ESC en pantalla recompensa cofre
-                elif estado_juego == "recompensa_cofre" and mi_pantalla_recompensa:
-                    mi_pantalla_recompensa.update_input(event.key)
-                    if mi_pantalla_recompensa.cerrar:
-                        estado_juego = "mapa"
-                        mi_pantalla_recompensa = None
                 # --- FIN BLOQUE CORREGIDO ---
 
             # --- MANEJO DE TECLA ENTER (Por Estado) ---
@@ -220,19 +205,6 @@ while True:
                                 )
                                 nuevo_heroe.HP_actual = nuevo_heroe.HP_max
                                 nuevo_heroe.MP_actual = nuevo_heroe.MP_max
-                                
-                                # Cargar items iniciales del grupo_inicial.json
-                                if "items_iniciales" in miembro:
-                                    for item_id, cantidad in miembro["items_iniciales"].items():
-                                        nuevo_heroe.inventario[item_id] = cantidad
-                                        print(f"  → {item_id} x{cantidad} agregado al inventario")
-                                
-                                # Cargar items especiales del grupo_inicial.json
-                                if "items_especiales" in miembro:
-                                    for item_id, cantidad in miembro["items_especiales"].items():
-                                        nuevo_heroe.inventario_especiales[item_id] = cantidad
-                                        print(f"  → {item_id} x{cantidad} agregado a items especiales")
-                                
                                 grupo_heroes.append(nuevo_heroe)
                             else:
                                 print(f"¡ADVERTENCIA! Datos incompletos para {miembro['nombre_en_juego']}")
@@ -498,44 +470,6 @@ while True:
                         estado_juego = "menu_pausa"
                         mi_menu_pausa = MenuPausa(ANCHO, ALTO, CURSOR_IMG)
                         mi_pantalla_habilidades = None
-                
-                # ¡NUEVO! Sistema de Cofres
-                # [CANAL 9: MAPA - Interacción con Cofres]
-                elif estado_juego == "mapa" and mi_mapa and grupo_heroes:
-                    heroe_lider = grupo_heroes[0]
-                    cofre_cercano = mi_mapa.chequear_cofre_cercano(heroe_lider.heroe_rect)
-                    
-                    if cofre_cercano:
-                        resultado = cofre_cercano.interactuar(grupo_heroes, ITEMS_DB)
-                        
-                        if resultado["exito"]:
-                            # Cofre abierto exitosamente
-                            print(f"✓ {resultado['mensaje']}")
-                            mi_pantalla_recompensa = PantallaRecompensaCofre(
-                                ANCHO, ALTO,
-                                resultado["items_obtenidos"],
-                                ITEMS_DB
-                            )
-                            estado_juego = "recompensa_cofre"
-                        else:
-                            # No se pudo abrir (sin llave o vacío)
-                            print(f"✗ {resultado['mensaje']}")
-                            
-                            # Si necesita llave, mostrar popup con el nombre de la llave
-                            if "nombre_llave_necesaria" in resultado:
-                                popup_cofre_activo = True
-                                popup_cofre_mensaje = f"{resultado['mensaje']}\nNecesitas: {resultado['nombre_llave_necesaria']}"
-                                popup_cofre_inicio = tiempo_actual_ticks
-                                print(f"  ⚠️ {popup_cofre_mensaje.replace(chr(10), ' ')}")
-
-
-                
-                # [CANAL 10: PANTALLA RECOMPENSA COFRE]
-                elif estado_juego == "recompensa_cofre" and mi_pantalla_recompensa:
-                    accion = mi_pantalla_recompensa.update_input(event.key)
-                    if accion == "cerrar":
-                        estado_juego = "mapa"
-                        mi_pantalla_recompensa = None
             
             # --- MANEJO DE TECLA 'D' (Detalles) ---
             if event.key == pygame.K_d:
@@ -570,13 +504,6 @@ while True:
     # ¡NUEVO! (Paso 7.18)
     elif estado_juego == "pantalla_habilidades":
         if mi_pantalla_habilidades: mi_pantalla_habilidades.update(teclas)
-    # ¡NUEVO! Sistema de Cofres
-    elif estado_juego == "recompensa_cofre":
-        if mi_pantalla_recompensa:
-            mi_pantalla_recompensa.update(teclas)
-            if mi_pantalla_recompensa.cerrar:
-                estado_juego = "mapa"
-                mi_pantalla_recompensa = None
     
     # --- Lógica del MAPA ---
     elif estado_juego == "mapa":
@@ -726,19 +653,6 @@ while True:
         if estado_juego == "pantalla_habilidades" and mi_pantalla_habilidades:
             mi_pantalla_habilidades.draw(PANTALLA)
     # --- FIN BLOQUE CORREGIDO ---
-    
-    # ¡NUEVO! Sistema de Cofres
-    # Pantalla de recompensa de cofre
-    elif estado_juego == "recompensa_cofre":
-        # Dibujar mapa de fondo
-        if mi_mapa and grupo_heroes:
-            heroe_lider = grupo_heroes[0]
-            mi_mapa.draw(PANTALLA)
-            heroe_lider.draw(PANTALLA, mi_mapa.camara_rect)
-        
-        # Dibujar pantalla de recompensa encima
-        if mi_pantalla_recompensa:
-            mi_pantalla_recompensa.draw(PANTALLA)
             
     # --- (Aviso de Autoguardado - Sin cambios) ---
     if aviso_autoguardado_activo:
@@ -756,43 +670,6 @@ while True:
             PANTALLA.blit(aviso_surf, aviso_rect)
         else:
             aviso_autoguardado_activo = False
-    
-    # --- Popup de Cofre Cerrado ---
-    if popup_cofre_activo:
-        tiempo_transcurrido = tiempo_actual_ticks - popup_cofre_inicio
-        if tiempo_transcurrido < DURACION_POPUP_COFRE:
-            # Dividir el mensaje en líneas
-            lineas = popup_cofre_mensaje.split('\n')
-            
-            # Calcular dimensiones del popup
-            altura_linea = 35
-            padding = 20
-            ancho_popup = 400
-            alto_popup = (len(lineas) * altura_linea) + (padding * 2)
-            
-            # Posición centrada en la pantalla
-            x_popup = (ANCHO - ancho_popup) // 2
-            y_popup = ALTO // 3
-            
-            # Dibujar fondo del popup
-            fondo_popup = pygame.Surface((ancho_popup, alto_popup))
-            fondo_popup.set_alpha(220)
-            fondo_popup.fill((50, 0, 0))  # Rojo oscuro
-            PANTALLA.blit(fondo_popup, (x_popup, y_popup))
-            
-            # Dibujar borde
-            pygame.draw.rect(PANTALLA, (255, 50, 50), (x_popup, y_popup, ancho_popup, alto_popup), 3)
-            
-            # Dibujar texto centrado
-            fuente_popup = pygame.font.Font(None, 32)
-            y_actual = y_popup + padding
-            for linea in lineas:
-                texto_surf = fuente_popup.render(linea, True, (255, 255, 255))
-                texto_rect = texto_surf.get_rect(center=(ANCHO // 2, y_actual))
-                PANTALLA.blit(texto_surf, texto_rect)
-                y_actual += altura_linea
-        else:
-            popup_cofre_activo = False
 
     
     # 8. Actualizar la pantalla
