@@ -1,43 +1,159 @@
 {
-  "COFRE_PRADERA_01": {
-    "nombre": "Cofre Pradera 1",
-    "requiere_llave": null,
-    "items_contenido": {
-      "POCION_BASICA": 3,
-      "ETER_BASICO": 1
+  "comentario": "Base de datos de configuraciones de cofres por tipo. El editor_cofres.py usará estos valores por defecto.",
+  
+  "tipos_cofre": {
+    "madera": {
+      "requiere_llave": null,
+      "oro_min": 10,
+      "oro_max": 50,
+      "puede_reabrir": true,
+      "tiempo_reapertura_minutos": 60,
+      "items_random": {
+        "min": 2,
+        "max": 5,
+        "pool_consumibles": ["POCION_BASICA", "ETER_BASICO", "ANTIDOTO"],
+        "pool_equipo": ["ESPADA_COBRE", "ESCUDO_MADERA", "TUNICA_TELA", "CASCO_CUERO", "GUANTES_CUERO", "PANTALON_TELA", "BOTAS_CUERO", "CAPA_VIAJERO"]
+      }
     },
-    "descripcion": "Un cofre simple sin cerradura"
+    "bronce": {
+      "requiere_llave": "LLAVE_BRONCE",
+      "oro_min": 100,
+      "oro_max": 250,
+      "puede_reabrir": true,
+      "tiempo_reapertura_minutos": 60,
+      "items_random": {
+        "min": 3,
+        "max": 5,
+        "pool_consumibles": ["POCION_BASICA", "POCION_INTERMEDIA", "ETER_BASICO", "ETER_INTERMEDIO", "ANTIDOTO"],
+        "pool_equipo": ["ESPADA_COBRE", "MANDOBLE_HIERRO", "ESCUDO_MADERA", "TUNICA_TELA", "CASCO_CUERO", "GUANTES_CUERO", "ANILLO_AGILIDAD"]
+      }
+    },
+    "plata": {
+      "requiere_llave": "LLAVE_PLATA",
+      "oro_min": 300,
+      "oro_max": 600,
+      "puede_reabrir": true,
+      "tiempo_reapertura_minutos": 60,
+      "items_random": {
+        "min": 4,
+        "max": 5,
+        "pool_consumibles": ["POCION_INTERMEDIA", "POCION_GRANDE", "ETER_INTERMEDIO", "ETER_GRANDE", "ELIXIR"],
+        "pool_equipo": ["MANDOBLE_HIERRO", "ESCUDO_MADERA", "ANILLO_AGILIDAD", "COLLAR_SALUD"]
+      }
+    },
+    "oro": {
+      "requiere_llave": "LLAVE_ORO",
+      "oro_min": 800,
+      "oro_max": 1500,
+      "puede_reabrir": true,
+      "tiempo_reapertura_minutos": 60,
+      "items_random": {
+        "min": 5,
+        "max": 5,
+        "pool_consumibles": ["POCION_GRANDE", "ETER_GRANDE", "ELIXIR"],
+        "pool_equipo": ["MANDOBLE_HIERRO", "ANILLO_AGILIDAD", "COLLAR_SALUD"]
+      }
+    },
+    "especial": {
+      "requiere_llave": null,
+      "oro_min": 0,
+      "oro_max": 0,
+      "puede_reabrir": false,
+      "tiempo_reapertura_minutos": 0,
+      "items_random": {
+        "min": 1,
+        "max": 3,
+        "pool_especiales": ["EXPANSOR_RANURAS", "MAPA_TESORO", "SELLO_REAL", "FRAGMENTO_CRISTAL", "LLAVE_MAESTRA", "PIEDRA_LUNA", "PLUMA_FENIX", "CRISTAL_RESURRECION", "ORBE_EXPERIENCIA", "AMULETO_PROTECCION", "PERGAMINO_TELETRANSPORTE"]
+      }
+    }
   },
   
-  "COFRE_PRADERA_SECRETO": {
-    "nombre": "Cofre Secreto",
-    "requiere_llave": "LLAVE_BRONCE",
-    "items_contenido": {
-      "POCION_BASICA": 5,
-      "ETER_BASICO": 3,
-      "EXPANSOR_RANURAS": 1
+  "cofres_mapa": {
+    "COFRE_PRADERA_01": {
+      "nombre": "Cofre Pradera 1",
+      "tipo": "madera",
+      "requiere_llave": null,
+      "oro": 25,
+      "items_contenido": {
+        "POCION_BASICA": 3,
+        "ETER_BASICO": 1
+      },
+      "equipo_contenido": {},
+      "especiales_contenido": {},
+      "puede_reabrir": true,
+      "ultima_apertura": 0,
+      "descripcion": "Un cofre simple sin cerradura"
     },
-    "descripcion": "Un cofre cerrado con llave de bronce"
-  },
-  
-  "COFRE_PUEBLO_01": {
-    "nombre": "Cofre del Pueblo",
-    "requiere_llave": "LLAVE_PLATA",
-    "items_contenido": {
-      "POCION_BASICA": 10,
-      "ETER_BASICO": 5
+    
+    "COFRE_PRADERA_SECRETO": {
+      "nombre": "Cofre Secreto",
+      "tipo": "bronce",
+      "requiere_llave": "LLAVE_BRONCE",
+      "oro": 150,
+      "items_contenido": {
+        "POCION_BASICA": 5,
+        "ETER_BASICO": 3
+      },
+      "equipo_contenido": {
+        "ESPADA_COBRE": 1
+      },
+      "especiales_contenido": {},
+      "puede_reabrir": true,
+      "ultima_apertura": 0,
+      "descripcion": "Un cofre cerrado con llave de bronce"
     },
-    "descripcion": "Cofre cerrado con llave de plata"
-  },
-  
-  "COFRE_TESORO_ORO": {
-    "nombre": "Cofre de Oro",
-    "requiere_llave": "LLAVE_ORO",
-    "items_contenido": {
-      "EXPANSOR_RANURAS": 2,
-      "POCION_BASICA": 20,
-      "ETER_BASICO": 10
+    
+    "COFRE_PUEBLO_01": {
+      "nombre": "Cofre del Pueblo",
+      "tipo": "plata",
+      "requiere_llave": "LLAVE_PLATA",
+      "oro": 450,
+      "items_contenido": {
+        "POCION_INTERMEDIA": 5,
+        "ETER_INTERMEDIO": 3
+      },
+      "equipo_contenido": {
+        "ANILLO_AGILIDAD": 1
+      },
+      "especiales_contenido": {},
+      "puede_reabrir": true,
+      "ultima_apertura": 0,
+      "descripcion": "Cofre cerrado con llave de plata"
     },
-    "descripcion": "Un cofre dorado muy valioso"
+    
+    "COFRE_TESORO_ORO": {
+      "nombre": "Cofre de Oro",
+      "tipo": "oro",
+      "requiere_llave": "LLAVE_ORO",
+      "oro": 1200,
+      "items_contenido": {
+        "POCION_GRANDE": 5,
+        "ETER_GRANDE": 5,
+        "ELIXIR": 1
+      },
+      "equipo_contenido": {
+        "COLLAR_SALUD": 1
+      },
+      "especiales_contenido": {},
+      "puede_reabrir": true,
+      "ultima_apertura": 0,
+      "descripcion": "Un cofre dorado muy valioso"
+    },
+    
+    "COFRE_ESPECIAL_EXPANSOR": {
+      "nombre": "Cofre Místico",
+      "tipo": "especial",
+      "requiere_llave": null,
+      "oro": 0,
+      "items_contenido": {},
+      "equipo_contenido": {},
+      "especiales_contenido": {
+        "EXPANSOR_RANURAS": 2,
+        "PIEDRA_LUNA": 1
+      },
+      "puede_reabrir": false,
+      "ultima_apertura": 0,
+      "descripcion": "Un cofre que emana energía mágica. Solo puede abrirse una vez."
+    }
   }
 }

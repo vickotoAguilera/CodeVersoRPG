@@ -1,0 +1,26 @@
+{
+  "portales": [
+    {
+      "id": "Pmapa_tienda_magia_mapa_pueblo_final",
+      "tipo": "portal_enlazado",
+      "forma": "rect",
+      "x": 237,
+      "y": 356,
+      "w": 70,
+      "h": 92,
+      "mapa_destino": "mapa_pueblo_final",
+      "spawn_destino_id": "S16"
+    }
+  ],
+  "spawns": [
+    {
+      "id": "S16",
+      "tipo": "spawn",
+      "x": 267,
+      "y": 306,
+      "direccion": "abajo",
+      "tam": 12
+    }
+  ],
+  "cofres": []
+}

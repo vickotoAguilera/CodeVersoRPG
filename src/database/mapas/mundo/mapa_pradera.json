@@ -1,50 +1,42 @@
 {
-  "nombre": "mapa_pradera",
-  "carpeta": "mundo",
-  "cofres": [
+  "portales": [
     {
-      "tipo": "cofre",
-      "x": 188,
-      "y": 219,
-      "ancho": 49,
-      "alto": 49,
-      "id": "cofre_1",
-      "datos_extra": {
-        "id_cofre": "COFRE_PRADERA_01",
-        "x": 300,
-        "y": 400,
-        "escala": 0.3
-      }
-    },
-    {
-      "tipo": "cofre",
-      "x": 386,
-      "y": 651,
-      "ancho": 49,
-      "alto": 49,
-      "id": "cofre_1",
-      "datos_extra": {
-        "id_cofre": "COFRE_PRADERA_SECRETO",
-        "x": 800,
-        "y": 300,
-        "escala": 0.3
-      }
-    },
-    {
-      "tipo": "cofre",
-      "x": 709,
-      "y": 438,
-      "ancho": 49,
-      "alto": 49,
-      "id": "cofre_3",
-      "datos_extra": {
-        "id_cofre": "COFRE_PRADERA_01",
-        "x": 300,
-        "y": 400,
-        "escala": 0.3
-      }
+      "id": "Pmapa_pradera_mapa_pueblo_final",
+      "tipo": "portal_enlazado",
+      "forma": "rect",
+      "x": 556,
+      "y": 606,
+      "w": 35,
+      "h": 44,
+      "mapa_destino": "mapa_pueblo_final",
+      "spawn_destino_id": "S2"
     }
   ],
-  "npcs": [],
-  "zonas_batalla": []
+  "spawns": [
+    {
+      "id": "",
+      "tipo": "spawn",
+      "x": 712,
+      "y": 615,
+      "direccion": "abajo",
+      "tam": 12
+    },
+    {
+      "id": "",
+      "tipo": "spawn",
+      "x": 1290,
+      "y": 790,
+      "direccion": "abajo",
+      "tam": 12
+    },
+    {
+      "id": "S1",
+      "tipo": "spawn",
+      "x": 710,
+      "y": 627,
+      "direccion": "abajo",
+      "tam": 12
+    }
+  ],
+  "cofres": []
 }

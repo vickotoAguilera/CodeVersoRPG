@@ -327,8 +327,8 @@ class EditorMuros:
         """Busca mapas PNG en una carpeta (recursivo para subcarpetas)"""
         mapas = []
         
-        # Buscar PNGs directamente en esta carpeta
-        for archivo in carpeta.glob("*.png"):
+        # Buscar PNG y JPG directamente en esta carpeta
+        for archivo in list(carpeta.glob("*.png")) + list(carpeta.glob("*.jpg")):
             nombre_sin_ext = archivo.stem
             mapas.append(MapaInfo(
                 nombre=nombre_sin_ext,

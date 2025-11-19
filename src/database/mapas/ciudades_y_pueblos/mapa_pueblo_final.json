@@ -1,0 +1,113 @@
+{
+  "portales": [
+    {
+      "id": "Pmapa_pueblo_final_mapa_pradera",
+      "tipo": "portal_enlazado",
+      "forma": "rect",
+      "x": 455,
+      "y": 917,
+      "w": 71,
+      "h": 43,
+      "mapa_destino": "mapa_pradera",
+      "spawn_destino_id": "S4"
+    },
+    {
+      "id": "Pmapa_pueblo_final_mapa_herrero",
+      "tipo": "portal_enlazado",
+      "forma": "rect",
+      "x": 299,
+      "y": 828,
+      "w": 27,
+      "h": 46,
+      "mapa_destino": "mapa_herrero",
+      "spawn_destino_id": "S3"
+    },
+    {
+      "id": "Pmapa_pueblo_final_mapa_posada",
+      "tipo": "portal_enlazado",
+      "forma": "rect",
+      "x": 421,
+      "y": 385,
+      "w": 55,
+      "h": 55,
+      "mapa_destino": "mapa_posada",
+      "spawn_destino_id": "S2"
+    },
+    {
+      "id": "Pmapa_pueblo_final_mapa_taberna",
+      "tipo": "portal_enlazado",
+      "forma": "rect",
+      "x": 308,
+      "y": 496,
+      "w": 49,
+      "h": 52,
+      "mapa_destino": "mapa_taberna",
+      "spawn_destino_id": "S6"
+    },
+    {
+      "id": "Pmapa_pueblo_final_mapa_tienda_items",
+      "tipo": "portal_enlazado",
+      "forma": "rect",
+      "x": 654,
+      "y": 666,
+      "w": 54,
+      "h": 59,
+      "mapa_destino": "mapa_tienda_items",
+      "spawn_destino_id": "S11"
+    },
+    {
+      "id": "Pmapa_pueblo_final_mapa_tienda_magia",
+      "tipo": "portal_enlazado",
+      "forma": "rect",
+      "x": 559,
+      "y": 375,
+      "w": 69,
+      "h": 64,
+      "mapa_destino": "mapa_tienda_magia",
+      "spawn_destino_id": ""
+    }
+  ],
+  "spawns": [
+    {
+      "id": "S2",
+      "tipo": "spawn",
+      "x": 444,
+      "y": 468,
+      "direccion": "abajo",
+      "tam": 12
+    },
+    {
+      "id": "S3",
+      "tipo": "spawn",
+      "x": 366,
+      "y": 852,
+      "direccion": "abajo",
+      "tam": 12
+    },
+    {
+      "id": "S4",
+      "tipo": "spawn",
+      "x": 543,
+      "y": 861,
+      "direccion": "abajo",
+      "tam": 12
+    },
+    {
+      "id": "S6",
+      "tipo": "spawn",
+      "x": 409,
+      "y": 551,
+      "direccion": "abajo",
+      "tam": 12
+    },
+    {
+      "id": "S11",
+      "tipo": "spawn",
+      "x": 650,
+      "y": 757,
+      "direccion": "abajo",
+      "tam": 12
+    }
+  ],
+  "cofres": []
+}

@@ -1,0 +1,26 @@
+{
+  "portales": [
+    {
+      "id": "Pmapa_herrero_mapa_pueblo_final",
+      "tipo": "portal_enlazado",
+      "forma": "rect",
+      "x": 288,
+      "y": 296,
+      "w": 85,
+      "h": 87,
+      "mapa_destino": "mapa_pueblo_final",
+      "spawn_destino_id": "S5"
+    }
+  ],
+  "spawns": [
+    {
+      "id": "S5",
+      "tipo": "spawn",
+      "x": 316,
+      "y": 231,
+      "direccion": "abajo",
+      "tam": 12
+    }
+  ],
+  "cofres": []
+}
