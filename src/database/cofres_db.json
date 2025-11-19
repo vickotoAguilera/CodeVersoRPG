@@ -1,6 +1,6 @@
 {
   "comentario": "Base de datos de configuraciones de cofres por tipo. El editor_cofres.py usará estos valores por defecto.",
-  
+
   "tipos_cofre": {
     "madera": {
       "requiere_llave": null,
@@ -12,7 +12,16 @@
         "min": 2,
         "max": 5,
         "pool_consumibles": ["POCION_BASICA", "ETER_BASICO", "ANTIDOTO"],
-        "pool_equipo": ["ESPADA_COBRE", "ESCUDO_MADERA", "TUNICA_TELA", "CASCO_CUERO", "GUANTES_CUERO", "PANTALON_TELA", "BOTAS_CUERO", "CAPA_VIAJERO"]
+        "pool_equipo": [
+          "ESPADA_COBRE",
+          "ESCUDO_MADERA",
+          "TUNICA_TELA",
+          "CASCO_CUERO",
+          "GUANTES_CUERO",
+          "PANTALON_TELA",
+          "BOTAS_CUERO",
+          "CAPA_VIAJERO"
+        ]
       }
     },
     "bronce": {
@@ -24,8 +33,22 @@
       "items_random": {
         "min": 3,
         "max": 5,
-        "pool_consumibles": ["POCION_BASICA", "POCION_INTERMEDIA", "ETER_BASICO", "ETER_INTERMEDIO", "ANTIDOTO"],
-        "pool_equipo": ["ESPADA_COBRE", "MANDOBLE_HIERRO", "ESCUDO_MADERA", "TUNICA_TELA", "CASCO_CUERO", "GUANTES_CUERO", "ANILLO_AGILIDAD"]
+        "pool_consumibles": [
+          "POCION_BASICA",
+          "POCION_INTERMEDIA",
+          "ETER_BASICO",
+          "ETER_INTERMEDIO",
+          "ANTIDOTO"
+        ],
+        "pool_equipo": [
+          "ESPADA_COBRE",
+          "MANDOBLE_HIERRO",
+          "ESCUDO_MADERA",
+          "TUNICA_TELA",
+          "CASCO_CUERO",
+          "GUANTES_CUERO",
+          "ANILLO_AGILIDAD"
+        ]
       }
     },
     "plata": {
@@ -37,8 +60,19 @@
       "items_random": {
         "min": 4,
         "max": 5,
-        "pool_consumibles": ["POCION_INTERMEDIA", "POCION_GRANDE", "ETER_INTERMEDIO", "ETER_GRANDE", "ELIXIR"],
-        "pool_equipo": ["MANDOBLE_HIERRO", "ESCUDO_MADERA", "ANILLO_AGILIDAD", "COLLAR_SALUD"]
+        "pool_consumibles": [
+          "POCION_INTERMEDIA",
+          "POCION_GRANDE",
+          "ETER_INTERMEDIO",
+          "ETER_GRANDE",
+          "ELIXIR"
+        ],
+        "pool_equipo": [
+          "MANDOBLE_HIERRO",
+          "ESCUDO_MADERA",
+          "ANILLO_AGILIDAD",
+          "COLLAR_SALUD"
+        ]
       }
     },
     "oro": {
@@ -63,11 +97,23 @@
       "items_random": {
         "min": 1,
         "max": 3,
-        "pool_especiales": ["EXPANSOR_RANURAS", "MAPA_TESORO", "SELLO_REAL", "FRAGMENTO_CRISTAL", "LLAVE_MAESTRA", "PIEDRA_LUNA", "PLUMA_FENIX", "CRISTAL_RESURRECION", "ORBE_EXPERIENCIA", "AMULETO_PROTECCION", "PERGAMINO_TELETRANSPORTE"]
+        "pool_especiales": [
+          "EXPANSOR_RANURAS",
+          "MAPA_TESORO",
+          "SELLO_REAL",
+          "FRAGMENTO_CRISTAL",
+          "LLAVE_MAESTRA",
+          "PIEDRA_LUNA",
+          "PLUMA_FENIX",
+          "CRISTAL_RESURRECION",
+          "ORBE_EXPERIENCIA",
+          "AMULETO_PROTECCION",
+          "PERGAMINO_TELETRANSPORTE"
+        ]
       }
     }
   },
-  
+
   "cofres_mapa": {
     "COFRE_PRADERA_01": {
       "nombre": "Cofre Pradera 1",
@@ -84,7 +130,7 @@
       "ultima_apertura": 0,
       "descripcion": "Un cofre simple sin cerradura"
     },
-    
+
     "COFRE_PRADERA_SECRETO": {
       "nombre": "Cofre Secreto",
       "tipo": "bronce",
@@ -102,7 +148,7 @@
       "ultima_apertura": 0,
       "descripcion": "Un cofre cerrado con llave de bronce"
     },
-    
+
     "COFRE_PUEBLO_01": {
       "nombre": "Cofre del Pueblo",
       "tipo": "plata",
@@ -120,7 +166,7 @@
       "ultima_apertura": 0,
       "descripcion": "Cofre cerrado con llave de plata"
     },
-    
+
     "COFRE_TESORO_ORO": {
       "nombre": "Cofre de Oro",
       "tipo": "oro",
@@ -139,7 +185,7 @@
       "ultima_apertura": 0,
       "descripcion": "Un cofre dorado muy valioso"
     },
-    
+
     "COFRE_ESPECIAL_EXPANSOR": {
       "nombre": "Cofre Místico",
       "tipo": "especial",

@@ -1,110 +1,110 @@
 {
-    "POCION_BASICA": {
-        "id_item": "POCION_BASICA",
-        "nombre": "Poción",
-        "descripcion": "Restaura 50 HP a un aliado.",
-        "tipo": "Consumible",
-        "efecto": "RESTAURA_HP",
-        "poder": 50,
-        "target": "Aliado"
-    },
-    "ETER_BASICO": {
-        "id_item": "ETER_BASICO",
-        "nombre": "Éter",
-        "descripcion": "Restaura 20 MP a un aliado.",
-        "tipo": "Consumible",
-        "efecto": "RESTAURA_MP",
-        "poder": 20,
-        "target": "Aliado"
-    },
-    "EXPANSOR_RANURAS": {
-        "id_item": "EXPANSOR_RANURAS",
-        "nombre": "Expansor de Ranuras",
-        "descripcion": "Aumenta permanentemente las ranuras de habilidades de un héroe en +2. Acumulable.",
-        "tipo": "Especial",
-        "efecto": "AUMENTA_RANURAS_HABILIDAD",
-        "poder": 2,
-        "target": "Heroe"
-    },
-    "LLAVE_BRONCE": {
-        "id_item": "LLAVE_BRONCE",
-        "nombre": "Llave de Bronce",
-        "descripcion": "Una llave antigua de bronce. Puede abrir puertas cerradas con cerradura de bronce.",
-        "tipo": "Especial",
-        "efecto": "LLAVE",
-        "poder": 0,
-        "target": "Ninguno"
-    },
-    "LLAVE_PLATA": {
-        "id_item": "LLAVE_PLATA",
-        "nombre": "Llave de Plata",
-        "descripcion": "Una llave brillante de plata. Puede abrir puertas cerradas con cerradura de plata.",
-        "tipo": "Especial",
-        "efecto": "LLAVE",
-        "poder": 0,
-        "target": "Ninguno"
-    },
-    "LLAVE_ORO": {
-        "id_item": "LLAVE_ORO",
-        "nombre": "Llave de Oro",
-        "descripcion": "Una llave dorada especial. Puede abrir puertas cerradas con cerradura de oro.",
-        "tipo": "Especial",
-        "efecto": "LLAVE",
-        "poder": 0,
-        "target": "Ninguno"
-    },
-    "POCION_INTERMEDIA": {
-        "id_item": "POCION_INTERMEDIA",
-        "nombre": "Poción Intermedia",
-        "descripcion": "Restaura 100 HP a un aliado.",
-        "tipo": "Consumible",
-        "efecto": "RESTAURA_HP",
-        "poder": 100,
-        "target": "Aliado"
-    },
-    "POCION_GRANDE": {
-        "id_item": "POCION_GRANDE",
-        "nombre": "Poción Grande",
-        "descripcion": "Restaura 200 HP a un aliado.",
-        "tipo": "Consumible",
-        "efecto": "RESTAURA_HP",
-        "poder": 200,
-        "target": "Aliado"
-    },
-    "ETER_INTERMEDIO": {
-        "id_item": "ETER_INTERMEDIO",
-        "nombre": "Éter Intermedio",
-        "descripcion": "Restaura 50 MP a un aliado.",
-        "tipo": "Consumible",
-        "efecto": "RESTAURA_MP",
-        "poder": 50,
-        "target": "Aliado"
-    },
-    "ETER_GRANDE": {
-        "id_item": "ETER_GRANDE",
-        "nombre": "Éter Grande",
-        "descripcion": "Restaura 100 MP a un aliado.",
-        "tipo": "Consumible",
-        "efecto": "RESTAURA_MP",
-        "poder": 100,
-        "target": "Aliado"
-    },
-    "ANTIDOTO": {
-        "id_item": "ANTIDOTO",
-        "nombre": "Antídoto",
-        "descripcion": "Cura envenenamiento.",
-        "tipo": "Consumible",
-        "efecto": "CURA_VENENO",
-        "poder": 0,
-        "target": "Aliado"
-    },
-    "ELIXIR": {
-        "id_item": "ELIXIR",
-        "nombre": "Elixir",
-        "descripcion": "Restaura completamente HP y MP de un aliado.",
-        "tipo": "Consumible",
-        "efecto": "RESTAURA_TODO",
-        "poder": 9999,
-        "target": "Aliado"
-    }
+  "POCION_BASICA": {
+    "id_item": "POCION_BASICA",
+    "nombre": "Poción",
+    "descripcion": "Restaura 50 HP a un aliado.",
+    "tipo": "Consumible",
+    "efecto": "RESTAURA_HP",
+    "poder": 50,
+    "target": "Aliado"
+  },
+  "ETER_BASICO": {
+    "id_item": "ETER_BASICO",
+    "nombre": "Éter",
+    "descripcion": "Restaura 20 MP a un aliado.",
+    "tipo": "Consumible",
+    "efecto": "RESTAURA_MP",
+    "poder": 20,
+    "target": "Aliado"
+  },
+  "EXPANSOR_RANURAS": {
+    "id_item": "EXPANSOR_RANURAS",
+    "nombre": "Expansor de Ranuras",
+    "descripcion": "Aumenta permanentemente las ranuras de habilidades de un héroe en +2. Acumulable.",
+    "tipo": "Especial",
+    "efecto": "AUMENTA_RANURAS_HABILIDAD",
+    "poder": 2,
+    "target": "Heroe"
+  },
+  "LLAVE_BRONCE": {
+    "id_item": "LLAVE_BRONCE",
+    "nombre": "Llave de Bronce",
+    "descripcion": "Una llave antigua de bronce. Puede abrir puertas cerradas con cerradura de bronce.",
+    "tipo": "Especial",
+    "efecto": "LLAVE",
+    "poder": 0,
+    "target": "Ninguno"
+  },
+  "LLAVE_PLATA": {
+    "id_item": "LLAVE_PLATA",
+    "nombre": "Llave de Plata",
+    "descripcion": "Una llave brillante de plata. Puede abrir puertas cerradas con cerradura de plata.",
+    "tipo": "Especial",
+    "efecto": "LLAVE",
+    "poder": 0,
+    "target": "Ninguno"
+  },
+  "LLAVE_ORO": {
+    "id_item": "LLAVE_ORO",
+    "nombre": "Llave de Oro",
+    "descripcion": "Una llave dorada especial. Puede abrir puertas cerradas con cerradura de oro.",
+    "tipo": "Especial",
+    "efecto": "LLAVE",
+    "poder": 0,
+    "target": "Ninguno"
+  },
+  "POCION_INTERMEDIA": {
+    "id_item": "POCION_INTERMEDIA",
+    "nombre": "Poción Intermedia",
+    "descripcion": "Restaura 100 HP a un aliado.",
+    "tipo": "Consumible",
+    "efecto": "RESTAURA_HP",
+    "poder": 100,
+    "target": "Aliado"
+  },
+  "POCION_GRANDE": {
+    "id_item": "POCION_GRANDE",
+    "nombre": "Poción Grande",
+    "descripcion": "Restaura 200 HP a un aliado.",
+    "tipo": "Consumible",
+    "efecto": "RESTAURA_HP",
+    "poder": 200,
+    "target": "Aliado"
+  },
+  "ETER_INTERMEDIO": {
+    "id_item": "ETER_INTERMEDIO",
+    "nombre": "Éter Intermedio",
+    "descripcion": "Restaura 50 MP a un aliado.",
+    "tipo": "Consumible",
+    "efecto": "RESTAURA_MP",
+    "poder": 50,
+    "target": "Aliado"
+  },
+  "ETER_GRANDE": {
+    "id_item": "ETER_GRANDE",
+    "nombre": "Éter Grande",
+    "descripcion": "Restaura 100 MP a un aliado.",
+    "tipo": "Consumible",
+    "efecto": "RESTAURA_MP",
+    "poder": 100,
+    "target": "Aliado"
+  },
+  "ANTIDOTO": {
+    "id_item": "ANTIDOTO",
+    "nombre": "Antídoto",
+    "descripcion": "Cura envenenamiento.",
+    "tipo": "Consumible",
+    "efecto": "CURA_VENENO",
+    "poder": 0,
+    "target": "Aliado"
+  },
+  "ELIXIR": {
+    "id_item": "ELIXIR",
+    "nombre": "Elixir",
+    "descripcion": "Restaura completamente HP y MP de un aliado.",
+    "tipo": "Consumible",
+    "efecto": "RESTAURA_TODO",
+    "poder": 9999,
+    "target": "Aliado"
+  }
 }

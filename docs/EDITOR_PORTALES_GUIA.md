@@ -1,6 +1,7 @@
 # Editor de Portales - Guía Completa
 
 ## 📋 Índice
+
 1. [Introducción](#introducción)
 2. [Ejecutar el Editor](#ejecutar-el-editor)
 3. [Interfaz](#interfaz)
@@ -16,6 +17,7 @@
 El **Editor de Portales** es una herramienta visual para crear y gestionar portales de teletransporte entre mapas del RPG. Permite vincular portales entre dos mapas simultáneamente, definir spawns (puntos de aparición), y gestionar conexiones de forma visual e intuitiva.
 
 ### Características principales:
+
 - ✅ Dos mapas lado a lado simultáneamente
 - ✅ Arrastrar y soltar mapas desde el panel
 - ✅ Portales rectangulares y poligonales
@@ -31,16 +33,19 @@ El **Editor de Portales** es una herramienta visual para crear y gestionar porta
 ## Ejecutar el Editor
 
 ### Opción 1: Usando el batch (recomendado)
+
 ```cmd
 ejecutar_portales.bat
 ```
 
 ### Opción 2: Directamente con Python
+
 ```powershell
 & "C:/Program Files/Python312/python.exe" editor_portales.py
 ```
 
 ### Requisitos:
+
 - Python 3.12+
 - Pygame instalado (`pip install pygame`)
 - Mapas en `assets/maps/`
@@ -76,17 +81,20 @@ ejecutar_portales.bat
 ### Elementos de la interfaz:
 
 1. **Panel Izquierdo** (300px):
+
    - Secciones de mapas por categoría
    - Lista de portales vinculados
    - Lista de conexiones portal→spawn
    - Botón de ayuda [?]
 
 2. **Viewport Izquierdo**:
+
    - Muestra mapa 1
    - Zoom y pan independiente
    - Portales y spawns del mapa 1
 
 3. **Viewport Derecho**:
+
    - Muestra mapa 2
    - Zoom y pan independiente
    - Portales y spawns del mapa 2
@@ -115,6 +123,7 @@ ejecutar_portales.bat
 ### 2. Crear portales
 
 #### Portal rectangular:
+
 ```
 1. Presiona P (modo portal)
 2. Click izquierdo y arrastra en el mapa
@@ -123,6 +132,7 @@ ejecutar_portales.bat
 ```
 
 #### Portal poligonal:
+
 ```
 1. Presiona P (modo portal)
 2. Presiona L (modo polígono)
@@ -215,48 +225,54 @@ Resultado:
 ## Controles
 
 ### Modos
-| Tecla | Acción |
-|-------|--------|
-| `P` | Modo Portal (crear portales) |
-| `S` | Modo Spawn (crear spawns) |
-| `L` | Modo Polígono (portales poligonales) |
+
+| Tecla | Acción                               |
+| ----- | ------------------------------------ |
+| `P`   | Modo Portal (crear portales)         |
+| `S`   | Modo Spawn (crear spawns)            |
+| `L`   | Modo Polígono (portales poligonales) |
 
 ### Vinculación
-| Acción | Función |
-|--------|---------|
-| `Click izq` en portal | Iniciar vinculación portal↔portal |
-| `Shift + Click izq` en portal | Iniciar vinculación portal→spawn |
-| `Click derecho` (con portal amarillo) | Crear/vincular spawn |
-| `ESC` | Cancelar vinculación activa |
+
+| Acción                                | Función                           |
+| ------------------------------------- | --------------------------------- |
+| `Click izq` en portal                 | Iniciar vinculación portal↔portal |
+| `Shift + Click izq` en portal         | Iniciar vinculación portal→spawn  |
+| `Click derecho` (con portal amarillo) | Crear/vincular spawn              |
+| `ESC`                                 | Cancelar vinculación activa       |
 
 ### Edición
-| Acción | Función |
-|--------|---------|
+
+| Acción                  | Función                  |
+| ----------------------- | ------------------------ |
 | `Doble-click` en portal | Editar nombre del portal |
-| `ENTER` | Confirmar nombre |
-| `ESC` | Cancelar edición |
-| `DEL` | Eliminar seleccionados |
-| `Shift + Click` | Multi-selección |
+| `ENTER`                 | Confirmar nombre         |
+| `ESC`                   | Cancelar edición         |
+| `DEL`                   | Eliminar seleccionados   |
+| `Shift + Click`         | Multi-selección          |
 
 ### Vista
-| Control | Función |
-|---------|---------|
-| `Rueda ratón` | Zoom (0.25x - 1.0x) |
-| `Click derecho + arrastrar` | Pan (mover vista) |
-| `Click medio + arrastrar` | Pan (alternativo) |
-| `0` | Reset zoom a 1:1 |
+
+| Control                     | Función             |
+| --------------------------- | ------------------- |
+| `Rueda ratón`               | Zoom (0.25x - 1.0x) |
+| `Click derecho + arrastrar` | Pan (mover vista)   |
+| `Click medio + arrastrar`   | Pan (alternativo)   |
+| `0`                         | Reset zoom a 1:1    |
 
 ### Archivo
-| Tecla | Acción |
-|-------|--------|
-| `G` | Guardar ambos mapas |
-| `H` | Mostrar/ocultar ayuda |
+
+| Tecla | Acción                |
+| ----- | --------------------- |
+| `G`   | Guardar ambos mapas   |
+| `H`   | Mostrar/ocultar ayuda |
 
 ### Panel
-| Acción | Función |
-|--------|---------|
-| `Click en sección` | Expandir/colapsar |
-| `Arrastrar mapa` | Cargar en viewport izq/der |
+
+| Acción             | Función                    |
+| ------------------ | -------------------------- |
+| `Click en sección` | Expandir/colapsar          |
+| `Arrastrar mapa`   | Cargar en viewport izq/der |
 
 ---
 
@@ -284,6 +300,7 @@ Portal normal (ROSA)
 ### Flujo de datos
 
 #### Vinculación Portal ↔ Portal:
+
 ```python
 Portal A (mapa_pueblo):
     id: "Pmapa_pueblo_interior_posada"
@@ -297,6 +314,7 @@ Portal B (interior_posada):
 ```
 
 #### En el juego:
+
 ```
 Héroe entra portal A (pueblo):
 1. Sistema lee: mapa_destino = "interior_posada"
@@ -332,7 +350,11 @@ Archivo: `src/database/mapas/[categoria]/[nombre_mapa].json`
       "id": "#3",
       "tipo": "portal_enlazado",
       "forma": "poly",
-      "puntos": [[100, 200], [150, 180], [150, 220]],
+      "puntos": [
+        [100, 200],
+        [150, 180],
+        [150, 220]
+      ],
       "mapa_destino": "",
       "spawn_destino_id": ""
     }
@@ -360,25 +382,25 @@ Archivo: `src/database/mapas/[categoria]/[nombre_mapa].json`
 
 ### Campos de Portal
 
-| Campo | Tipo | Descripción |
-|-------|------|-------------|
-| `id` | string | Identificador único (auto o manual) |
-| `tipo` | string | Siempre "portal_enlazado" |
-| `forma` | string | "rect" o "poly" |
-| `x, y, w, h` | int | Dimensiones (solo rect) |
-| `puntos` | array | Lista de [x,y] (solo poly) |
-| `mapa_destino` | string | Ruta relativa del mapa destino |
-| `spawn_destino_id` | string | ID del spawn donde aparece héroe |
+| Campo              | Tipo   | Descripción                         |
+| ------------------ | ------ | ----------------------------------- |
+| `id`               | string | Identificador único (auto o manual) |
+| `tipo`             | string | Siempre "portal_enlazado"           |
+| `forma`            | string | "rect" o "poly"                     |
+| `x, y, w, h`       | int    | Dimensiones (solo rect)             |
+| `puntos`           | array  | Lista de [x,y] (solo poly)          |
+| `mapa_destino`     | string | Ruta relativa del mapa destino      |
+| `spawn_destino_id` | string | ID del spawn donde aparece héroe    |
 
 ### Campos de Spawn
 
-| Campo | Tipo | Descripción |
-|-------|------|-------------|
-| `id` | string | Identificador único |
-| `tipo` | string | Siempre "spawn" |
-| `x, y` | int | Posición en píxeles |
+| Campo       | Tipo   | Descripción                               |
+| ----------- | ------ | ----------------------------------------- |
+| `id`        | string | Identificador único                       |
+| `tipo`      | string | Siempre "spawn"                           |
+| `x, y`      | int    | Posición en píxeles                       |
 | `direccion` | string | "arriba", "abajo", "izquierda", "derecha" |
-| `tam` | int | Tamaño del área (default: 12) |
+| `tam`       | int    | Tamaño del área (default: 12)             |
 
 ---
 
@@ -431,7 +453,7 @@ def _detectar_lado(self, mx):
     if mx < PANEL_ANCHO: return None
     izq_rect = pygame.Rect(PANEL_ANCHO, 0, (ANCHO-PANEL_ANCHO)//2, ALTO)
     der_rect = pygame.Rect(PANEL_ANCHO + izq_rect.width, 0, ...)
-    
+
     if izq_rect.collidepoint(mx, ALTO//2): return 'izq'
     if der_rect.collidepoint(mx, ALTO//2): return 'der'
 ```
@@ -480,15 +502,18 @@ def _actualizar_lista_portal_spawns(self):
 ### ⚠️ Errores comunes
 
 ❌ **Spawn en mapa equivocado**:
+
 ```
 Portal en pueblo → Spawn debe estar en pueblo
 Portal en posada → Spawn debe estar en posada
 ```
 
 ❌ **Olvidar vincular spawns**:
+
 - Un portal sin spawn_destino_id causará aparición en posición por defecto
 
 ❌ **Vincular portales del mismo lado**:
+
 - Sistema avisa: "⚠ Debes seleccionar portal del otro mapa"
 
 ---
@@ -521,21 +546,25 @@ AYUDA:     H
 ## Solución de Problemas
 
 ### El portal no se vincula
+
 - Verifica que ambos mapas estén cargados
 - Asegúrate de hacer click en portales de lados DIFERENTES
 - El sistema muestra mensajes de error en la parte superior
 
 ### No puedo crear spawn
+
 - Verifica que el portal esté en modo amarillo (Shift+Click)
 - El spawn debe crearse en el MISMO lado que el portal
 - Click derecho para crear, no izquierdo
 
 ### Las etiquetas no se ven
+
 - Los portales sin nombre (id vacío) no muestran etiqueta
 - Doble-click para asignar nombre
 - Los portales vinculados reciben nombre automático
 
 ### Los mapas no cargan
+
 - Verifica que existan en `assets/maps/`
 - Formatos soportados: PNG, JPG
 - La estructura debe ser: `assets/maps/categoria/mapa.png`
@@ -565,6 +594,7 @@ assets/maps/                    # Imágenes de mapas
 **Versión actual**: 2.0 (Dual Map System)
 
 ### Características implementadas:
+
 - ✅ Dual viewport side-by-side
 - ✅ Drag & drop de mapas
 - ✅ Portales rectangulares y poligonales

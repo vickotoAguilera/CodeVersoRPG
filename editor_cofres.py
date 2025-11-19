@@ -157,6 +157,7 @@ class EditorCofres:
         self.cofres = []
         self.contador_cofres = 0
         self.cofre_seleccionado = None
+        self.cofre_copiado = None  # Cofre en portapapeles
         self.arrastrando_cofre = False
         self.redimensionando = False
         self.borde_seleccionado = None  # 'n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'
@@ -166,6 +167,20 @@ class EditorCofres:
         self.modo_actual = "colocar"  # colocar, editar
         self.modal_abierto = False
         self.modal_cofre = None
+        
+        # Selección de items en modal
+        self.items_seleccionados = set()  # IDs de items seleccionados para agregar
+        self.equipo_seleccionado = set()
+        self.especiales_seleccionados = set()
+        
+        # Edición de cantidad
+        self.editando_cantidad = None  # (tipo, item_id)
+        self.input_cantidad = ""
+        
+        # Secciones desplegables del modal
+        self.modal_seccion_consumibles_expandida = True
+        self.modal_seccion_equipo_expandida = False
+        self.modal_seccion_especiales_expandida = False
         
         # Secciones
         self.seccion_mapas = []
@@ -482,6 +497,12 @@ class EditorCofres:
         
         config = self.cofres_db["tipos_cofre"][cofre.tipo]
         
+        # IMPORTANTE: Limpiar contenido previo antes de generar nuevo loot
+        cofre.items_contenido = {}
+        cofre.equipo_contenido = {}
+        cofre.especiales_contenido = {}
+        cofre.oro = 0
+        
         # Oro
         if cofre.tipo != "especial":
             cofre.oro = random.randint(config["oro_min"], config["oro_max"])
@@ -555,10 +576,87 @@ class EditorCofres:
                 elif event.key == pygame.K_h:
                     self.mostrar_ayuda = not self.mostrar_ayuda
                 
+                # Edición de cantidad en modal
+                elif self.modal_abierto and self.editando_cantidad:
+                    if event.key == pygame.K_RETURN:
+                        # Confirmar edición
+                        tipo, item_id = self.editando_cantidad
+                        try:
+                            nueva_cant = int(self.input_cantidad)
+                            if tipo == "oro":
+                                if nueva_cant >= 0:
+                                    self.modal_cofre.oro = nueva_cant
+                            elif nueva_cant > 0:
+                                if tipo == "items":
+                                    self.modal_cofre.items_contenido[item_id] = nueva_cant
+                                elif tipo == "equipo":
+                                    self.modal_cofre.equipo_contenido[item_id] = nueva_cant
+                                elif tipo == "especiales":
+                                    self.modal_cofre.especiales_contenido[item_id] = nueva_cant
+                        except ValueError:
+                            pass
+                        self.editando_cantidad = None
+                        self.input_cantidad = ""
+                    
+                    elif event.key == pygame.K_ESCAPE:
+                        # Cancelar edición
+                        self.editando_cantidad = None
+                        self.input_cantidad = ""
+                    
+                    elif event.key == pygame.K_BACKSPACE:
+                        self.input_cantidad = self.input_cantidad[:-1]
+                    
+                    elif event.unicode.isdigit():
+                        self.input_cantidad += event.unicode
+                
                 elif event.key == pygame.K_DELETE:
                     if self.cofre_seleccionado:
                         self.cofres.remove(self.cofre_seleccionado)
                         self.cofre_seleccionado = None
+                
+                # Ctrl+C: Copiar cofre seleccionado
+                elif event.key == pygame.K_c and pygame.key.get_mods() & pygame.KMOD_CTRL:
+                    if self.cofre_seleccionado and not self.modal_abierto:
+                        self.cofre_copiado = self.cofre_seleccionado
+                        print(f"✓ Cofre copiado: {self.cofre_copiado.nombre}")
+                
+                # Ctrl+V: Pegar cofre en posición del mouse
+                elif event.key == pygame.K_v and pygame.key.get_mods() & pygame.KMOD_CTRL:
+                    if self.cofre_copiado and self.mapa_actual and not self.modal_abierto:
+                        # Verificar que el mouse esté en el viewport
+                        if mx >= PANEL_ANCHO:
+                            mx_map, my_map = self._screen_to_map(mx, my)
+                            
+                            # Crear nuevo cofre con datos copiados
+                            self.contador_cofres += 1
+                            nuevo_id = f"C{self.contador_cofres}"
+                            
+                            nuevo_cofre = Cofre(
+                                id=nuevo_id,
+                                x=mx_map,
+                                y=my_map,
+                                ancho=self.cofre_copiado.ancho,
+                                alto=self.cofre_copiado.alto,
+                                tipo=self.cofre_copiado.tipo
+                            )
+                            
+                            # Copiar contenido
+                            nuevo_cofre.oro = self.cofre_copiado.oro
+                            nuevo_cofre.items_contenido = self.cofre_copiado.items_contenido.copy()
+                            nuevo_cofre.equipo_contenido = self.cofre_copiado.equipo_contenido.copy()
+                            nuevo_cofre.especiales_contenido = self.cofre_copiado.especiales_contenido.copy()
+                            nuevo_cofre.requiere_llave = self.cofre_copiado.requiere_llave
+                            nuevo_cofre.puede_reabrir = self.cofre_copiado.puede_reabrir
+                            nuevo_cofre.tiempo_reapertura = self.cofre_copiado.tiempo_reapertura
+                            
+                            # Copiar sprites si existen
+                            nuevo_cofre.sprite_cerrado = self.cofre_copiado.sprite_cerrado
+                            nuevo_cofre.sprite_abierto_items = self.cofre_copiado.sprite_abierto_items
+                            nuevo_cofre.sprite_abierto_vacio = self.cofre_copiado.sprite_abierto_vacio
+                            
+                            self.cofres.append(nuevo_cofre)
+                            self.cofre_seleccionado = nuevo_cofre
+                            print(f"✓ Cofre pegado: {nuevo_cofre.nombre} en ({mx_map}, {my_map})")
             
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:  # Click izquierdo
@@ -665,6 +763,10 @@ class EditorCofres:
         
         # En viewport
         if not self.mapa_actual:
+            return
+        
+        # Bloquear si el modal está abierto
+        if self.modal_abierto:
             return
         
         mx_map, my_map = self._screen_to_map(mx, my)
@@ -805,14 +907,14 @@ class EditorCofres:
             self.screen.blit(texto, (sx + 3, sy - 18))
     
     def _draw_modal(self):
-        """Dibuja modal de edición de cofre"""
+        """Dibuja modal de edición de cofre con listas de items disponibles"""
         # Fondo oscuro
         overlay = pygame.Surface((ANCHO, ALTO), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, 180))
         self.screen.blit(overlay, (0, 0))
         
-        # Ventana modal
-        modal_ancho, modal_alto = 1000, 700
+        # Ventana modal más grande
+        modal_ancho, modal_alto = 1300, 800
         modal_x = (ANCHO - modal_ancho) // 2
         modal_y = (ALTO - modal_alto) // 2
         modal_rect = pygame.Rect(modal_x, modal_y, modal_ancho, modal_alto)
@@ -821,6 +923,8 @@ class EditorCofres:
         pygame.draw.rect(self.screen, COLOR_BORDE, modal_rect, 3)
         
         cofre = self.modal_cofre
+        mx, my = pygame.mouse.get_pos()
+        click = pygame.mouse.get_pressed()[0]
         y = modal_y + 20
         
         # Título
@@ -861,66 +965,448 @@ class EditorCofres:
             x_btn += 110
         y += 50
         
-        # Oro
-        texto_oro = self.font_small.render(f"Oro: {cofre.oro}", True, (255, 215, 0))
-        self.screen.blit(texto_oro, (modal_x + 20, y))
+        # === ORO EDITABLE ===
+        texto_oro_label = self.font_small.render("Oro:", True, (255, 215, 0))
+        self.screen.blit(texto_oro_label, (modal_x + 20, y + 5))
+        
+        # Input de oro
+        input_oro_x = modal_x + 80
+        input_oro_rect = pygame.Rect(input_oro_x, y, 100, 30)
+        pygame.draw.rect(self.screen, (60, 60, 60), input_oro_rect)
+        pygame.draw.rect(self.screen, (200, 180, 0), input_oro_rect, 2)
+        
+        # Mostrar cantidad o input
+        if self.editando_cantidad == ("oro", None):
+            texto_oro = self.font_small.render(self.input_cantidad + "_", True, (255, 255, 100))
+        else:
+            texto_oro = self.font_small.render(str(cofre.oro), True, (255, 215, 0))
+        
+        self.screen.blit(texto_oro, (input_oro_x + 8, y + 5))
+        
+        # Click para editar oro
+        mx, my = pygame.mouse.get_pos()
+        if input_oro_rect.collidepoint(mx, my) and click:
+            # Guardar cantidad anterior si existía
+            if self.editando_cantidad and self.input_cantidad:
+                tipo_anterior, item_anterior = self.editando_cantidad
+                try:
+                    if tipo_anterior == "oro":
+                        nueva_cant = int(self.input_cantidad)
+                        if nueva_cant >= 0:
+                            cofre.oro = nueva_cant
+                    else:
+                        nueva_cant = int(self.input_cantidad)
+                        if nueva_cant > 0:
+                            if tipo_anterior == "items":
+                                cofre.items_contenido[item_anterior] = nueva_cant
+                            elif tipo_anterior == "equipo":
+                                cofre.equipo_contenido[item_anterior] = nueva_cant
+                            elif tipo_anterior == "especiales":
+                                cofre.especiales_contenido[item_anterior] = nueva_cant
+                except ValueError:
+                    pass
+            
+            # Iniciar edición del oro
+            self.editando_cantidad = ("oro", None)
+            self.input_cantidad = str(cofre.oro)
+            pygame.time.wait(150)
         
         # Botón random oro
-        btn_random_oro = pygame.Rect(modal_x + 200, y - 5, 120, 30)
+        btn_random_oro = pygame.Rect(modal_x + 200, y, 120, 30)
         pygame.draw.rect(self.screen, COLOR_HOVER, btn_random_oro)
         pygame.draw.rect(self.screen, COLOR_BORDE, btn_random_oro, 1)
         texto_btn = self.font_tiny.render("Random Oro", True, COLOR_TEXTO)
         self.screen.blit(texto_btn, (btn_random_oro.x + 10, btn_random_oro.y + 7))
         
-        mx, my = pygame.mouse.get_pos()
         if btn_random_oro.collidepoint(mx, my) and pygame.mouse.get_pressed()[0]:
             if cofre.tipo in self.cofres_db.get("tipos_cofre", {}):
                 config = self.cofres_db["tipos_cofre"][cofre.tipo]
                 cofre.oro = random.randint(config["oro_min"], config["oro_max"])
+                pygame.time.wait(150)
         
         y += 50
         
-        # Contenido
-        texto_contenido = self.font.render("Contenido:", True, COLOR_TEXTO)
-        self.screen.blit(texto_contenido, (modal_x + 20, y))
-        y += 40
+        # === COLUMNA IZQUIERDA: Items Disponibles con Checkboxes ===
+        col_izq_x = modal_x + 20
+        col_izq_ancho = 400
+        y_izq = y
         
-        # Items
-        texto_items = self.font_small.render("Items Consumibles:", True, COLOR_TEXTO)
-        self.screen.blit(texto_items, (modal_x + 20, y))
-        y += 25
-        for item_id, cant in list(cofre.items_contenido.items())[:5]:
-            nombre = self.items_db.get(item_id, {}).get("nombre", item_id)
-            texto = self.font_tiny.render(f"  • {nombre} x{cant}", True, COLOR_TEXTO)
-            self.screen.blit(texto, (modal_x + 30, y))
-            y += 22
+        texto_disponibles = self.font_small.render("Items Disponibles (selecciona para agregar):", True, (150, 255, 150))
+        self.screen.blit(texto_disponibles, (col_izq_x, y_izq))
+        y_izq += 30
         
-        y += 10
+        # === CONSUMIBLES DESPLEGABLE ===
+        simbolo_cons = "▼" if self.modal_seccion_consumibles_expandida else "▶"
+        consumibles_list = [(item_id, item_data) for item_id, item_data in self.items_db.items() if item_data.get('tipo') == 'Consumible']
+        texto_cons = self.font_tiny.render(f"{simbolo_cons} Consumibles ({len(consumibles_list)}):", True, (200, 220, 255))
+        header_cons_rect = pygame.Rect(col_izq_x, y_izq, col_izq_ancho - 20, 22)
+        pygame.draw.rect(self.screen, (50, 50, 55), header_cons_rect)
+        pygame.draw.rect(self.screen, (80, 80, 90), header_cons_rect, 1)
+        self.screen.blit(texto_cons, (col_izq_x + 5, y_izq + 3))
         
-        # Equipo
-        texto_equipo = self.font_small.render("Equipo:", True, COLOR_TEXTO)
-        self.screen.blit(texto_equipo, (modal_x + 20, y))
-        y += 25
-        for equipo_id, cant in list(cofre.equipo_contenido.items())[:3]:
-            nombre = self.equipo_db.get(equipo_id, {}).get("nombre", equipo_id)
-            texto = self.font_tiny.render(f"  • {nombre} x{cant}", True, COLOR_TEXTO)
-            self.screen.blit(texto, (modal_x + 30, y))
-            y += 22
+        # Click en header para expandir/colapsar
+        if header_cons_rect.collidepoint(mx, my) and click:
+            self.modal_seccion_consumibles_expandida = not self.modal_seccion_consumibles_expandida
+            pygame.time.wait(150)
         
-        y += 10
+        y_izq += 24
         
-        # Especiales
-        texto_esp = self.font_small.render("Items Especiales:", True, COLOR_TEXTO)
-        self.screen.blit(texto_esp, (modal_x + 20, y))
-        y += 25
-        for esp_id, cant in list(cofre.especiales_contenido.items())[:3]:
-            nombre = self.especiales_db.get(esp_id, {}).get("nombre", esp_id)
-            texto = self.font_tiny.render(f"  • {nombre} x{cant}", True, COLOR_TEXTO)
-            self.screen.blit(texto, (modal_x + 30, y))
-            y += 22
+        # Contenido si está expandido
+        if self.modal_seccion_consumibles_expandida:
+            for item_id, item_data in consumibles_list[:8]:  # Máximo 8 items
+                nombre = item_data.get('nombre', item_id)[:28]
+                
+                # Checkbox
+                checkbox_rect = pygame.Rect(col_izq_x + 10, y_izq, 16, 16)
+                pygame.draw.rect(self.screen, (100, 100, 100), checkbox_rect, 1)
+                
+                if item_id in self.items_seleccionados:
+                    pygame.draw.rect(self.screen, (100, 255, 100), checkbox_rect.inflate(-4, -4))
+                
+                # Detectar click en checkbox
+                if checkbox_rect.collidepoint(mx, my) and click:
+                    if item_id in self.items_seleccionados:
+                        self.items_seleccionados.remove(item_id)
+                    else:
+                        self.items_seleccionados.add(item_id)
+                    pygame.time.wait(150)  # Debounce
+                
+                # Texto
+                texto = self.font_tiny.render(nombre, True, (200, 200, 200))
+                self.screen.blit(texto, (col_izq_x + 32, y_izq))
+                y_izq += 20
         
+        y_izq += 5
+        
+        # === EQUIPO DESPLEGABLE ===
+        simbolo_eq = "▼" if self.modal_seccion_equipo_expandida else "▶"
+        equipo_list = list(self.equipo_db.items())
+        texto_eq = self.font_tiny.render(f"{simbolo_eq} Equipo ({len(equipo_list)}):", True, (200, 220, 255))
+        header_eq_rect = pygame.Rect(col_izq_x, y_izq, col_izq_ancho - 20, 22)
+        pygame.draw.rect(self.screen, (50, 50, 55), header_eq_rect)
+        pygame.draw.rect(self.screen, (80, 80, 90), header_eq_rect, 1)
+        self.screen.blit(texto_eq, (col_izq_x + 5, y_izq + 3))
+        
+        # Click en header para expandir/colapsar
+        if header_eq_rect.collidepoint(mx, my) and click:
+            self.modal_seccion_equipo_expandida = not self.modal_seccion_equipo_expandida
+            pygame.time.wait(150)
+        
+        y_izq += 24
+        
+        # Contenido si está expandido
+        if self.modal_seccion_equipo_expandida:
+            for equipo_id, equipo_data in equipo_list[:8]:  # Máximo 8 items
+                nombre = equipo_data.get('nombre', equipo_id)[:28]
+                
+                # Checkbox
+                checkbox_rect = pygame.Rect(col_izq_x + 10, y_izq, 16, 16)
+                pygame.draw.rect(self.screen, (100, 100, 100), checkbox_rect, 1)
+                
+                if equipo_id in self.equipo_seleccionado:
+                    pygame.draw.rect(self.screen, (100, 255, 100), checkbox_rect.inflate(-4, -4))
+                
+                # Detectar click en checkbox
+                if checkbox_rect.collidepoint(mx, my) and click:
+                    if equipo_id in self.equipo_seleccionado:
+                        self.equipo_seleccionado.remove(equipo_id)
+                    else:
+                        self.equipo_seleccionado.add(equipo_id)
+                    pygame.time.wait(150)  # Debounce
+                
+                # Texto
+                texto = self.font_tiny.render(nombre, True, (200, 200, 200))
+                self.screen.blit(texto, (col_izq_x + 32, y_izq))
+                y_izq += 20
+        
+        y_izq += 5
+        
+        # === ESPECIALES DESPLEGABLE ===
+        simbolo_esp = "▼" if self.modal_seccion_especiales_expandida else "▶"
+        especiales_list = list(self.especiales_db.items())
+        texto_esp_disp = self.font_tiny.render(f"{simbolo_esp} Especiales ({len(especiales_list)}):", True, (200, 220, 255))
+        header_esp_rect = pygame.Rect(col_izq_x, y_izq, col_izq_ancho - 20, 22)
+        pygame.draw.rect(self.screen, (50, 50, 55), header_esp_rect)
+        pygame.draw.rect(self.screen, (80, 80, 90), header_esp_rect, 1)
+        self.screen.blit(texto_esp_disp, (col_izq_x + 5, y_izq + 3))
+        
+        # Click en header para expandir/colapsar
+        if header_esp_rect.collidepoint(mx, my) and click:
+            self.modal_seccion_especiales_expandida = not self.modal_seccion_especiales_expandida
+            pygame.time.wait(150)
+        
+        y_izq += 24
+        
+        # Contenido si está expandido
+        if self.modal_seccion_especiales_expandida:
+            for esp_id, esp_data in especiales_list[:8]:  # Máximo 8 items
+                nombre = esp_data.get('nombre', esp_id)[:28]
+                
+                # Checkbox
+                checkbox_rect = pygame.Rect(col_izq_x + 10, y_izq, 16, 16)
+                pygame.draw.rect(self.screen, (100, 100, 100), checkbox_rect, 1)
+                
+                if esp_id in self.especiales_seleccionados:
+                    pygame.draw.rect(self.screen, (100, 255, 100), checkbox_rect.inflate(-4, -4))
+                
+                # Detectar click en checkbox
+                if checkbox_rect.collidepoint(mx, my) and click:
+                    if esp_id in self.especiales_seleccionados:
+                        self.especiales_seleccionados.remove(esp_id)
+                    else:
+                        self.especiales_seleccionados.add(esp_id)
+                    pygame.time.wait(150)  # Debounce
+                
+                # Texto
+                texto = self.font_tiny.render(nombre, True, (200, 200, 200))
+                self.screen.blit(texto, (col_izq_x + 32, y_izq))
+                y_izq += 20
+        
+        y_izq += 10
+        
+        # === BOTÓN AGREGAR SELECCIONADOS (más prominente) ===
+        btn_agregar = pygame.Rect(col_izq_x + 10, y_izq, 220, 45)
+        total_seleccionados = len(self.items_seleccionados) + len(self.equipo_seleccionado) + len(self.especiales_seleccionados)
+        color_btn = (50, 200, 50) if total_seleccionados > 0 else (60, 60, 65)
+        
+        # Borde brillante si hay selección
+        if total_seleccionados > 0:
+            pygame.draw.rect(self.screen, (100, 255, 100), btn_agregar.inflate(6, 6), 3)
+        
+        pygame.draw.rect(self.screen, color_btn, btn_agregar)
+        pygame.draw.rect(self.screen, (200, 200, 200) if total_seleccionados > 0 else (100, 100, 100), btn_agregar, 2)
+        
+        texto_agregar = self.font_small.render(f"AGREGAR ({total_seleccionados})", True, COLOR_TEXTO)
+        texto_rect = texto_agregar.get_rect(center=btn_agregar.center)
+        self.screen.blit(texto_agregar, texto_rect)
+        
+        if btn_agregar.collidepoint(mx, my) and click and total_seleccionados > 0:
+            # Agregar items seleccionados al cofre con cantidad 1
+            for item_id in self.items_seleccionados:
+                if item_id not in cofre.items_contenido:
+                    cofre.items_contenido[item_id] = 1
+            for equipo_id in self.equipo_seleccionado:
+                if equipo_id not in cofre.equipo_contenido:
+                    cofre.equipo_contenido[equipo_id] = 1
+            for esp_id in self.especiales_seleccionados:
+                if esp_id not in cofre.especiales_contenido:
+                    cofre.especiales_contenido[esp_id] = 1
+            
+            # Limpiar selecciones
+            self.items_seleccionados.clear()
+            self.equipo_seleccionado.clear()
+            self.especiales_seleccionados.clear()
+            pygame.time.wait(150)
+        
+        # === COLUMNA DERECHA: Contenido del Cofre con Inputs de Cantidad ===
+        col_der_x = modal_x + 450
+        col_der_ancho = 400
+        y_der = y
+        y_der_inicial = y  # Guardar posición inicial para detectar área
+        
+        texto_contenido = self.font_small.render("Contenido del Cofre (click cantidad para editar):", True, (255, 200, 100))
+        self.screen.blit(texto_contenido, (col_der_x, y_der))
+        y_der += 30
+        
+        # Items en el cofre
+        texto_items = self.font_tiny.render("Items Consumibles:", True, COLOR_TEXTO)
+        self.screen.blit(texto_items, (col_der_x, y_der))
+        y_der += 20
+        if cofre.items_contenido:
+            for item_id, cant in list(cofre.items_contenido.items())[:12]:
+                nombre = self.items_db.get(item_id, {}).get("nombre", item_id)[:20]
+                
+                # Nombre del item
+                texto = self.font_tiny.render(f"  • {nombre}", True, COLOR_TEXTO)
+                self.screen.blit(texto, (col_der_x + 10, y_der))
+                
+                # Input de cantidad
+                input_x = col_der_x + 250
+                input_rect = pygame.Rect(input_x, y_der - 2, 60, 18)
+                pygame.draw.rect(self.screen, (60, 60, 60), input_rect)
+                pygame.draw.rect(self.screen, (100, 100, 100), input_rect, 1)
+                
+                # Mostrar cantidad o input
+                if self.editando_cantidad == ("items", item_id):
+                    texto_cant = self.font_tiny.render(self.input_cantidad + "_", True, (255, 255, 100))
+                else:
+                    texto_cant = self.font_tiny.render(f"x {cant}", True, COLOR_TEXTO)
+                
+                self.screen.blit(texto_cant, (input_x + 5, y_der))
+                
+                # Click para editar
+                if input_rect.collidepoint(mx, my) and click:
+                    # Guardar cantidad anterior si existía
+                    if self.editando_cantidad and self.input_cantidad:
+                        tipo_anterior, item_anterior = self.editando_cantidad
+                        try:
+                            nueva_cant = int(self.input_cantidad)
+                            if nueva_cant > 0:
+                                if tipo_anterior == "items":
+                                    cofre.items_contenido[item_anterior] = nueva_cant
+                                elif tipo_anterior == "equipo":
+                                    cofre.equipo_contenido[item_anterior] = nueva_cant
+                                elif tipo_anterior == "especiales":
+                                    cofre.especiales_contenido[item_anterior] = nueva_cant
+                        except ValueError:
+                            pass
+                    
+                    # Iniciar edición del nuevo campo
+                    self.editando_cantidad = ("items", item_id)
+                    self.input_cantidad = str(cant)
+                    pygame.time.wait(150)
+                
+                # Botón eliminar (X)
+                btn_x = pygame.Rect(input_x + 70, y_der - 2, 18, 18)
+                pygame.draw.rect(self.screen, (150, 50, 50), btn_x)
+                texto_x = self.font_tiny.render("X", True, COLOR_TEXTO)
+                self.screen.blit(texto_x, (btn_x.x + 4, btn_x.y))
+                
+                if btn_x.collidepoint(mx, my) and click:
+                    del cofre.items_contenido[item_id]
+                    pygame.time.wait(150)
+                
+                y_der += 20
+        else:
+            texto = self.font_tiny.render("  (vacío)", True, (100, 100, 100))
+            self.screen.blit(texto, (col_der_x + 10, y_der))
+            y_der += 20
+        
+        y_der += 10
+        
+        # Equipo en el cofre
+        texto_equipo = self.font_tiny.render("Equipo:", True, COLOR_TEXTO)
+        self.screen.blit(texto_equipo, (col_der_x, y_der))
+        y_der += 20
+        if cofre.equipo_contenido:
+            for equipo_id, cant in list(cofre.equipo_contenido.items())[:12]:
+                nombre = self.equipo_db.get(equipo_id, {}).get("nombre", equipo_id)[:20]
+                
+                # Nombre del item
+                texto = self.font_tiny.render(f"  • {nombre}", True, COLOR_TEXTO)
+                self.screen.blit(texto, (col_der_x + 10, y_der))
+                
+                # Input de cantidad
+                input_x = col_der_x + 250
+                input_rect = pygame.Rect(input_x, y_der - 2, 60, 18)
+                pygame.draw.rect(self.screen, (60, 60, 60), input_rect)
+                pygame.draw.rect(self.screen, (100, 100, 100), input_rect, 1)
+                
+                # Mostrar cantidad o input
+                if self.editando_cantidad == ("equipo", equipo_id):
+                    texto_cant = self.font_tiny.render(self.input_cantidad + "_", True, (255, 255, 100))
+                else:
+                    texto_cant = self.font_tiny.render(f"x {cant}", True, COLOR_TEXTO)
+                
+                self.screen.blit(texto_cant, (input_x + 5, y_der))
+                
+                # Click para editar
+                if input_rect.collidepoint(mx, my) and click:
+                    # Guardar cantidad anterior si existía
+                    if self.editando_cantidad and self.input_cantidad:
+                        tipo_anterior, item_anterior = self.editando_cantidad
+                        try:
+                            nueva_cant = int(self.input_cantidad)
+                            if nueva_cant > 0:
+                                if tipo_anterior == "items":
+                                    cofre.items_contenido[item_anterior] = nueva_cant
+                                elif tipo_anterior == "equipo":
+                                    cofre.equipo_contenido[item_anterior] = nueva_cant
+                                elif tipo_anterior == "especiales":
+                                    cofre.especiales_contenido[item_anterior] = nueva_cant
+                        except ValueError:
+                            pass
+                    
+                    # Iniciar edición del nuevo campo
+                    self.editando_cantidad = ("equipo", equipo_id)
+                    self.input_cantidad = str(cant)
+                    pygame.time.wait(150)
+                
+                # Botón eliminar (X)
+                btn_x = pygame.Rect(input_x + 70, y_der - 2, 18, 18)
+                pygame.draw.rect(self.screen, (150, 50, 50), btn_x)
+                texto_x = self.font_tiny.render("X", True, COLOR_TEXTO)
+                self.screen.blit(texto_x, (btn_x.x + 4, btn_x.y))
+                
+                if btn_x.collidepoint(mx, my) and click:
+                    del cofre.equipo_contenido[equipo_id]
+                    pygame.time.wait(150)
+                
+                y_der += 20
+        else:
+            texto = self.font_tiny.render("  (vacío)", True, (100, 100, 100))
+            self.screen.blit(texto, (col_der_x + 10, y_der))
+            y_der += 20
+        
+        y_der += 10
+        
+        # Especiales en el cofre
+        texto_esp = self.font_tiny.render("Items Especiales:", True, COLOR_TEXTO)
+        self.screen.blit(texto_esp, (col_der_x, y_der))
+        y_der += 20
+        if cofre.especiales_contenido:
+            for esp_id, cant in list(cofre.especiales_contenido.items())[:12]:
+                nombre = self.especiales_db.get(esp_id, {}).get("nombre", esp_id)[:20]
+                
+                # Nombre del item
+                texto = self.font_tiny.render(f"  • {nombre}", True, COLOR_TEXTO)
+                self.screen.blit(texto, (col_der_x + 10, y_der))
+                
+                # Input de cantidad
+                input_x = col_der_x + 250
+                input_rect = pygame.Rect(input_x, y_der - 2, 60, 18)
+                pygame.draw.rect(self.screen, (60, 60, 60), input_rect)
+                pygame.draw.rect(self.screen, (100, 100, 100), input_rect, 1)
+                
+                # Mostrar cantidad o input
+                if self.editando_cantidad == ("especiales", esp_id):
+                    texto_cant = self.font_tiny.render(self.input_cantidad + "_", True, (255, 255, 100))
+                else:
+                    texto_cant = self.font_tiny.render(f"x {cant}", True, COLOR_TEXTO)
+                
+                self.screen.blit(texto_cant, (input_x + 5, y_der))
+                
+                # Click para editar
+                if input_rect.collidepoint(mx, my) and click:
+                    # Guardar cantidad anterior si existía
+                    if self.editando_cantidad and self.input_cantidad:
+                        tipo_anterior, item_anterior = self.editando_cantidad
+                        try:
+                            nueva_cant = int(self.input_cantidad)
+                            if nueva_cant > 0:
+                                if tipo_anterior == "items":
+                                    cofre.items_contenido[item_anterior] = nueva_cant
+                                elif tipo_anterior == "equipo":
+                                    cofre.equipo_contenido[item_anterior] = nueva_cant
+                                elif tipo_anterior == "especiales":
+                                    cofre.especiales_contenido[item_anterior] = nueva_cant
+                        except ValueError:
+                            pass
+                    
+                    # Iniciar edición del nuevo campo
+                    self.editando_cantidad = ("especiales", esp_id)
+                    self.input_cantidad = str(cant)
+                    pygame.time.wait(150)
+                
+                # Botón eliminar (X)
+                btn_x = pygame.Rect(input_x + 70, y_der - 2, 18, 18)
+                pygame.draw.rect(self.screen, (150, 50, 50), btn_x)
+                texto_x = self.font_tiny.render("X", True, COLOR_TEXTO)
+                self.screen.blit(texto_x, (btn_x.x + 4, btn_x.y))
+                
+                if btn_x.collidepoint(mx, my) and click:
+                    del cofre.especiales_contenido[esp_id]
+                    pygame.time.wait(150)
+                
+                y_der += 20
+        else:
+            texto = self.font_tiny.render("  (vacío)", True, (100, 100, 100))
+            self.screen.blit(texto, (col_der_x + 10, y_der))
+            y_der += 20
+        
+        # === BOTONES ===
         # Botón generar loot random
-        btn_random = pygame.Rect(modal_x + 20, modal_y + modal_alto - 100, 200, 40)
+        btn_random = pygame.Rect(modal_x + 20, modal_y + modal_alto - 80, 200, 40)
         pygame.draw.rect(self.screen, (50, 150, 50), btn_random)
         pygame.draw.rect(self.screen, COLOR_BORDE, btn_random, 2)
         texto_random = self.font_small.render("Generar Loot Random", True, COLOR_TEXTO)
@@ -929,6 +1415,20 @@ class EditorCofres:
         
         if btn_random.collidepoint(mx, my) and pygame.mouse.get_pressed()[0]:
             self._generar_loot_random(cofre)
+        
+        # Botón limpiar contenido
+        btn_limpiar = pygame.Rect(modal_x + 240, modal_y + modal_alto - 80, 150, 40)
+        pygame.draw.rect(self.screen, (150, 100, 50), btn_limpiar)
+        pygame.draw.rect(self.screen, COLOR_BORDE, btn_limpiar, 2)
+        texto_limpiar = self.font_small.render("Limpiar Cofre", True, COLOR_TEXTO)
+        texto_rect = texto_limpiar.get_rect(center=btn_limpiar.center)
+        self.screen.blit(texto_limpiar, texto_rect)
+        
+        if btn_limpiar.collidepoint(mx, my) and pygame.mouse.get_pressed()[0]:
+            cofre.items_contenido = {}
+            cofre.equipo_contenido = {}
+            cofre.especiales_contenido = {}
+            cofre.oro = 0
         
         # Botón cerrar
         btn_cerrar = pygame.Rect(modal_x + modal_ancho - 120, modal_y + modal_alto - 60, 100, 40)
@@ -939,8 +1439,50 @@ class EditorCofres:
         self.screen.blit(texto_cerrar, texto_rect)
         
         if btn_cerrar.collidepoint(mx, my) and pygame.mouse.get_pressed()[0]:
+            # Guardar cantidad antes de cerrar
+            if self.editando_cantidad and self.input_cantidad:
+                tipo, item_id = self.editando_cantidad
+                try:
+                    nueva_cant = int(self.input_cantidad)
+                    if tipo == "oro":
+                        if nueva_cant >= 0:
+                            cofre.oro = nueva_cant
+                    elif nueva_cant > 0:
+                        if tipo == "items":
+                            cofre.items_contenido[item_id] = nueva_cant
+                        elif tipo == "equipo":
+                            cofre.equipo_contenido[item_id] = nueva_cant
+                        elif tipo == "especiales":
+                            cofre.especiales_contenido[item_id] = nueva_cant
+                except ValueError:
+                    pass
+            
+            self.editando_cantidad = None
+            self.input_cantidad = ""
             self.modal_abierto = False
             self.modal_cofre = None
+        
+        # Detectar click fuera de inputs para guardar y deseleccionar
+        if click and self.editando_cantidad:
+            # Si el click no fue dentro del modal, guardar
+            if not modal_rect.collidepoint(mx, my):
+                tipo, item_id = self.editando_cantidad
+                try:
+                    nueva_cant = int(self.input_cantidad)
+                    if tipo == "oro":
+                        if nueva_cant >= 0:
+                            cofre.oro = nueva_cant
+                    elif nueva_cant > 0:
+                        if tipo == "items":
+                            cofre.items_contenido[item_id] = nueva_cant
+                        elif tipo == "equipo":
+                            cofre.equipo_contenido[item_id] = nueva_cant
+                        elif tipo == "especiales":
+                            cofre.especiales_contenido[item_id] = nueva_cant
+                except ValueError:
+                    pass
+                self.editando_cantidad = None
+                self.input_cantidad = ""
     
     def _draw_ayuda(self):
         """Dibuja ventana de ayuda"""
@@ -961,6 +1503,8 @@ class EditorCofres:
             "Click Der + Arrastrar: Mover mapa (pan)",
             "Rueda: Zoom",
             "DEL: Eliminar cofre seleccionado",
+            "Ctrl+C: Copiar cofre seleccionado",
+            "Ctrl+V: Pegar cofre en posición del mouse",
             "G: Guardar mapa",
             "H: Mostrar/Ocultar ayuda",
             "ESC: Salir",
@@ -969,6 +1513,9 @@ class EditorCofres:
             "- Click en tipo: Cambiar tipo de cofre",
             "- Random Oro: Generar oro aleatorio",
             "- Generar Loot Random: Llenar cofre",
+            "- Checkboxes: Seleccionar items",
+            "- AGREGAR: Añadir items al cofre",
+            "- Click cantidad: Editar (auto-guarda)",
         ]
         
         y_texto = y + 60
@@ -986,6 +1533,11 @@ class EditorCofres:
         if self.cofre_seleccionado:
             texto = self.font_small.render(f"Seleccionado: {self.cofre_seleccionado.nombre} ({self.cofre_seleccionado.ancho}x{self.cofre_seleccionado.alto})", True, COLOR_SELECCION)
             self.screen.blit(texto, (PANEL_ANCHO + 10, 40))
+        
+        # Indicador de cofre copiado
+        if self.cofre_copiado:
+            texto = self.font_tiny.render(f"[Portapapeles: {self.cofre_copiado.nombre}] Ctrl+V para pegar", True, (150, 255, 150))
+            self.screen.blit(texto, (PANEL_ANCHO + 10, 70))
         
         # Indicador de drag & drop
         if self.arrastrando_mapa and self.mapa_arrastrado:

@@ -38,5 +38,86 @@
       "tam": 12
     }
   ],
-  "cofres": []
+  "cofres": [
+    {
+      "id": "C3",
+      "nombre": "Cofre_Madera_C3",
+      "tipo": "madera",
+      "x": 720,
+      "y": 124,
+      "ancho": 60,
+      "alto": 59,
+      "sprite_cerrado": null,
+      "sprite_abierto_items": null,
+      "sprite_abierto_vacio": null,
+      "oro": 50,
+      "items_contenido": {
+        "ETER_BASICO": 10,
+        "POCION_BASICA": 5
+      },
+      "equipo_contenido": {
+        "MANDOBLE_HIERRO": 3
+      },
+      "especiales_contenido": {
+        "CRISTAL_RESURRECION": 5
+      },
+      "requiere_llave": null,
+      "puede_reabrir": true,
+      "tiempo_reapertura": 60
+    },
+    {
+      "id": "C5",
+      "nombre": "Cofre_Madera_C5",
+      "tipo": "madera",
+      "x": 609,
+      "y": 132,
+      "ancho": 60,
+      "alto": 59,
+      "sprite_cerrado": null,
+      "sprite_abierto_items": null,
+      "sprite_abierto_vacio": null,
+      "oro": 300,
+      "items_contenido": {
+        "ETER_BASICO": 10,
+        "POCION_BASICA": 5
+      },
+      "equipo_contenido": {
+        "MANDOBLE_HIERRO": 3
+      },
+      "especiales_contenido": {
+        "CRISTAL_RESURRECION": 5
+      },
+      "requiere_llave": null,
+      "puede_reabrir": true,
+      "tiempo_reapertura": 60
+    },
+    {
+      "id": "C6",
+      "nombre": "Cofre_Madera_C6",
+      "tipo": "madera",
+      "x": 831,
+      "y": 216,
+      "ancho": 60,
+      "alto": 50,
+      "sprite_cerrado": null,
+      "sprite_abierto_items": null,
+      "sprite_abierto_vacio": null,
+      "oro": 18,
+      "items_contenido": {
+        "ETER_BASICO": 10,
+        "POCION_BASICA": 5
+      },
+      "equipo_contenido": {
+        "MANDOBLE_HIERRO": 3
+      },
+      "especiales_contenido": {
+        "CRISTAL_RESURRECION": 5
+      },
+      "requiere_llave": null,
+      "puede_reabrir": true,
+      "tiempo_reapertura": 60
+    }
+  ],
+  "muros": [],
+  "zonas_batalla": []
 }

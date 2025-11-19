@@ -4,12 +4,18 @@
       "id": "Pmapa_herrero_mapa_pueblo_final",
       "tipo": "portal_enlazado",
       "forma": "rect",
-      "x": 288,
-      "y": 296,
+      "x": 283,
+      "y": 300,
       "w": 85,
       "h": 87,
       "mapa_destino": "mapa_pueblo_final",
-      "spawn_destino_id": "S5"
+      "spawn_destino_id": "S5",
+      "caja": {
+        "x": 283,
+        "y": 300,
+        "w": 85,
+        "h": 87
+      }
     }
   ],
   "spawns": [
@@ -22,5 +28,16 @@
       "tam": 12
     }
   ],
-  "cofres": []
+  "muros": [],
+  "cofres": [],
+  "zonas_batalla": [
+    {
+      "id": "S5",
+      "tipo": "spawn",
+      "x": 295,
+      "y": 213,
+      "direccion": "abajo",
+      "tam": 44
+    }
+  ]
 }

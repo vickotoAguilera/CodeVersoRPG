@@ -1,168 +1,168 @@
 {
-    "LLAVE_BRONCE": {
-        "id_item": "LLAVE_BRONCE",
-        "nombre": "Llave de Bronce",
-        "descripcion": "Abre cofres de bronce",
-        "tipo": "Llave",
-        "subtipo": "bronce",
-        "puede_desechar": false,
-        "es_quest": false
-    },
-    "LLAVE_PLATA": {
-        "id_item": "LLAVE_PLATA",
-        "nombre": "Llave de Plata",
-        "descripcion": "Abre cofres de plata",
-        "tipo": "Llave",
-        "subtipo": "plata",
-        "puede_desechar": false,
-        "es_quest": false
-    },
-    "LLAVE_ORO": {
-        "id_item": "LLAVE_ORO",
-        "nombre": "Llave de Oro",
-        "descripcion": "Abre cofres de oro",
-        "tipo": "Llave",
-        "subtipo": "oro",
-        "puede_desechar": false,
-        "es_quest": false
-    },
-    "EXPANSOR_RANURAS": {
-        "id_item": "EXPANSOR_RANURAS",
-        "nombre": "Expansor de Ranuras",
-        "descripcion": "Aumenta permanentemente las ranuras de habilidades en +2",
-        "tipo": "Consumible Especial",
-        "subtipo": "mejora",
-        "puede_desechar": false,
-        "es_quest": false
-    },
-    "PERGAMINO_TELETRANSPORTE": {
-        "id_item": "PERGAMINO_TELETRANSPORTE",
-        "nombre": "Pergamino de Teletransporte",
-        "descripcion": "Regresa instantáneamente al último punto de guardado",
-        "tipo": "Consumible Especial",
-        "subtipo": "viaje",
-        "puede_desechar": true,
-        "es_quest": false
-    },
-    "AMULETO_PROTECCION": {
-        "id_item": "AMULETO_PROTECCION",
-        "nombre": "Amuleto de Protección",
-        "descripcion": "Protege de un golpe mortal una vez (no consumible)",
-        "tipo": "Amuleto",
-        "subtipo": "proteccion",
-        "puede_desechar": false,
-        "es_quest": false
-    },
-    "ORBE_EXPERIENCIA": {
-        "id_item": "ORBE_EXPERIENCIA",
-        "nombre": "Orbe de Experiencia",
-        "descripcion": "Otorga 500 puntos de experiencia al usarlo",
-        "tipo": "Consumible Especial",
-        "subtipo": "mejora",
-        "puede_desechar": true,
-        "es_quest": false
-    },
-    "CRISTAL_RESURRECION": {
-        "id_item": "CRISTAL_RESURRECION",
-        "nombre": "Cristal de Resurrección",
-        "descripcion": "Revive automáticamente al grupo si es derrotado (se consume)",
-        "tipo": "Consumible Especial",
-        "subtipo": "batalla",
-        "puede_desechar": false,
-        "es_quest": false
-    },
-    "MAPA_TESORO": {
-        "id_item": "MAPA_TESORO",
-        "nombre": "Mapa del Tesoro",
-        "descripcion": "Revela la ubicación de un cofre oculto",
-        "tipo": "Quest",
-        "subtipo": "mapa",
-        "puede_desechar": false,
-        "es_quest": true
-    },
-    "SELLO_REAL": {
-        "id_item": "SELLO_REAL",
-        "nombre": "Sello Real",
-        "descripcion": "Símbolo de la realeza. Necesario para audiencia con el rey",
-        "tipo": "Quest",
-        "subtipo": "importante",
-        "puede_desechar": false,
-        "es_quest": true
-    },
-    "FRAGMENTO_CRISTAL": {
-        "id_item": "FRAGMENTO_CRISTAL",
-        "nombre": "Fragmento de Cristal",
-        "descripcion": "Pieza de un antiguo artefacto. Parece que le faltan más partes",
-        "tipo": "Quest",
-        "subtipo": "coleccionable",
-        "puede_desechar": false,
-        "es_quest": true
-    },
-    "LLAVE_MAESTRA": {
-        "id_item": "LLAVE_MAESTRA",
-        "nombre": "Llave Maestra",
-        "descripcion": "Abre cualquier cerradura común. Muy valiosa",
-        "tipo": "Llave",
-        "subtipo": "maestra",
-        "puede_desechar": false,
-        "es_quest": false
-    },
-    "PIEDRA_LUNA": {
-        "id_item": "PIEDRA_LUNA",
-        "nombre": "Piedra de Luna",
-        "descripcion": "Gema mágica que brilla con luz propia. Requerida para ritual antiguo",
-        "tipo": "Quest",
-        "subtipo": "magico",
-        "puede_desechar": false,
-        "es_quest": true
-    },
-    "PLUMA_FENIX": {
-        "id_item": "PLUMA_FENIX",
-        "nombre": "Pluma de Fénix",
-        "descripcion": "Pluma sagrada de un fénix. Revive a un héroe caído con HP/MP completos",
-        "tipo": "Consumible Especial",
-        "subtipo": "batalla",
-        "puede_desechar": false,
-        "es_quest": false
-    },
-    "BOLSA_ORO_PEQUENA": {
-        "id_item": "BOLSA_ORO_PEQUENA",
-        "nombre": "Bolsa de Oro Pequeña",
-        "descripcion": "Contiene entre 50-100 monedas de oro",
-        "tipo": "Oro",
-        "subtipo": "moneda",
-        "valor_oro": [50, 100],
-        "puede_desechar": true,
-        "es_quest": false
-    },
-    "BOLSA_ORO_MEDIANA": {
-        "id_item": "BOLSA_ORO_MEDIANA",
-        "nombre": "Bolsa de Oro Mediana",
-        "descripcion": "Contiene entre 200-300 monedas de oro",
-        "tipo": "Oro",
-        "subtipo": "moneda",
-        "valor_oro": [200, 300],
-        "puede_desechar": true,
-        "es_quest": false
-    },
-    "BOLSA_ORO_GRANDE": {
-        "id_item": "BOLSA_ORO_GRANDE",
-        "nombre": "Bolsa de Oro Grande",
-        "descripcion": "Contiene entre 500-800 monedas de oro",
-        "tipo": "Oro",
-        "subtipo": "moneda",
-        "valor_oro": [500, 800],
-        "puede_desechar": true,
-        "es_quest": false
-    },
-    "COFRE_ORO": {
-        "id_item": "COFRE_ORO",
-        "nombre": "Cofre de Oro Portátil",
-        "descripcion": "Contiene entre 1000-2000 monedas de oro",
-        "tipo": "Oro",
-        "subtipo": "moneda",
-        "valor_oro": [1000, 2000],
-        "puede_desechar": true,
-        "es_quest": false
-    }
+  "LLAVE_BRONCE": {
+    "id_item": "LLAVE_BRONCE",
+    "nombre": "Llave de Bronce",
+    "descripcion": "Abre cofres de bronce",
+    "tipo": "Llave",
+    "subtipo": "bronce",
+    "puede_desechar": false,
+    "es_quest": false
+  },
+  "LLAVE_PLATA": {
+    "id_item": "LLAVE_PLATA",
+    "nombre": "Llave de Plata",
+    "descripcion": "Abre cofres de plata",
+    "tipo": "Llave",
+    "subtipo": "plata",
+    "puede_desechar": false,
+    "es_quest": false
+  },
+  "LLAVE_ORO": {
+    "id_item": "LLAVE_ORO",
+    "nombre": "Llave de Oro",
+    "descripcion": "Abre cofres de oro",
+    "tipo": "Llave",
+    "subtipo": "oro",
+    "puede_desechar": false,
+    "es_quest": false
+  },
+  "EXPANSOR_RANURAS": {
+    "id_item": "EXPANSOR_RANURAS",
+    "nombre": "Expansor de Ranuras",
+    "descripcion": "Aumenta permanentemente las ranuras de habilidades en +2",
+    "tipo": "Consumible Especial",
+    "subtipo": "mejora",
+    "puede_desechar": false,
+    "es_quest": false
+  },
+  "PERGAMINO_TELETRANSPORTE": {
+    "id_item": "PERGAMINO_TELETRANSPORTE",
+    "nombre": "Pergamino de Teletransporte",
+    "descripcion": "Regresa instantáneamente al último punto de guardado",
+    "tipo": "Consumible Especial",
+    "subtipo": "viaje",
+    "puede_desechar": true,
+    "es_quest": false
+  },
+  "AMULETO_PROTECCION": {
+    "id_item": "AMULETO_PROTECCION",
+    "nombre": "Amuleto de Protección",
+    "descripcion": "Protege de un golpe mortal una vez (no consumible)",
+    "tipo": "Amuleto",
+    "subtipo": "proteccion",
+    "puede_desechar": false,
+    "es_quest": false
+  },
+  "ORBE_EXPERIENCIA": {
+    "id_item": "ORBE_EXPERIENCIA",
+    "nombre": "Orbe de Experiencia",
+    "descripcion": "Otorga 500 puntos de experiencia al usarlo",
+    "tipo": "Consumible Especial",
+    "subtipo": "mejora",
+    "puede_desechar": true,
+    "es_quest": false
+  },
+  "CRISTAL_RESURRECION": {
+    "id_item": "CRISTAL_RESURRECION",
+    "nombre": "Cristal de Resurrección",
+    "descripcion": "Revive automáticamente al grupo si es derrotado (se consume)",
+    "tipo": "Consumible Especial",
+    "subtipo": "batalla",
+    "puede_desechar": false,
+    "es_quest": false
+  },
+  "MAPA_TESORO": {
+    "id_item": "MAPA_TESORO",
+    "nombre": "Mapa del Tesoro",
+    "descripcion": "Revela la ubicación de un cofre oculto",
+    "tipo": "Quest",
+    "subtipo": "mapa",
+    "puede_desechar": false,
+    "es_quest": true
+  },
+  "SELLO_REAL": {
+    "id_item": "SELLO_REAL",
+    "nombre": "Sello Real",
+    "descripcion": "Símbolo de la realeza. Necesario para audiencia con el rey",
+    "tipo": "Quest",
+    "subtipo": "importante",
+    "puede_desechar": false,
+    "es_quest": true
+  },
+  "FRAGMENTO_CRISTAL": {
+    "id_item": "FRAGMENTO_CRISTAL",
+    "nombre": "Fragmento de Cristal",
+    "descripcion": "Pieza de un antiguo artefacto. Parece que le faltan más partes",
+    "tipo": "Quest",
+    "subtipo": "coleccionable",
+    "puede_desechar": false,
+    "es_quest": true
+  },
+  "LLAVE_MAESTRA": {
+    "id_item": "LLAVE_MAESTRA",
+    "nombre": "Llave Maestra",
+    "descripcion": "Abre cualquier cerradura común. Muy valiosa",
+    "tipo": "Llave",
+    "subtipo": "maestra",
+    "puede_desechar": false,
+    "es_quest": false
+  },
+  "PIEDRA_LUNA": {
+    "id_item": "PIEDRA_LUNA",
+    "nombre": "Piedra de Luna",
+    "descripcion": "Gema mágica que brilla con luz propia. Requerida para ritual antiguo",
+    "tipo": "Quest",
+    "subtipo": "magico",
+    "puede_desechar": false,
+    "es_quest": true
+  },
+  "PLUMA_FENIX": {
+    "id_item": "PLUMA_FENIX",
+    "nombre": "Pluma de Fénix",
+    "descripcion": "Pluma sagrada de un fénix. Revive a un héroe caído con HP/MP completos",
+    "tipo": "Consumible Especial",
+    "subtipo": "batalla",
+    "puede_desechar": false,
+    "es_quest": false
+  },
+  "BOLSA_ORO_PEQUENA": {
+    "id_item": "BOLSA_ORO_PEQUENA",
+    "nombre": "Bolsa de Oro Pequeña",
+    "descripcion": "Contiene entre 50-100 monedas de oro",
+    "tipo": "Oro",
+    "subtipo": "moneda",
+    "valor_oro": [50, 100],
+    "puede_desechar": true,
+    "es_quest": false
+  },
+  "BOLSA_ORO_MEDIANA": {
+    "id_item": "BOLSA_ORO_MEDIANA",
+    "nombre": "Bolsa de Oro Mediana",
+    "descripcion": "Contiene entre 200-300 monedas de oro",
+    "tipo": "Oro",
+    "subtipo": "moneda",
+    "valor_oro": [200, 300],
+    "puede_desechar": true,
+    "es_quest": false
+  },
+  "BOLSA_ORO_GRANDE": {
+    "id_item": "BOLSA_ORO_GRANDE",
+    "nombre": "Bolsa de Oro Grande",
+    "descripcion": "Contiene entre 500-800 monedas de oro",
+    "tipo": "Oro",
+    "subtipo": "moneda",
+    "valor_oro": [500, 800],
+    "puede_desechar": true,
+    "es_quest": false
+  },
+  "COFRE_ORO": {
+    "id_item": "COFRE_ORO",
+    "nombre": "Cofre de Oro Portátil",
+    "descripcion": "Contiene entre 1000-2000 monedas de oro",
+    "tipo": "Oro",
+    "subtipo": "moneda",
+    "valor_oro": [1000, 2000],
+    "puede_desechar": true,
+    "es_quest": false
+  }
 }
