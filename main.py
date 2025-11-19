@@ -78,6 +78,51 @@ mi_pantalla_estado = None
 mi_pantalla_equipo = None
 mi_pantalla_inventario = None
 mi_pantalla_habilidades = None  # ¡NUEVO! (Paso 7.18)
+
+
+def resolver_mapa(nombre_mapa, categoria_guess):
+    """Resolver el nombre de archivo y categoría reales del mapa. Devuelve (nombre_archivo, categoria).
+    Si no encuentra en la categoría indicada, busca en todas las subcarpetas de `src/database/mapas` por nombre base.
+    """
+    # Normalizar base
+    base = os.path.splitext(nombre_mapa)[0]
+    # 1) Buscar imagen en la categoría propuesta (assets/maps)
+    mapas_assets_cat = os.path.join('assets', 'maps', categoria_guess)
+    for ext in ('.png', '.jpg', '.jpeg'):
+        cand = os.path.join(mapas_assets_cat, base + ext)
+        if os.path.exists(cand):
+            return base + ext, categoria_guess
+
+    # 2) Buscar JSON en la base de datos para descubrir la categoría
+    mapas_root = os.path.join(DATABASE_PATH, 'mapas')
+    encontrado_categoria = None
+    for root, dirs, files in os.walk(mapas_root):
+        for f in files:
+            if os.path.splitext(f)[0] == base and f.lower().endswith('.json'):
+                encontrado_categoria = os.path.relpath(root, mapas_root).replace('\\', '/')
+                break
+        if encontrado_categoria:
+            break
+
+    # 3) Si encontramos categoría por el JSON, buscar la imagen ahí
+    if encontrado_categoria:
+        mapas_assets_cat = os.path.join('assets', 'maps', encontrado_categoria)
+        # Buscar recursivamente dentro de la carpeta de la categoría
+        for root, dirs, files in os.walk(mapas_assets_cat):
+            for f in files:
+                if os.path.splitext(f)[0] == base and os.path.splitext(f)[1].lower() in ('.png', '.jpg', '.jpeg'):
+                    # devolver ruta relativa dentro de la carpeta de assets (solo el nombre de archivo, Mapa añadirá la categoría)
+                    relpath = os.path.relpath(os.path.join(root, f), os.path.join('assets', 'maps', encontrado_categoria))
+                    # si está en subcarpeta, incluirla en el nombre de archivo para que Mapa lo encuentre correctamente
+                    return os.path.join(relpath).replace('\\', '/'), encontrado_categoria
+        # Si no hay imagen, devolver nombre base con .png por facilidad
+        return base + '.png', encontrado_categoria
+
+    # 4) Fallback: si no se encuentra, devolver lo original
+    # Añadir extensión .png si no tenía
+    if not os.path.splitext(nombre_mapa)[1]:
+        return base + '.png', categoria_guess
+    return nombre_mapa, categoria_guess
 # --- FIN OBJETOS ---
 
 # --- Variables de estado del juego (Sin cambios) ---
@@ -208,6 +253,24 @@ while True:
                                 grupo_heroes.append(nuevo_heroe)
                             else:
                                 print(f"¡ADVERTENCIA! Datos incompletos para {miembro['nombre_en_juego']}")
+
+                        # Posicionar héroes en el spawn principal del mapa (si existe)
+                        # Activar debug_draw temporal para visualizar muros/portales/spawns
+                        try:
+                            mi_mapa.debug_draw = True
+                            spawn = None
+                            if hasattr(mi_mapa, 'spawns') and mi_mapa.spawns:
+                                spawn = mi_mapa.spawns[0]
+                            if spawn:
+                                for i, heroe in enumerate(grupo_heroes):
+                                    # desplazar ligeramente para evitar solapamiento
+                                    heroe.teletransportar(spawn[0] + (i*16), spawn[1])
+                            else:
+                                # fallback: centrar grupo en el mapa
+                                for i, heroe in enumerate(grupo_heroes):
+                                    heroe.teletransportar(mi_mapa.mapa_rect.centerx + (i*16), mi_mapa.mapa_rect.centery)
+                        except Exception as e:
+                            print(f"¡ADVERTENCIA! No se pudieron posicionar los héroes automáticamente: {e}")
 
                         estado_juego = "mapa"
                         mi_pantalla_titulo = None 
@@ -568,8 +631,11 @@ while True:
                 nombre_mapa_nuevo = portal_tocado["mapa_destino"]
                 categoria_nueva = portal_tocado["categoria_destino"]
                 pos_nueva = portal_tocado["pos_destino"]
-                mi_mapa = Mapa(nombre_mapa_nuevo, categoria_nueva, ANCHO, ALTO)
-                heroe_lider.teletransportar(pos_nueva[0], pos_nueva[1])
+                # Resolver nombre de archivo y categoría reales antes de crear Mapa
+                archivo_img, categoria_real = resolver_mapa(nombre_mapa_nuevo, categoria_nueva)
+                mi_mapa = Mapa(archivo_img, categoria_real, ANCHO, ALTO)
+                if pos_nueva:
+                    heroe_lider.teletransportar(pos_nueva[0], pos_nueva[1])
                 portal_listo_para_usar = False
                 pasos_desde_batalla = 0
             elif not portal_tocado:

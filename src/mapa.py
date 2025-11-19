@@ -25,22 +25,54 @@ class Mapa:
             "mapa_taberna.png"
         ]
         
-        # Cargar la imagen del mapa (¡MODIFICADO!)
+        # Cargar la imagen del mapa (más robusto: prueba varias extensiones)
         try:
             # ¡Ahora busca en la sub-carpeta correcta!
-            ruta_mapa = os.path.join(MAPS_PATH, self.categoria, self.nombre_archivo)
-            
-            if self.nombre_archivo.endswith((".jpg", ".jpeg")):
-                self.mapa_img = pygame.image.load(ruta_mapa).convert()
+            ruta_base = os.path.join(MAPS_PATH, self.categoria, self.nombre_archivo)
+            ruta_elegida = None
+
+            # 1) Si la ruta exacta existe, úsala
+            if os.path.exists(ruta_base):
+                ruta_elegida = ruta_base
             else:
-                self.mapa_img = pygame.image.load(ruta_mapa).convert_alpha()
-                
+                # 2) Probar con extensiones comunes
+                for ext in ('.png', '.jpg', '.jpeg'):
+                    candidate = ruta_base if ruta_base.lower().endswith(ext) else ruta_base + ext
+                    if os.path.exists(candidate):
+                        ruta_elegida = candidate
+                        break
+
+            # 3) Si aún no, buscar cualquier archivo en la carpeta con mismo nombre base
+            if ruta_elegida is None:
+                dirpath = os.path.dirname(ruta_base)
+                base = os.path.splitext(os.path.basename(self.nombre_archivo))[0]
+                if os.path.isdir(dirpath):
+                    for f in os.listdir(dirpath):
+                        if os.path.splitext(f)[0] == base:
+                            ruta_elegida = os.path.join(dirpath, f)
+                            break
+
+            # 4) Si no encontramos nada, lanzar FileNotFoundError
+            if ruta_elegida is None:
+                raise FileNotFoundError()
+
+            # Cargar según la extensión (jpg/jpeg -> convert, otros -> convert_alpha)
+            ext_lower = os.path.splitext(ruta_elegida)[1].lower()
+            if ext_lower in ('.jpg', '.jpeg'):
+                self.mapa_img = pygame.image.load(ruta_elegida).convert()
+            else:
+                self.mapa_img = pygame.image.load(ruta_elegida).convert_alpha()
+
+            # Guardar el nombre de archivo con extensión real (opcional)
+            self.nombre_archivo = os.path.basename(ruta_elegida)
+
             if self.nombre_archivo in self.mapas_interiores:
                 print(f"Detectado mapa interior. ¡Escalando a {self.ANCHO_PANTALLA}x{self.ALTO_PANTALLA}!")
                 self.mapa_img = pygame.transform.scale(self.mapa_img, (self.ANCHO_PANTALLA, self.ALTO_PANTALLA))
 
         except FileNotFoundError:
-            print(f"¡ERROR! no se cargo el mapa en la ruta: {ruta_mapa}")
+            tried = ruta_base
+            print(f"¡ERROR! no se cargo el mapa en la ruta: {tried} (no se encontró archivo con extensiones comunes)")
             pygame.quit()
             sys.exit()
 
@@ -52,7 +84,9 @@ class Mapa:
         self.muros = []
         self.portales = [] 
         self.zonas_batalla = []
+        self.spawns = []
         self.cofres = []  # ¡NUEVO! Lista de cofres en el mapa
+        self.debug_draw = False
         
         self.cargar_cofres_db()  # ¡NUEVO! Cargar base de datos de cofres PRIMERO
         self.cargar_datos_mapa()  # Luego cargar datos del mapa (que usa cofres_db)
@@ -87,37 +121,176 @@ class Mapa:
         # Muros (igual que antes)
         if "muros" in datos:
             for muro_data in datos["muros"]:
-                muro_rect = pygame.Rect(muro_data['x'], muro_data['y'], muro_data['w'], muro_data['h'])
-                self.muros.append(muro_rect)
+                try:
+                    x = muro_data.get('x')
+                    y = muro_data.get('y')
+                    w = muro_data.get('w', muro_data.get('width', 0))
+                    h = muro_data.get('h', muro_data.get('height', 0))
+                    if x is None or y is None:
+                        # intentar 'pos' como [x,y]
+                        pos = muro_data.get('pos')
+                        if isinstance(pos, (list, tuple)) and len(pos) >= 2:
+                            x, y = pos[0], pos[1]
+                    if x is None or y is None:
+                        print(f"¡ADVERTENCIA! Muro sin posición válida: {muro_data}")
+                        continue
+                    muro_rect = pygame.Rect(x, y, w, h)
+                    self.muros.append(muro_rect)
+                except Exception:
+                    print(f"¡ADVERTENCIA! Error al leer muro: {muro_data}")
         
         # Zonas de Batalla (igual que antes)
         if "zonas_batalla" in datos:
             for zona_data in datos["zonas_batalla"]:
-                zona_rect = pygame.Rect(zona_data['x'], zona_data['y'], zona_data['w'], zona_data['h'])
-                self.zonas_batalla.append(zona_rect)
+                try:
+                    x = zona_data.get('x')
+                    y = zona_data.get('y')
+                    w = zona_data.get('w', zona_data.get('width', 0))
+                    h = zona_data.get('h', zona_data.get('height', 0))
+                    if x is None or y is None:
+                        pos = zona_data.get('pos')
+                        if isinstance(pos, (list, tuple)) and len(pos) >= 2:
+                            x, y = pos[0], pos[1]
+                    if x is None or y is None:
+                        print(f"¡ADVERTENCIA! Zona de batalla sin posición válida: {zona_data}")
+                        continue
+                    zona_rect = pygame.Rect(x, y, w, h)
+                    self.zonas_batalla.append(zona_rect)
+                except Exception:
+                    print(f"¡ADVERTENCIA! Error al leer zona de batalla: {zona_data}")
 
-        # Portales (¡MODIFICADO!)
+        # Portales (más tolerante: acepta 'caja', 'puntos' o solo 'x','y')
         if "portales" in datos:
             for portal_data in datos["portales"]:
-                caja_rect = pygame.Rect(portal_data['caja']['x'], portal_data['caja']['y'], portal_data['caja']['w'], portal_data['caja']['h'])
-                
-                # ¡Ahora también guardamos la "categoria_destino"!
+                caja_rect = None
+
+                # 1) Si viene con 'caja' (rect clásico)
+                if 'caja' in portal_data and isinstance(portal_data['caja'], dict):
+                    try:
+                        caja_rect = pygame.Rect(
+                            portal_data['caja']['x'],
+                            portal_data['caja']['y'],
+                            portal_data['caja']['w'],
+                            portal_data['caja']['h']
+                        )
+                    except Exception:
+                        caja_rect = None
+
+                # 2) Si viene con 'puntos' (polígono) -> calcular bbox
+                if caja_rect is None and 'puntos' in portal_data:
+                    try:
+                        pts = portal_data['puntos']
+                        xs = []
+                        ys = []
+                        for p in pts:
+                            # soportar [x,y] o {'x':..,'y':..}
+                            if isinstance(p, (list, tuple)) and len(p) >= 2:
+                                xs.append(p[0]); ys.append(p[1])
+                            elif isinstance(p, dict) and 'x' in p and 'y' in p:
+                                xs.append(p['x']); ys.append(p['y'])
+                        if xs and ys:
+                            minx, maxx = min(xs), max(xs)
+                            miny, maxy = min(ys), max(ys)
+                            caja_rect = pygame.Rect(minx, miny, maxx - minx, maxy - miny)
+                    except Exception:
+                        caja_rect = None
+
+                # 3) Si viene con x,y y opcional w,h
+                if caja_rect is None and 'x' in portal_data and 'y' in portal_data:
+                    x = portal_data.get('x')
+                    y = portal_data.get('y')
+                    w = portal_data.get('w', portal_data.get('width', 16))
+                    h = portal_data.get('h', portal_data.get('height', 16))
+                    try:
+                        caja_rect = pygame.Rect(x, y, w, h)
+                    except Exception:
+                        caja_rect = None
+
+                # 4) Fallback: evitar crash creando rect 1x1 muy pequeño fuera de pantalla (se puede ajustar)
+                if caja_rect is None:
+                    print(f"¡ADVERTENCIA! Portal sin 'caja' ni 'puntos' en JSON; usando fallback en (0,0,1,1). Datos: {portal_data}")
+                    caja_rect = pygame.Rect(0, 0, 1, 1)
+
+                # Campos opcionales con fallback
+                mapa_dest = portal_data.get("mapa_destino")
+                categoria_dest = portal_data.get("categoria_destino", self.categoria)
+                pos_dest = tuple(portal_data.get("pos_destino", (0, 0))) if portal_data.get("pos_destino") else None
+
                 nuevo_portal = {
                     "caja": caja_rect,
-                    "mapa_destino": portal_data["mapa_destino"],
-                    "categoria_destino": portal_data["categoria_destino"], # ¡NUEVO!
-                    "pos_destino": tuple(portal_data["pos_destino"])
+                    "mapa_destino": mapa_dest,
+                    "categoria_destino": categoria_dest,
+                    "pos_destino": pos_dest
                 }
                 self.portales.append(nuevo_portal)
+        # Spawns (puntos donde aparecen los héroes)
+        if "spawns" in datos:
+            for s in datos["spawns"]:
+                x = None; y = None
+                if isinstance(s, dict):
+                    if 'x' in s and 'y' in s:
+                        x, y = s['x'], s['y']
+                    elif 'pos' in s:
+                        pos = s['pos']
+                        if isinstance(pos, (list, tuple)) and len(pos) >= 2:
+                            x, y = pos[0], pos[1]
+                    elif 'puntos' in s:
+                        try:
+                            pts = s['puntos']
+                            xs = [p[0] if isinstance(p, (list, tuple)) else p.get('x') for p in pts]
+                            ys = [p[1] if isinstance(p, (list, tuple)) else p.get('y') for p in pts]
+                            if xs and ys:
+                                minx, maxx = min(xs), max(xs)
+                                miny, maxy = min(ys), max(ys)
+                                x = (minx + maxx)//2; y = (miny + maxy)//2
+                        except Exception:
+                            x = None; y = None
+                elif isinstance(s, (list, tuple)) and len(s) >= 2:
+                    x, y = s[0], s[1]
+
+                if x is not None and y is not None:
+                    self.spawns.append((int(x), int(y)))
         
         # ¡NUEVO! Cofres
         if "cofres" in datos:
             for cofre_data in datos["cofres"]:
-                id_cofre = cofre_data["id_cofre"]
-                x = cofre_data["x"]
-                y = cofre_data["y"]
+                # Soportar varias claves posibles para el id del cofre
+                id_cofre = cofre_data.get("id_cofre") or cofre_data.get("id") or cofre_data.get("cofre_id") or cofre_data.get("tipo")
+
+                # Extraer posición: preferir x,y; luego 'pos' como [x,y]; luego bbox/points
+                x = None; y = None
+                if 'x' in cofre_data and 'y' in cofre_data:
+                    x = cofre_data.get('x'); y = cofre_data.get('y')
+                elif 'pos' in cofre_data:
+                    pos = cofre_data.get('pos')
+                    if isinstance(pos, (list, tuple)) and len(pos) >= 2:
+                        x, y = pos[0], pos[1]
+                    elif isinstance(pos, dict) and 'x' in pos and 'y' in pos:
+                        x, y = pos['x'], pos['y']
+                elif 'puntos' in cofre_data:
+                    # usar bbox del polígono y poner el cofre en el centro
+                    try:
+                        pts = cofre_data['puntos']
+                        xs = [p[0] if isinstance(p, (list, tuple)) else p.get('x') for p in pts]
+                        ys = [p[1] if isinstance(p, (list, tuple)) else p.get('y') for p in pts]
+                        if xs and ys:
+                            minx, maxx = min(xs), max(xs)
+                            miny, maxy = min(ys), max(ys)
+                            x = (minx + maxx) // 2
+                            y = (miny + maxy) // 2
+                    except Exception:
+                        x = None; y = None
+
                 escala = cofre_data.get("escala", 0.5)  # Escala por defecto 0.5
-                
+
+                # Si no tenemos id o posición suficiente, avisar y saltar
+                if not id_cofre:
+                    print(f"¡ADVERTENCIA! Entrada de cofre sin 'id_cofre' ni alternativa encontrada: {cofre_data}")
+                    continue
+                if x is None or y is None:
+                    print(f"¡ADVERTENCIA! Cofre '{id_cofre}' sin posición válida, se salta: {cofre_data}")
+                    continue
+
                 # Buscar datos del cofre en la base de datos
                 cofre_info = self.cofres_db.get(id_cofre)
                 if cofre_info:
@@ -157,16 +330,21 @@ class Mapa:
         for cofre in self.cofres:
             cofre.draw(pantalla, self.camara_rect)
         
-        # --- DEBUG: Dibujar cajas (Descomentar para ver) ---
-        # for muro in self.muros:
-        #     muro_en_pantalla = muro.move(-self.camara_rect.x, -self.camara_rect.y)
-        #     pygame.draw.rect(pantalla, (255, 0, 0), muro_en_pantalla, 2) 
-        # for zona in self.zonas_batalla:
-        #     zona_en_pantalla = zona.move(-self.camara_rect.x, -self.camara_rect.y)
-        #     pygame.draw.rect(pantalla, (0, 255, 0), zona_en_pantalla, 2) 
-        # for portal in self.portales:
-        #     portal_en_pantalla = portal["caja"].move(-self.camara_rect.x, -self.camara_rect.y)
-        #     pygame.draw.rect(pantalla, (255, 0, 255), portal_en_pantalla, 2) 
+        # --- DEBUG: Dibujar cajas si está activado ---
+        if getattr(self, 'debug_draw', False):
+            for muro in self.muros:
+                muro_en_pantalla = muro.move(-self.camara_rect.x, -self.camara_rect.y)
+                pygame.draw.rect(pantalla, (255, 0, 0), muro_en_pantalla, 2)
+            for zona in self.zonas_batalla:
+                zona_en_pantalla = zona.move(-self.camara_rect.x, -self.camara_rect.y)
+                pygame.draw.rect(pantalla, (0, 255, 0), zona_en_pantalla, 2)
+            for portal in self.portales:
+                portal_en_pantalla = portal["caja"].move(-self.camara_rect.x, -self.camara_rect.y)
+                pygame.draw.rect(pantalla, (255, 0, 255), portal_en_pantalla, 2)
+            # dibujar spawns
+            for s in self.spawns:
+                spawn_rect = pygame.Rect(s[0]-4, s[1]-4, 8, 8).move(-self.camara_rect.x, -self.camara_rect.y)
+                pygame.draw.rect(pantalla, (0, 0, 255), spawn_rect, 2)
 
     # --- 4. CHEQUEAR ZONA ---
     def chequear_zona(self, rect_heroe):
