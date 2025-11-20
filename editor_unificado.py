@@ -533,6 +533,18 @@ class EditorUnificado:
             if prev is None or prev < mtime:
                 cambios.append('mapa_json')
                 self.archivos_modificados['mapa_json'] = mtime
+
+        # Vigilar el índice global de mapas (para detectar nuevos mapas creados fuera)
+        ruta_indice = Path('src/database/maps_index.json')
+        if ruta_indice.exists():
+            try:
+                mtime_idx = ruta_indice.stat().st_mtime
+                prev_idx = self.archivos_modificados.get('maps_index')
+                if prev_idx is None or prev_idx < mtime_idx:
+                    cambios.append('maps_index')
+                    self.archivos_modificados['maps_index'] = mtime_idx
+            except Exception:
+                pass
         
         if cambios:
             print(f"\n🔄 Hot-reload: Cambios detectados en {', '.join(cambios)}")
@@ -548,6 +560,12 @@ class EditorUnificado:
             self._cargar_portales(self.mapa_actual.nombre)
             self._cargar_spawns(self.mapa_actual.nombre)
             self._cargar_cofres(self.mapa_actual.ruta_json)
+
+            # Si cambió el índice global, recargar la lista de mapas y agrupaciones
+            if 'maps_index' in cambios:
+                print('🔁 maps_index cambiado: recargando lista de mapas')
+                self._cargar_lista_mapas()
+                self._agrupar_mapas_por_categoria()
             
             # Restaurar zoom y offset
             self.mapa_zoom = zoom_actual
