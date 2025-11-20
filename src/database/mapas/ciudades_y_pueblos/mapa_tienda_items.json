@@ -9,7 +9,8 @@
       "w": 95,
       "h": 112,
       "mapa_destino": "mapa_pueblo_final",
-      "spawn_destino_id": "S12"
+      "spawn_destino_id": "S12",
+      "categoria_destino": "ciudades_y_pueblos"
     }
   ],
   "spawns": [

@@ -9,7 +9,8 @@
       "w": 35,
       "h": 44,
       "mapa_destino": "mapa_pueblo_final",
-      "spawn_destino_id": "S2"
+      "spawn_destino_id": "S2",
+      "categoria_destino": "mundo"
     }
   ],
   "spawns": [

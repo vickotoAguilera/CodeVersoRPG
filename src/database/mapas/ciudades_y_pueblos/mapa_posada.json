@@ -23,7 +23,8 @@
         ]
       ],
       "mapa_destino": "mapa_pueblo_final",
-      "spawn_destino_id": "S6"
+      "spawn_destino_id": "S6",
+      "categoria_destino": "ciudades_y_pueblos"
     },
     {
       "id": "#3",
@@ -34,7 +35,8 @@
       "w": 863,
       "h": 18,
       "mapa_destino": "",
-      "spawn_destino_id": ""
+      "spawn_destino_id": "",
+      "categoria_destino": "ciudades_y_pueblos"
     }
   ],
   "spawns": [

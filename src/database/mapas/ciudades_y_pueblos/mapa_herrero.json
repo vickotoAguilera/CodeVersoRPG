@@ -15,7 +15,8 @@
         "y": 300,
         "w": 85,
         "h": 87
-      }
+      },
+      "categoria_destino": "ciudades_y_pueblos"
     }
   ],
   "spawns": [
@@ -37,7 +38,9 @@
       "x": 295,
       "y": 213,
       "direccion": "abajo",
-      "tam": 44
+      "tam": 44,
+      "w": 64,
+      "h": 64
     }
   ],
   "id": "mapa_herrero",
