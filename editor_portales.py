@@ -397,14 +397,58 @@ class EditorPortales:
         if ruta.exists():
             with open(ruta, 'r', encoding='utf-8') as f:
                 data = json.load(f)
+            
+            # Contador para generar IDs únicos al cargar portales sin ID
+            portal_counter = {}
+            
             for p in data.get('portales', []):
-                if p.get('forma') == 'poly':
-                    portales.append(PortalPoly(p.get('id',''), [tuple(pt) for pt in p['puntos']], p.get('mapa_destino',''), p.get('spawn_destino_id','')))
+                # Detectar estructura antigua con 'caja' (formato del juego)
+                if 'caja' in p:
+                    # Estructura del juego: {"caja": {"x": ..., "y": ..., "w": ..., "h": ...}, "mapa_destino": ...}
+                    caja = p['caja']
+                    x, y, w, h = caja['x'], caja['y'], caja['w'], caja['h']
+                    mapa_dest = p.get('mapa_destino', '')
+                    # Generar ID único basado en el mapa
+                    portal_id = self._generar_portal_id_from_loaded(mapa.nombre, portal_counter)
+                    spawn_dest_id = ''  # Los JSON antiguos no tienen spawn_destino_id
                 else:
-                    portales.append(PortalRect(p.get('id',''), p['x'], p['y'], p['w'], p['h'], p.get('mapa_destino',''), p.get('spawn_destino_id','')))
+                    # Estructura del editor: {"id": ..., "x": ..., "y": ..., "w": ..., "h": ..., "mapa_destino": ..., "spawn_destino_id": ...}
+                    x = p.get('x')
+                    y = p.get('y')
+                    w = p.get('w')
+                    h = p.get('h')
+                    mapa_dest = p.get('mapa_destino', '')
+                    spawn_dest_id = p.get('spawn_destino_id', '')
+                    # Si no tiene ID o está vacío, generar uno
+                    portal_id = p.get('id', '') or self._generar_portal_id_from_loaded(mapa.nombre, portal_counter)
+                
+                # Crear portal según su forma
+                if p.get('forma') == 'poly':
+                    portales.append(PortalPoly(
+                        portal_id,
+                        [tuple(pt) for pt in p['puntos']],
+                        mapa_dest,
+                        spawn_dest_id
+                    ))
+                else:
+                    # Solo crear si tenemos coordenadas válidas
+                    if x is not None and y is not None and w is not None and h is not None:
+                        portales.append(PortalRect(
+                            portal_id,
+                            x, y, w, h,
+                            mapa_dest,
+                            spawn_dest_id
+                        ))
+            
             for s in data.get('spawns', []):
-                spawns.append(Spawn(s.get('id',''), s['x'], s['y'], s.get('direccion','abajo'), s.get('tam', 12)))
+                spawns.append(Spawn(
+                    s.get('id', ''),
+                    s['x'], s['y'],
+                    s.get('direccion', 'abajo'),
+                    s.get('tam', 12)
+                ))
         return portales, spawns
+
 
     def _limpiar_spawns_huerfanos(self, portales: List[object], spawns: List[Spawn]) -> List[str]:
         """Eliminar spawns que no están referenciados por ningún portal en este mapa.
@@ -471,6 +515,28 @@ class EditorPortales:
                 return c
             i += 1
 
+    def _generar_portal_id_from_loaded(self, mapa_name: str, counter_dict: dict) -> str:
+        """Genera ID único para portales cargados sin ID.
+        
+        Args:
+            mapa_name: Nombre del mapa
+            counter_dict: Diccionario para rastrear contadores por mapa
+        
+        Returns:
+            ID único como 'portal_{mapa}_{n}'
+        """
+        def clean(name: str) -> str:
+            if not name:
+                return 'unknown'
+            return ''.join(c if c.isalnum() else '_' for c in str(name))
+        
+        base = clean(mapa_name)
+        if base not in counter_dict:
+            counter_dict[base] = 0
+        
+        counter_dict[base] += 1
+        return f"portal_{base}_{counter_dict[base]}"
+
     # --------- Confirm/Action helpers for modal ----------
     def _confirm_create_pair_spawns(self, modal):
         a = modal.get('portal_a')
@@ -500,27 +566,27 @@ class EditorPortales:
 
         # Seguridad: no sobrescribir spawns o enlaces existentes.
         if getattr(a, 'spawn_destino_id', None):
-            self._msg("⚠ Portal origen ya tiene un spawn vinculado. Desvincula primero.")
+            self._msg(f"⚠ '{a.id}' ya vinculado a '{a.mapa_destino}'. Click derecho en lista para desvincular.")
             print(f"[DEBUG] abort linking: portal_a ({getattr(a,'id',None)}) already has spawn {getattr(a,'spawn_destino_id',None)}")
             # limpiar selección de vinculación
             self.portal_vinculo_1 = None
             self.lado_vinculo_1 = None
             return
         if getattr(b, 'spawn_destino_id', None):
-            self._msg("⚠ Portal destino ya tiene un spawn vinculado. Desvincula primero.")
+            self._msg(f"⚠ '{b.id}' ya vinculado a '{b.mapa_destino}'. Click derecho en lista para desvincular.")
             print(f"[DEBUG] abort linking: portal_b ({getattr(b,'id',None)}) already has spawn {getattr(b,'spawn_destino_id',None)}")
             self.portal_vinculo_1 = None
             self.lado_vinculo_1 = None
             return
         # Evitar sobrescribir un enlace ya existente hacia un tercero
         if getattr(a, 'linked_portal', None) and getattr(a, 'linked_portal', None) is not b:
-            self._msg("⚠ Portal origen ya está vinculado. Desvincula primero.")
+            self._msg(f"⚠ '{a.id}' ya vinculado. Desvincula primero con click derecho en lista.")
             print(f"[DEBUG] abort linking: portal_a ({getattr(a,'id',None)}) already linked to {getattr(a.linked_portal,'id',None)}")
             self.portal_vinculo_1 = None
             self.lado_vinculo_1 = None
             return
         if getattr(b, 'linked_portal', None) and getattr(b, 'linked_portal', None) is not a:
-            self._msg("⚠ Portal destino ya está vinculado. Desvincula primero.")
+            self._msg(f"⚠ '{b.id}' ya vinculado. Desvincula primero con click derecho en lista.")
             print(f"[DEBUG] abort linking: portal_b ({getattr(b,'id',None)}) already linked to {getattr(b.linked_portal,'id',None)}")
             self.portal_vinculo_1 = None
             self.lado_vinculo_1 = None
@@ -872,6 +938,10 @@ class EditorPortales:
                         pygame.draw.rect(self.screen, (0,0,0), bg_rect, border_radius=4)
                         pygame.draw.rect(self.screen, border_col, bg_rect, 1, border_radius=4)
                         self.screen.blit(txt, txt.get_rect(center=(cx, cy-15)))
+                        # Mostrar destino si está vinculado
+                        if linked and p.mapa_destino:
+                            dest_txt = self.font_small.render(f"→ {p.mapa_destino}", True, (180,180,180))
+                            self.screen.blit(dest_txt, (cx-dest_txt.get_width()//2, cy+15))
             else:
                 sx, sy = self._map_to_screen(p.x, p.y, lado, offset_x, offset_y, zoom)
                 rw, rh = int(p.w*zoom), int(p.h*zoom)
@@ -884,6 +954,10 @@ class EditorPortales:
                     pygame.draw.rect(self.screen, (0,0,0), bg_rect, border_radius=4)
                     pygame.draw.rect(self.screen, border_col, bg_rect, 1, border_radius=4)
                     self.screen.blit(txt, (sx+6, sy-18))
+                    # Mostrar destino si está vinculado
+                    if linked and p.mapa_destino:
+                        dest_txt = self.font_small.render(f"→ {p.mapa_destino}", True, (180,180,180))
+                        self.screen.blit(dest_txt, (sx+6, sy+rh+2))
         
         # Spawns
         for s in spawns:

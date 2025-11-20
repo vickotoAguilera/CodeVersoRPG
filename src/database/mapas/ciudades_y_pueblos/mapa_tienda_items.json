@@ -1,4 +1,16 @@
 {
-  "portales": [],
+  "portales": [
+    {
+      "id": "portal_mapa_tienda_items",
+      "tipo": "portal_enlazado",
+      "forma": "rect",
+      "x": 214,
+      "y": 383,
+      "w": 83,
+      "h": 81,
+      "mapa_destino": "mapa_pueblo_final",
+      "spawn_destino_id": "S_mapa_pueblo_final_mapa_tienda_items_8"
+    }
+  ],
   "spawns": []
 }

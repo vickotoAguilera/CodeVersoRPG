@@ -1,29 +1,16 @@
 {
   "portales": [
     {
-      "id": "Pmapa_tienda_magia_mapa_pueblo_final",
+      "id": "portal_mapa_tienda_magia",
       "tipo": "portal_enlazado",
       "forma": "rect",
-      "x": 237,
+      "x": 234,
       "y": 356,
-      "w": 70,
-      "h": 92,
+      "w": 78,
+      "h": 85,
       "mapa_destino": "mapa_pueblo_final",
-      "spawn_destino_id": "S16",
-      "categoria_destino": "ciudades_y_pueblos"
+      "spawn_destino_id": "S_mapa_pueblo_final_mapa_tienda_magia_9"
     }
   ],
-  "spawns": [
-    {
-      "id": "S16",
-      "tipo": "spawn",
-      "x": 267,
-      "y": 306,
-      "direccion": "abajo",
-      "tam": 12
-    }
-  ],
-  "cofres": [],
-  "id": "mapa_tienda_magia",
-  "imagen": "mapa_tienda_magia.png"
+  "spawns": []
 }

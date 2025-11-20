@@ -1,4 +1,16 @@
 {
-  "portales": [],
+  "portales": [
+    {
+      "id": "portal_mapa_taberna",
+      "tipo": "portal_enlazado",
+      "forma": "rect",
+      "x": 226,
+      "y": 375,
+      "w": 50,
+      "h": 66,
+      "mapa_destino": "mapa_pueblo_final",
+      "spawn_destino_id": "S_mapa_pueblo_final_mapa_taberna_4"
+    }
+  ],
   "spawns": []
 }

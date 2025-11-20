@@ -1,4 +1,16 @@
 {
-  "portales": [],
+  "portales": [
+    {
+      "id": "portal_mapa_posada",
+      "tipo": "portal_enlazado",
+      "forma": "rect",
+      "x": 721,
+      "y": 739,
+      "w": 123,
+      "h": 165,
+      "mapa_destino": "mapa_pueblo_final",
+      "spawn_destino_id": "S_mapa_pueblo_final_mapa_posada_1"
+    }
+  ],
   "spawns": []
 }

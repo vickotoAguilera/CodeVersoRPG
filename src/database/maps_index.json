@@ -59,8 +59,8 @@
     "id": "mapa_tienda_magia",
     "nombre": "mapa_tienda_magia",
     "categoria": "ciudades_y_pueblos",
-    "imagen": "mapa_tienda_magia.png",
-    "imagen_ruta": "assets\\maps\\ciudades_y_pueblos\\mapa_tienda_magia.png",
+    "imagen": null,
+    "imagen_ruta": null,
     "ruta_json": "src\\database\\mapas\\ciudades_y_pueblos\\mapa_tienda_magia.json"
   },
   {
