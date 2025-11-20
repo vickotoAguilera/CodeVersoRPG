@@ -857,7 +857,9 @@ class EditorUnificado:
     
     def _handle_keydown(self, event):
         """Maneja teclas"""
-        ctrl = pygame.key.get_mods() & pygame.KMOD_CTRL
+        mods = pygame.key.get_mods()
+        ctrl = mods & pygame.KMOD_CTRL
+        sh = mods & pygame.KMOD_SHIFT
         
         if event.key == pygame.K_ESCAPE:
             self.guardar_cambios()
@@ -943,7 +945,23 @@ class EditorUnificado:
         
         elif event.key == pygame.K_e:
             # Exportar
-            self._exportar_screenshot()
+            # Ctrl+Shift+E -> exportar mapa al repo (JSON + copiar imagen si aplica)
+            if ctrl and sh:
+                # Ejecutar exportador CLI
+                try:
+                    src_json = str(self.mapa_actual.ruta_json)
+                    img = str(self.mapa_actual.ruta_imagen) if self.mapa_actual.ruta_imagen else None
+                    categoria = self.mapa_actual.categoria if getattr(self.mapa_actual, 'categoria', None) else ''
+                    cmd = [sys.executable, str(Path('tools') / 'export_map.py'), '--src-json', src_json, '--categoria', categoria]
+                    if img:
+                        cmd += ['--image', img]
+                    print('Exportando mapa con comando:', ' '.join(cmd))
+                    subprocess.run(cmd, check=False)
+                except Exception as e:
+                    print('⚠ Error exportando mapa:', e)
+            else:
+                # Exportar screenshot (comportamiento original)
+                self._exportar_screenshot()
         
         elif event.key == pygame.K_m:
             # Toggle selector de mapas
