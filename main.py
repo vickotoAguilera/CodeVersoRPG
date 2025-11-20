@@ -86,6 +86,27 @@ def resolver_mapa(nombre_mapa, categoria_guess):
     """
     # Normalizar base
     base = os.path.splitext(nombre_mapa)[0]
+
+    # 0) Si existe un índice de mapas, intentar resolver por id/nombre/imagen
+    try:
+        ruta_indice = os.path.join(DATABASE_PATH, 'maps_index.json')
+        if os.path.exists(ruta_indice):
+            with open(ruta_indice, 'r', encoding='utf-8') as f:
+                entradas = json.load(f)
+            for e in entradas:
+                # Match por id, nombre legible, nombre de imagen (con o sin extensión)
+                if e.get('id') == nombre_mapa or e.get('id') == base:
+                    return e.get('imagen') or e.get('imagen_ruta') or (base + '.png'), e.get('categoria')
+                if e.get('nombre') == nombre_mapa:
+                    return e.get('imagen') or e.get('imagen_ruta') or (base + '.png'), e.get('categoria')
+                imagen_nom = e.get('imagen') or ''
+                if imagen_nom:
+                    if os.path.splitext(imagen_nom)[0] == base or imagen_nom == nombre_mapa:
+                        return imagen_nom, e.get('categoria')
+    except Exception:
+        # No hacer fallar la resolución si el índice está corrupto
+        pass
+
     # 1) Buscar imagen en la categoría propuesta (assets/maps)
     mapas_assets_cat = os.path.join('assets', 'maps', categoria_guess)
     for ext in ('.png', '.jpg', '.jpeg'):

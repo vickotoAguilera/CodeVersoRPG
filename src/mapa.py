@@ -109,9 +109,32 @@ class Mapa:
             with open(ruta_json, 'r', encoding='utf-8') as f:
                 datos = json.load(f)
         except FileNotFoundError:
-            print(f"¡ADVERTENCIA! No se encontró el archivo de datos: {ruta_json}")
-            print("El mapa se cargará vacío (sin muros, portales, etc.)")
-            return
+            # Intentar resolver mediante el índice maps_index.json si existe
+            ruta_indice = os.path.join(DATABASE_PATH, 'maps_index.json')
+            datos = None
+            if os.path.exists(ruta_indice):
+                try:
+                    with open(ruta_indice, 'r', encoding='utf-8') as fi:
+                        entradas = json.load(fi)
+                    for e in entradas:
+                        # buscar por id o por nombre base
+                        if e.get('id') == nombre_base or os.path.splitext(os.path.basename(e.get('ruta_json','')))[0] == nombre_base:
+                            posible = e.get('ruta_json')
+                            if posible and os.path.exists(posible):
+                                try:
+                                    with open(posible, 'r', encoding='utf-8') as f:
+                                        datos = json.load(f)
+                                    print(f"Cargado JSON desde índice: {posible}")
+                                    break
+                                except Exception:
+                                    datos = None
+                except Exception:
+                    datos = None
+
+            if datos is None:
+                print(f"¡ADVERTENCIA! No se encontró el archivo de datos: {ruta_json}")
+                print("El mapa se cargará vacío (sin muros, portales, etc.)")
+                return
         except json.JSONDecodeError:
             print(f"¡ERROR! El archivo JSON está mal escrito: {ruta_json}")
             pygame.quit(); sys.exit()
