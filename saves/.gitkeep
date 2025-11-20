@@ -1,0 +1,2 @@
+# Este archivo mantiene la carpeta saves/ en Git
+# Los archivos .json de partidas guardadas están en .gitignore

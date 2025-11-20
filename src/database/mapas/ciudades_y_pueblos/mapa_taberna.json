@@ -1,0 +1,25 @@
+{
+  "portales": [
+    {
+      "id": "Pmapa_taberna_mapa_pueblo_final",
+      "tipo": "portal_enlazado",
+      "forma": "rect",
+      "x": 219,
+      "y": 374,
+      "w": 57,
+      "h": 79,
+      "mapa_destino": "mapa_pueblo_final",
+      "spawn_destino_id": "S7"
+    }
+  ],
+  "spawns": [
+    {
+      "id": "S7",
+      "tipo": "spawn",
+      "x": 248,
+      "y": 324,
+      "direccion": "abajo",
+      "tam": 12
+    }
+  ]
+}

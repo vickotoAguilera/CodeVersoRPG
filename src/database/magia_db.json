@@ -1,0 +1,20 @@
+{
+    "CURA_BASICA": {
+        "id_magia": "CURA_BASICA",
+        "nombre": "Cura",
+        "descripcion": "Restaura un poco de HP a un aliado.",
+        "costo_mp": 5,
+        "tipo": "Curacion",
+        "poder": 50,
+        "target": "Aliado"
+    },
+    "PIRO_BASICO": {
+        "id_magia": "PIRO_BASICO",
+        "nombre": "Piro",
+        "descripcion": "Daña a un enemigo con fuego.",
+        "costo_mp": 8,
+        "tipo": "Ataque",
+        "poder": 25,
+        "target": "Enemigo"
+    }
+}

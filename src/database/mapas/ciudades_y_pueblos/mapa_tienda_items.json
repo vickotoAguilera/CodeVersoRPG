@@ -1,0 +1,25 @@
+{
+  "portales": [
+    {
+      "id": "Pmapa_tienda_items_mapa_pueblo_final",
+      "tipo": "portal_enlazado",
+      "forma": "rect",
+      "x": 192,
+      "y": 375,
+      "w": 95,
+      "h": 112,
+      "mapa_destino": "mapa_pueblo_final",
+      "spawn_destino_id": "S12"
+    }
+  ],
+  "spawns": [
+    {
+      "id": "S12",
+      "tipo": "spawn",
+      "x": 227,
+      "y": 317,
+      "direccion": "abajo",
+      "tam": 12
+    }
+  ]
+}

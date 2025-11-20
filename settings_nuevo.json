@@ -1,0 +1,36 @@
+{
+    "video": {
+        "ancho": 800,
+        "alto": 600,
+        "pantalla_completa": false,
+        "vsync": true,
+        "fps": 60
+    },
+    "audio": {
+        "volumen_musica": 0.7,
+        "volumen_efectos": 0.8,
+        "silenciado": false
+    },
+    "juego": {
+        "dificultad": "normal",
+        "mostrar_fps": false,
+        "idioma": "es",
+        "autoguardado_activado": true,
+        "intervalo_autoguardado_minutos": 10
+    },
+    "controles": {
+        "arriba": "UP",
+        "abajo": "DOWN",
+        "izquierda": "LEFT",
+        "derecha": "RIGHT",
+        "confirmar": "RETURN",
+        "cancelar": "ESCAPE",
+        "menu": "ESCAPE",
+        "detalles": "d"
+    },
+    "avanzado": {
+        "nivel_log": "INFO",
+        "mostrar_hitboxes": false,
+        "modo_debug": false
+    }
+}
