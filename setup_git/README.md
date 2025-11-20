@@ -19,23 +19,21 @@ Este script te permite configurar Git en cualquier PC de forma rápida y automá
 
 1. ✅ Verifica que Git esté instalado
 2. ✅ Inicializa el repositorio Git (si no existe)
-3. ✅ Configura tu usuario y email de GitHub
+3. ✅ Configura AUTOMÁTICAMENTE tu usuario (vickotoAguilera)
 4. ✅ Conecta con el repositorio remoto
 5. ✅ Configura la rama principal (main)
-6. ✅ Sincroniza con GitHub (opcional)
+6. ✅ Sincroniza con GitHub automáticamente
 
 ## 📖 Cómo usar
 
 ### Opción 1: En este PC
 1. Haz doble clic en `CONFIGURAR_GIT.bat`
-2. Sigue las instrucciones en pantalla
-3. Ingresa tu nombre de usuario y email de GitHub
-4. ¡Listo!
+2. ¡Listo! Todo se configura solo.
 
 ### Opción 2: En otro PC
 1. Copia toda la carpeta `setup_git` a la raíz del proyecto en el otro PC
 2. Ejecuta `CONFIGURAR_GIT.bat`
-3. Sigue las instrucciones
+3. ¡Listo! Se configurará con tu usuario y correo.
 
 ### Opción 3: Proyecto nuevo
 1. Descarga el proyecto desde GitHub

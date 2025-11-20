@@ -43,22 +43,10 @@ if exist ".git" (
 :configure_remote
 echo [PASO 3/6] Configurando usuario de Git...
 echo.
-echo Ingresa tu nombre de usuario de GitHub:
-set /p git_user="Nombre: "
-if "%git_user%"=="" (
-    echo ❌ Error: Debes ingresar un nombre
-    pause
-    exit /b 1
-)
 
-echo.
-echo Ingresa tu email de GitHub:
-set /p git_email="Email: "
-if "%git_email%"=="" (
-    echo ❌ Error: Debes ingresar un email
-    pause
-    exit /b 1
-)
+REM Configurar con tus datos automaticamente
+set git_user=vickotoAguilera
+set git_email=victoraguileramunoz@gmail.com
 
 git config user.name "%git_user%"
 git config user.email "%git_email%"
@@ -81,20 +69,6 @@ echo [PASO 5/6] Configurando rama principal...
 git branch -M main
 echo ✓ Rama 'main' configurada
 echo.
-
-echo [PASO 6/6] Sincronizando con GitHub...
-echo.
-echo ⚠ IMPORTANTE: Este paso descargara el codigo desde GitHub
-echo    y podria sobrescribir archivos locales.
-echo.
-set /p confirm="¿Deseas continuar? (S/N): "
-if /i not "%confirm%"=="S" (
-    echo.
-    echo ⚠ Sincronizacion cancelada
-    echo   Puedes ejecutar manualmente: git pull origin main --allow-unrelated-histories
-    echo.
-    goto :end
-)
 
 echo.
 echo Descargando desde GitHub...
