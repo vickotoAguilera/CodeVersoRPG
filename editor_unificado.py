@@ -20,6 +20,8 @@ import pygame
 import json
 import os
 import time
+import sys
+import subprocess
 from pathlib import Path
 from datetime import datetime
 
@@ -593,6 +595,19 @@ class EditorUnificado:
         # Mensaje visual
         self.mensaje_guardado = "✓ GUARDADO"
         self.tiempo_mensaje_guardado = time.time()
+        
+        # Actualizar índice de mapas y validar (para que el juego detecte el nuevo mapa)
+        try:
+            gen = Path('tools') / 'generate_maps_index.py'
+            val = Path('tools') / 'validate_map.py'
+            if gen.exists():
+                print('Actualizando índice de mapas...')
+                subprocess.run([sys.executable, str(gen)], check=False)
+            if val.exists():
+                print('Validando mapas...')
+                subprocess.run([sys.executable, str(val)], check=False)
+        except Exception as e:
+            print('⚠ Error al actualizar índice/validar:', e)
     
     def _guardar_muros(self, nombre_mapa, muros):
         """Guarda muros en JSON del mapa"""
