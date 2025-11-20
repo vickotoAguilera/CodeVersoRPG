@@ -1,42 +1,58 @@
 [
   {
+    "id": "test_mapa_a",
+    "nombre": "test_mapa_a",
+    "categoria": "ciudades",
+    "imagen": null,
+    "imagen_ruta": null,
+    "ruta_json": "src\\database\\mapas\\ciudades\\test_mapa_a.json"
+  },
+  {
+    "id": "test_mapa_b",
+    "nombre": "test_mapa_b",
+    "categoria": "ciudades",
+    "imagen": null,
+    "imagen_ruta": null,
+    "ruta_json": "src\\database\\mapas\\ciudades\\test_mapa_b.json"
+  },
+  {
     "id": "mapa_herrero",
     "nombre": "mapa_herrero",
     "categoria": "ciudades_y_pueblos",
-    "imagen": "mapa_herrero.png",
-    "imagen_ruta": "assets\\maps\\ciudades_y_pueblos\\pueblo_inicio\\mapa_herrero.png",
+    "imagen": null,
+    "imagen_ruta": null,
     "ruta_json": "src\\database\\mapas\\ciudades_y_pueblos\\mapa_herrero.json"
   },
   {
     "id": "mapa_posada",
     "nombre": "mapa_posada",
     "categoria": "ciudades_y_pueblos",
-    "imagen": "mapa_posada.png",
-    "imagen_ruta": "assets\\maps\\ciudades_y_pueblos\\pueblo_inicio\\mapa_posada.png",
+    "imagen": null,
+    "imagen_ruta": null,
     "ruta_json": "src\\database\\mapas\\ciudades_y_pueblos\\mapa_posada.json"
   },
   {
     "id": "mapa_pueblo_final",
     "nombre": "mapa_pueblo_final",
     "categoria": "ciudades_y_pueblos",
-    "imagen": "mapa_pueblo_final.png",
-    "imagen_ruta": "assets\\maps\\ciudades_y_pueblos\\pueblo_inicio\\mapa_pueblo_final.png",
+    "imagen": null,
+    "imagen_ruta": null,
     "ruta_json": "src\\database\\mapas\\ciudades_y_pueblos\\mapa_pueblo_final.json"
   },
   {
     "id": "mapa_taberna",
     "nombre": "mapa_taberna",
     "categoria": "ciudades_y_pueblos",
-    "imagen": "mapa_taberna.png",
-    "imagen_ruta": "assets\\maps\\ciudades_y_pueblos\\pueblo_inicio\\mapa_taberna.png",
+    "imagen": null,
+    "imagen_ruta": null,
     "ruta_json": "src\\database\\mapas\\ciudades_y_pueblos\\mapa_taberna.json"
   },
   {
     "id": "mapa_tienda_items",
     "nombre": "mapa_tienda_items",
     "categoria": "ciudades_y_pueblos",
-    "imagen": "mapa_tienda_items.png",
-    "imagen_ruta": "assets\\maps\\ciudades_y_pueblos\\pueblo_inicio\\mapa_tienda_items.png",
+    "imagen": null,
+    "imagen_ruta": null,
     "ruta_json": "src\\database\\mapas\\ciudades_y_pueblos\\mapa_tienda_items.json"
   },
   {
@@ -44,7 +60,7 @@
     "nombre": "mapa_tienda_magia",
     "categoria": "ciudades_y_pueblos",
     "imagen": "mapa_tienda_magia.png",
-    "imagen_ruta": "assets\\maps\\ciudades_y_pueblos\\pueblo_inicio\\mapa_tienda_magia.png",
+    "imagen_ruta": "assets\\maps\\ciudades_y_pueblos\\mapa_tienda_magia.png",
     "ruta_json": "src\\database\\mapas\\ciudades_y_pueblos\\mapa_tienda_magia.json"
   },
   {

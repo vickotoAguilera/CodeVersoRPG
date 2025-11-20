@@ -1,28 +1,4 @@
 {
-  "portales": [
-    {
-      "id": "Pmapa_tienda_items_mapa_pueblo_final",
-      "tipo": "portal_enlazado",
-      "forma": "rect",
-      "x": 192,
-      "y": 375,
-      "w": 95,
-      "h": 112,
-      "mapa_destino": "mapa_pueblo_final",
-      "spawn_destino_id": "S12",
-      "categoria_destino": "ciudades_y_pueblos"
-    }
-  ],
-  "spawns": [
-    {
-      "id": "S12",
-      "tipo": "spawn",
-      "x": 227,
-      "y": 317,
-      "direccion": "abajo",
-      "tam": 12
-    }
-  ],
-  "id": "mapa_tienda_items",
-  "imagen": "mapa_tienda_items.png"
+  "portales": [],
+  "spawns": []
 }

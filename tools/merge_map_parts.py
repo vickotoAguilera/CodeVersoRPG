@@ -18,6 +18,7 @@ import json
 from pathlib import Path
 import argparse
 import sys
+import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
 DB_MAPS = ROOT / 'src' / 'database' / 'mapas'
@@ -163,7 +164,13 @@ def main():
         gen = ROOT / 'tools' / 'generate_maps_index.py'
         if gen.exists():
             print('\nActualizando maps_index.json...')
-            os.system(f'"{sys.executable}" "{str(gen)}"')
+            # Usar subprocess.run con lista de argumentos para evitar problemas
+            # con rutas que contienen espacios (p.ej. "C:\Program Files\...")
+            try:
+                subprocess.run([sys.executable, str(gen)], check=False)
+            except Exception:
+                # Fallback por compatibilidad: intentar vía os.system si falla
+                os.system(f'"{sys.executable}" "{str(gen)}"')
 
 if __name__ == '__main__':
     main()

@@ -1,43 +1,4 @@
 {
-  "portales": [
-    {
-      "id": "Pmapa_posada_mapa_pueblo_final",
-      "tipo": "portal_enlazado",
-      "forma": "poly",
-      "puntos": [
-        [
-          720,
-          763
-        ],
-        [
-          809,
-          778
-        ],
-        [
-          839,
-          921
-        ],
-        [
-          704,
-          911
-        ]
-      ],
-      "mapa_destino": "mapa_pueblo_final",
-      "spawn_destino_id": "S6",
-      "categoria_destino": "ciudades_y_pueblos"
-    }
-  ],
-  "spawns": [
-    {
-      "id": "S6",
-      "tipo": "spawn",
-      "x": 228,
-      "y": 680,
-      "direccion": "abajo",
-      "tam": 12
-    }
-  ],
-  "cofres": [],
-  "id": "mapa_posada",
-  "imagen": "mapa_posada.png"
+  "portales": [],
+  "spawns": []
 }

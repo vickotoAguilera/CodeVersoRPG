@@ -226,30 +226,105 @@ class Heroe:
 
     # --- 5. LÓGICA DE COLISIONES ---
     def _mover_con_colisiones(self, delta_x, delta_y, paredes_mapa):
-        
+        # Helper: punto en polígono (ray-casting)
+        def point_in_poly(x, y, poly):
+            inside = False
+            j = len(poly) - 1
+            for i in range(len(poly)):
+                xi, yi = poly[i]; xj, yj = poly[j]
+                intersect = ((yi > y) != (yj > y)) and (x < (xj - xi) * (y - yi) / (yj - yi + 1e-12) + xi)
+                if intersect:
+                    inside = not inside
+                j = i
+            return inside
+
+        def rect_poly_collide(rect, poly):
+            # 1) cualquier vértice del rect dentro del polígono
+            corners = [rect.topleft, rect.topright, rect.bottomleft, rect.bottomright]
+            for (cx, cy) in corners:
+                if point_in_poly(cx, cy, poly):
+                    return True
+            # 2) cualquier punto del polígono dentro del rect
+            for (px, py) in poly:
+                if rect.collidepoint(px, py):
+                    return True
+            # 3) bordes intersectan (chequeo segment-segment)
+            def seg_intersect(a1, a2, b1, b2):
+                (x1, y1), (x2, y2) = a1, a2
+                (x3, y3), (x4, y4) = b1, b2
+                denom = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1)
+                if abs(denom) < 1e-9:
+                    return False
+                ua = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) / denom
+                ub = ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) / denom
+                return 0 <= ua <= 1 and 0 <= ub <= 1
+
+            rect_edges = [ (rect.topleft, rect.topright), (rect.topright, rect.bottomright), (rect.bottomright, rect.bottomleft), (rect.bottomleft, rect.topleft) ]
+            for i in range(len(poly)):
+                a = poly[i]
+                b = poly[(i+1) % len(poly)]
+                for re in rect_edges:
+                    if seg_intersect(a, b, re[0], re[1]):
+                        return True
+            return False
+
         # --- MOVIMIENTO EN X ---
         self.heroe_x_float += delta_x
         self.heroe_rect.x = int(self.heroe_x_float)
-        
+
         for muro in paredes_mapa:
-            if self.heroe_rect.colliderect(muro):
-                if delta_x > 0:
-                    self.heroe_rect.right = muro.left
-                elif delta_x < 0:
-                    self.heroe_rect.left = muro.right
-                self.heroe_x_float = float(self.heroe_rect.x)
+            # soportar muros dict {'tipo':'rect'|'poly', 'rect':..., 'puntos':...}
+            if isinstance(muro, dict):
+                if muro.get('tipo') == 'rect':
+                    mrect = muro['rect']
+                    if self.heroe_rect.colliderect(mrect):
+                        if delta_x > 0:
+                            self.heroe_rect.right = mrect.left
+                        elif delta_x < 0:
+                            self.heroe_rect.left = mrect.right
+                        self.heroe_x_float = float(self.heroe_rect.x)
+                elif muro.get('tipo') == 'poly':
+                    poly = muro.get('puntos', [])
+                    if rect_poly_collide(self.heroe_rect, poly):
+                        # revertir movimiento en X
+                        self.heroe_x_float -= delta_x
+                        self.heroe_rect.x = int(self.heroe_x_float)
+            else:
+                # compatibilidad: muro es un Rect
+                if self.heroe_rect.colliderect(muro):
+                    if delta_x > 0:
+                        self.heroe_rect.right = muro.left
+                    elif delta_x < 0:
+                        self.heroe_rect.left = muro.right
+                    self.heroe_x_float = float(self.heroe_rect.x)
 
         # --- MOVIMIENTO EN Y ---
         self.heroe_y_float += delta_y
         self.heroe_rect.y = int(self.heroe_y_float)
-        
+
         for muro in paredes_mapa:
-            if self.heroe_rect.colliderect(muro):
-                if delta_y > 0:
-                    self.heroe_rect.bottom = muro.top
-                elif delta_y < 0:
-                    self.heroe_rect.top = muro.bottom
-                self.heroe_y_float = float(self.heroe_rect.y)
+            if isinstance(muro, dict):
+                if muro.get('tipo') == 'rect':
+                    mrect = muro['rect']
+                    if self.heroe_rect.colliderect(mrect):
+                        if delta_y > 0:
+                            self.heroe_rect.bottom = mrect.top
+                        elif delta_y < 0:
+                            self.heroe_rect.top = mrect.bottom
+                        self.heroe_y_float = float(self.heroe_rect.y)
+                elif muro.get('tipo') == 'poly':
+                    poly = muro.get('puntos', [])
+                    if rect_poly_collide(self.heroe_rect, poly):
+                        # revertir movimiento en Y
+                        self.heroe_y_float -= delta_y
+                        self.heroe_rect.y = int(self.heroe_y_float)
+            else:
+                if self.heroe_rect.colliderect(muro):
+                    if delta_y > 0:
+                        self.heroe_rect.bottom = muro.top
+                    elif delta_y < 0:
+                        self.heroe_rect.top = muro.bottom
+                    self.heroe_y_float = float(self.heroe_rect.y)
 
 
     # --- 6. UPDATE DE ANIMACIÓN ---

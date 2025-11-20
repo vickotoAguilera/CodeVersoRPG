@@ -23,3 +23,12 @@ UI_PATH = os.path.join(ASSETS_PATH, "ui")
 DATABASE_PATH = os.path.join(ROOT_PATH, "src", "database")
 # --- ¡NUEVO! Ruta a los archivos del Jugador ---
 SAVES_PATH = os.path.join(ROOT_PATH, "saves")
+ 
+# Mapas que deben escalarse a la resolución de ventana (interiores)
+MAPAS_INTERIORES = [
+	"mapa_posada.png",
+	"mapa_tienda_items.png",
+	"mapa_tienda_magia.png",
+	"mapa_herrero.png",
+	"mapa_taberna.png",
+]
