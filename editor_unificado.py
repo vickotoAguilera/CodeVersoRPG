@@ -23,6 +23,7 @@ import time
 import sys
 import subprocess
 from pathlib import Path
+from pathlib import Path
 from datetime import datetime
 
 # === CONFIGURACIÓN ===
@@ -598,8 +599,11 @@ class EditorUnificado:
         # Guardar muros
         self._guardar_muros(nombre, elementos_por_tipo['muro'])
         
-        # Guardar portales
-        self._guardar_portales(nombre, elementos_por_tipo['portal'])
+        # Guardar portales (con validación)
+        ok_portales = self._guardar_portales(nombre, elementos_por_tipo['portal'])
+        if not ok_portales:
+            print('✗ Guardado cancelado por validación de portales')
+            return
         
         # Guardar spawns
         self._guardar_spawns(nombre, elementos_por_tipo['spawn'])
@@ -614,18 +618,19 @@ class EditorUnificado:
         self.mensaje_guardado = "✓ GUARDADO"
         self.tiempo_mensaje_guardado = time.time()
         
-        # Actualizar índice de mapas y validar (para que el juego detecte el nuevo mapa)
+        # Actualizar índice de mapas y ejecutar merge unificador
         try:
             gen = Path('tools') / 'generate_maps_index.py'
-            val = Path('tools') / 'validate_map.py'
             if gen.exists():
                 print('Actualizando índice de mapas...')
                 subprocess.run([sys.executable, str(gen)], check=False)
-            if val.exists():
-                print('Validando mapas...')
-                subprocess.run([sys.executable, str(val)], check=False)
+            # Ejecutar merge unificador para consolidar parciales
+            merge = Path('tools') / 'merge_map_parts.py'
+            if merge.exists():
+                print('Ejecutando merge de parciales...')
+                subprocess.run([sys.executable, str(merge), '--apply'], check=False)
         except Exception as e:
-            print('⚠ Error al actualizar índice/validar:', e)
+            print('⚠ Error al actualizar índice/merge:', e)
     
     def _guardar_muros(self, nombre_mapa, muros):
         """Guarda muros en JSON del mapa"""
@@ -664,6 +669,13 @@ class EditorUnificado:
             
             # Actualizar solo los portales
             data['portales'] = []
+            # Validación: verificar que ningún portal tenga 'mapa_destino' vacío (cadena vacía)
+            for portal in portales:
+                md = portal.datos.get('mapa_destino') if isinstance(portal.datos, dict) else None
+                if md is not None and isinstance(md, str) and md.strip() == '':
+                    print(f"⚠ Portal inválido: {portal.datos} -> mapa_destino vacío")
+                    return False
+
             for portal in portales:
                 # Si el portal es poligonal, actualizar 'puntos' si es necesario
                 if portal.puntos:

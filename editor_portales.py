@@ -1,5 +1,7 @@
 import pygame
 import json
+import subprocess
+import sys
 from pathlib import Path
 from dataclasses import dataclass
 from typing import List, Tuple, Optional
@@ -222,13 +224,30 @@ class EditorPortales:
         self.seccion_portal_spawns.expandida = True
 
     def _buscar_mapas(self, carpeta: Path, categoria: str, subcarpeta: str = "") -> List[MapaInfo]:
-        lst = []
-        for arch in list(carpeta.glob('*.png')) + list(carpeta.glob('*.jpg')):
-            lst.append(MapaInfo(arch.stem, arch.name, str(arch), categoria, subcarpeta))
-        for sub in carpeta.iterdir():
-            if sub.is_dir():
-                lst += self._buscar_mapas(sub, categoria, subcarpeta + ("/" if subcarpeta else "") + sub.name)
-        return sorted(lst, key=lambda m: m.nombre)
+        # Recolectar entradas por nombre base y evitar duplicados.
+        # Preferimos archivos encontrados en subcarpetas (más específicos) frente a los del nivel superior.
+        import os
+        entries = {}
+        base_path = Path(carpeta)
+        for root, dirs, files in os.walk(base_path):
+            rel_root = os.path.relpath(root, base_path)
+            rel_root = '' if rel_root == '.' else rel_root.replace('\\', '/')
+            for f in files:
+                if not f.lower().endswith(('.png', '.jpg', '.jpeg')):
+                    continue
+                stem = os.path.splitext(f)[0]
+                # subcarpeta relativa dentro de la categoria
+                sub = rel_root
+                ruta = os.path.join(root, f)
+                # Si ya existe una entrada con este stem, preferir la que tenga subcarpeta no vacía
+                if stem in entries:
+                    existing = entries[stem]
+                    # si la existente no tiene subcarpeta but current does, replace
+                    if (existing.subcarpeta == '' or existing.subcarpeta is None) and sub:
+                        entries[stem] = MapaInfo(stem, f, ruta, categoria, sub)
+                else:
+                    entries[stem] = MapaInfo(stem, f, ruta, categoria, sub)
+        return sorted(list(entries.values()), key=lambda m: m.nombre)
     
     def _actualizar_lista_vinculos(self):
         """Actualiza la lista de portales vinculados para mostrar en el panel"""
@@ -265,12 +284,39 @@ class EditorPortales:
         return carpeta/(mapa.nombre + '.json')
 
     def guardar(self):
+        # Validación: no permitir portales con mapa_destino vacío
+        def tiene_portal_invalido(portales):
+            for p in portales:
+                md = getattr(p, 'mapa_destino', None)
+                # permitir si None (no seteado)?? Requerimos no vacío string
+                if md is not None and isinstance(md, str) and md.strip() == '':
+                    return True
+            return False
+
+        if self.mapa_izq and tiene_portal_invalido(self.izq_portales):
+            self._msg("⚠ Guardado abortado: portales con mapa_destino vacío en lado IZQ")
+            return
+        if self.mapa_der and tiene_portal_invalido(self.der_portales):
+            self._msg("⚠ Guardado abortado: portales con mapa_destino vacío en lado DER")
+            return
+
         if self.mapa_izq:
             self._guardar_mapa(self.mapa_izq, self.izq_portales, self.izq_spawns)
         if self.mapa_der:
             self._guardar_mapa(self.mapa_der, self.der_portales, self.der_spawns)
         self._msg("✓ Guardado")
         self.cambios_pendientes = False
+
+        # Llamar al unificador para mantener JSONs finales consistentes
+        try:
+            merge_cmd = [sys.executable, str(Path('tools') / 'merge_map_parts.py'), '--apply']
+            subprocess.run(merge_cmd, check=False)
+            # Regenerar índice también
+            gen = Path('tools') / 'generate_maps_index.py'
+            if gen.exists():
+                subprocess.run([sys.executable, str(gen)], check=False)
+        except Exception:
+            pass
 
     def _guardar_mapa(self, mapa: MapaInfo, portales: List[object], spawns: List[Spawn]):
         ruta = self._ruta_json(mapa)

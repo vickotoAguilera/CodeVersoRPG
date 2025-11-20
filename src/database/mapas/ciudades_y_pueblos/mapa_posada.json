@@ -25,18 +25,6 @@
       "mapa_destino": "mapa_pueblo_final",
       "spawn_destino_id": "S6",
       "categoria_destino": "ciudades_y_pueblos"
-    },
-    {
-      "id": "#3",
-      "tipo": "portal_enlazado",
-      "forma": "rect",
-      "x": 608,
-      "y": 416,
-      "w": 863,
-      "h": 18,
-      "mapa_destino": "",
-      "spawn_destino_id": "",
-      "categoria_destino": "ciudades_y_pueblos"
     }
   ],
   "spawns": [
