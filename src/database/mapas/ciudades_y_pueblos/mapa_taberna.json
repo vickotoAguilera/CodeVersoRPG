@@ -21,5 +21,7 @@
       "direccion": "abajo",
       "tam": 12
     }
-  ]
+  ],
+  "id": "mapa_taberna",
+  "imagen": "mapa_taberna.png"
 }

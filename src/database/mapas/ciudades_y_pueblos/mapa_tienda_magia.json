@@ -22,5 +22,7 @@
       "tam": 12
     }
   ],
-  "cofres": []
+  "cofres": [],
+  "id": "mapa_tienda_magia",
+  "imagen": "mapa_tienda_magia.png"
 }

@@ -307,5 +307,7 @@
   "nombre": "mapa_herrero",
   "carpeta": "ciudades_y_pueblos",
   "cofres": [],
-  "npcs": []
+  "npcs": [],
+  "id": "mapa_herrero",
+  "imagen": "mapa_herrero.png"
 }

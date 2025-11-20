@@ -39,5 +39,7 @@
       "direccion": "abajo",
       "tam": 44
     }
-  ]
+  ],
+  "id": "mapa_herrero",
+  "imagen": "mapa_herrero.png"
 }

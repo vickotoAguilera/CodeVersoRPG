@@ -42,5 +42,7 @@
       ]
     }
   ],
-  "cofres": []
+  "cofres": [],
+  "id": "mapa_posada",
+  "imagen": "mapa_posada.png"
 }

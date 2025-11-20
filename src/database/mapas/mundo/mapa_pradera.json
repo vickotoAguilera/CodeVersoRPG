@@ -119,5 +119,7 @@
     }
   ],
   "muros": [],
-  "zonas_batalla": []
+  "zonas_batalla": [],
+  "id": "mapa_pradera",
+  "imagen": "mapa_pradera.jpg"
 }
