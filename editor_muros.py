@@ -1198,14 +1198,14 @@ class EditorMuros:
             mx, my = self.convertir_coords_pantalla_a_mapa(mouse_pos[0], mouse_pos[1])
             coords = f"X: {mx} Y: {my}"
             texto_coords = self.fuente_pequena.render(coords, True, COLOR_TEXTO_SEC)
-            rect_coords = texto_coords.get_rect(right=ancho_pantalla - 10, centerY=alto_pantalla - 15)
+            rect_coords = texto_coords.get_rect(right=ancho_pantalla - 10, centery=alto_pantalla - 15)
             surface.blit(texto_coords, (ancho_pantalla - 120, alto_pantalla - 22))
             
         # Mensaje temporal
         ahora = pygame.time.get_ticks()
         if self.mensaje and (ahora - self.mensaje_tiempo) < 3000:
             texto_msg = self.fuente_pequena.render(self.mensaje, True, COLOR_SELECCION)
-            rect_msg = texto_msg.get_rect(centerx=PANEL_ANCHO + (ancho_pantalla - PANEL_ANCHO)//2, centerY=alto_pantalla - 15)
+            rect_msg = texto_msg.get_rect(centerx=PANEL_ANCHO + (ancho_pantalla - PANEL_ANCHO)//2, centery=alto_pantalla - 15)
             surface.blit(texto_msg, rect_msg)
 
     def ejecutar(self):
