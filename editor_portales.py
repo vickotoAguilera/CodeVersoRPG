@@ -1504,38 +1504,61 @@ class EditorPortales:
                                         if found: break
                                     if found:
                                         p, lst, lado_p = found
-                                        linked = getattr(p, 'linked_portal', None)
-                                        # eliminar spawns relacionados (el spawn que quedó en este mapa suele estar en linked.spawn_destino_id)
-                                        spawns = self.izq_spawns if lado_p=='izq' else self.der_spawns
-                                        if linked:
-                                            # spawn en este mapa referenciado por linked.spawn_destino_id
-                                            spawn_to_remove = getattr(linked, 'spawn_destino_id', None)
-                                            if spawn_to_remove:
-                                                for s in list(spawns):
-                                                    if s.id == spawn_to_remove:
-                                                        spawns.remove(s)
-                                                        break
-                                            # limpiar partner
-                                            linked.linked_portal = None
-                                            linked.mapa_destino = ''
-                                            linked.spawn_destino_id = ''
-                                        # si este portal referenciaba spawn en otro mapa, eliminar ese spawn también
-                                        other_spawns = self.der_spawns if lado_p=='izq' else self.izq_spawns
-                                        spawn_id_ref = getattr(p,'spawn_destino_id', None)
-                                        if spawn_id_ref:
-                                            for s in list(other_spawns):
-                                                if s.id == spawn_id_ref:
-                                                    other_spawns.remove(s)
-                                                    break
-                                        # finalmente eliminar el portal
-                                        try:
-                                            lst.remove(p)
-                                        except Exception:
-                                            pass
-                                        self._msg(f"✓ Vinculo {portal_id} eliminado")
+                                        
+                                        # Definir listas del OTRO lado
+                                        other_lst = self.der_portales if lado_p == 'izq' else self.izq_portales
+                                        other_spawns = self.der_spawns if lado_p == 'izq' else self.izq_spawns
+                                        my_spawns = self.izq_spawns if lado_p == 'izq' else self.der_spawns
+                                        
+                                        # Intentar encontrar el portal pareja (p2)
+                                        p2 = getattr(p, 'linked_portal', None)
+                                        
+                                        # Si no hay referencia directa (ej. tras cargar JSON), buscar vía spawn
+                                        spawn_dest_id = getattr(p, 'spawn_destino_id', None)
+                                        if not p2 and spawn_dest_id:
+                                            # Buscar el spawn al que apunta p en el otro lado
+                                            s2 = next((s for s in other_spawns if s.id == spawn_dest_id), None)
+                                            if s2:
+                                                # Ese spawn apunta al portal pareja
+                                                p2_id = getattr(s2, 'linked_portal_id', None)
+                                                if p2_id:
+                                                    p2 = next((x for x in other_lst if getattr(x, 'id', None) == p2_id), None)
+
+                                        # --- Limpiar lado pareja (p2) ---
+                                        if p2:
+                                            # El portal pareja tiene un spawn en MI lado (s1). Eliminarlo.
+                                            s1_id = getattr(p2, 'spawn_destino_id', None)
+                                            if s1_id:
+                                                s1 = next((s for s in my_spawns if s.id == s1_id), None)
+                                                if s1: 
+                                                    try: my_spawns.remove(s1)
+                                                    except: pass
+                                            
+                                            # Desvincular p2
+                                            p2.mapa_destino = ''
+                                            p2.spawn_destino_id = ''
+                                            p2.linked_portal = None
+                                        
+                                        # --- Limpiar lado propio (p) ---
+                                        # Eliminar el spawn destino en el otro lado (s2)
+                                        if spawn_dest_id:
+                                            s2 = next((s for s in other_spawns if s.id == spawn_dest_id), None)
+                                            if s2:
+                                                try: other_spawns.remove(s2)
+                                                except: pass
+
+                                        # Desvincular p
+                                        p.mapa_destino = ''
+                                        p.spawn_destino_id = ''
+                                        p.linked_portal = None
+                                        
+                                        # NOTA: NO eliminamos p de la lista (lst.remove(p)). 
+                                        # Solo rompemos el vínculo para que vuelva a ser un portal disponible (verde).
+
+                                        self._msg(f"✓ Vínculo roto: {getattr(p,'id','')} y su pareja desvinculados.")
                                         self.cambios_pendientes = True
                                     else:
-                                        self._msg("No se encontró portal para eliminar")
+                                        self._msg("No se encontró portal para desvincular")
                                     continue
 
                                 item_s = self.seccion_portal_spawns.get_item_en_posicion((mx,my)) if self.seccion_portal_spawns else None
