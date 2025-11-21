@@ -527,6 +527,9 @@ class EditorMuros:
         """Obtiene el muro en una posición (coordenadas del mapa original)"""
         for muro in reversed(self.muros):
             if muro.contiene_punto(x, y):
+                return muro
+        return None
+
     def _aplicar_zoom_imagen(self):
         if not hasattr(self, 'mapa_imagen_original') or self.mapa_imagen_original is None:
             return
