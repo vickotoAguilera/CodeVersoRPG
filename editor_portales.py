@@ -728,6 +728,23 @@ class EditorPortales:
         if eliminar_portal:
             if p in lst:
                 lst.remove(p)
+            
+            # LIMPIEZA DE ESTADO DE SELECCIÓN GLOBAL
+            # Si el portal eliminado estaba seleccionado para vincular, limpiar la selección
+            if self.portal_vinculo_1 == p:
+                self.portal_vinculo_1 = None
+                self.lado_vinculo_1 = None
+                self._msg("Selección de vínculo cancelada (portal eliminado)")
+            
+            # Si estaba seleccionado para crear spawn
+            if self.portal_para_spawn == p:
+                self.portal_para_spawn = None
+                self.lado_portal_spawn = None
+            
+            # Si estaba siendo editado
+            if self.portal_editando == p:
+                self.editando_nombre = False
+                self.portal_editando = None
 
     def _confirm_unlink_spawn(self, modal):
         portal = modal.get('portal')
