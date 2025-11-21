@@ -1175,6 +1175,39 @@ class EditorMuros:
             # Handles
             self._dibujar_handles_muro(surface, muro)
 
+    def dibujar_barra_estado(self, surface):
+        """Dibuja la barra de estado inferior"""
+        ancho_pantalla, alto_pantalla = self.pantalla.get_size()
+        rect_barra = pygame.Rect(PANEL_ANCHO, alto_pantalla - 30, ancho_pantalla - PANEL_ANCHO, 30)
+        pygame.draw.rect(surface, COLOR_PANEL, rect_barra)
+        pygame.draw.line(surface, COLOR_BOTON, (PANEL_ANCHO, alto_pantalla - 30), (ancho_pantalla, alto_pantalla - 30), 1)
+        
+        # Texto estado
+        estado_txt = f"Modo: {self.modo_dibujo.upper()}"
+        if self.modo_dibujo == 'pincel':
+            estado_txt += f" ({self.pincel_tamano}px)"
+        elif self.modo_dibujo == 'poligono':
+            estado_txt += f" ({len(self.poligono_puntos)} pts)"
+            
+        texto = self.fuente_pequena.render(estado_txt, True, COLOR_TEXTO_SEC)
+        surface.blit(texto, (PANEL_ANCHO + 10, alto_pantalla - 22))
+        
+        # Coordenadas mouse
+        mouse_pos = pygame.mouse.get_pos()
+        if mouse_pos[0] >= PANEL_ANCHO:
+            mx, my = self.convertir_coords_pantalla_a_mapa(mouse_pos[0], mouse_pos[1])
+            coords = f"X: {mx} Y: {my}"
+            texto_coords = self.fuente_pequena.render(coords, True, COLOR_TEXTO_SEC)
+            rect_coords = texto_coords.get_rect(right=ancho_pantalla - 10, centerY=alto_pantalla - 15)
+            surface.blit(texto_coords, (ancho_pantalla - 120, alto_pantalla - 22))
+            
+        # Mensaje temporal
+        ahora = pygame.time.get_ticks()
+        if self.mensaje and (ahora - self.mensaje_tiempo) < 3000:
+            texto_msg = self.fuente_pequena.render(self.mensaje, True, COLOR_SELECCION)
+            rect_msg = texto_msg.get_rect(centerx=PANEL_ANCHO + (ancho_pantalla - PANEL_ANCHO)//2, centerY=alto_pantalla - 15)
+            surface.blit(texto_msg, rect_msg)
+
     def ejecutar(self):
         """Bucle principal"""
         ejecutando = True
