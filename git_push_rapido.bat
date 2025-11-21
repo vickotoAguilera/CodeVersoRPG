@@ -14,7 +14,7 @@ set mensaje=update: Cambios del %date% %time:~0,5%
 
 git add .
 git commit -m "%mensaje%"
-git push origin main
+git push
 
 echo.
 echo ========================================
