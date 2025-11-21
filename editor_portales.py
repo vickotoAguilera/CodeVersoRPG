@@ -691,9 +691,10 @@ class EditorPortales:
         self.mensaje, self.mensaje_ts = txt, pygame.time.get_ticks()
 
     def _get_viewport_rects(self):
-        w = (ANCHO - PANEL_ANCHO) // 2
-        izq = pygame.Rect(PANEL_ANCHO, 0, w, ALTO)
-        der = pygame.Rect(PANEL_ANCHO + w, 0, w, ALTO)
+        ancho_actual, alto_actual = self.screen.get_size()
+        w = (ancho_actual - PANEL_ANCHO) // 2
+        izq = pygame.Rect(PANEL_ANCHO, 0, w, alto_actual)
+        der = pygame.Rect(PANEL_ANCHO + w, 0, w, alto_actual)
         return izq, der
 
     def _detectar_lado(self, mx):
@@ -791,7 +792,8 @@ class EditorPortales:
     # --------- Draw ----------
     def dibujar_panel(self):
         surf = self.screen
-        pygame.draw.rect(surf, COLOR_PANEL, (0,0,PANEL_ANCHO,ALTO))
+        _, alto_actual = self.screen.get_size()
+        pygame.draw.rect(surf, COLOR_PANEL, (0,0,PANEL_ANCHO,alto_actual))
         titulo = self.font_title.render("PORTALES", True, COLOR_TEXTO)
         surf.blit(titulo, (10,10))
         hint = self.font_small.render("Arrastra mapa a izq/der", True, COLOR_TEXTO_SEC)
@@ -925,9 +927,10 @@ class EditorPortales:
     def _dibujar_objetos(self, lado, portales, spawns, offset_x, offset_y, zoom):
         # Portales
         for p in portales:
-            # Visual según estado: disponible (no linked_portal) => fondo negro + borde VERDE + texto VERDE
-            # enlazado => fondo negro + borde BLANCO + texto BLANCO
-            linked = getattr(p, 'linked_portal', None)
+            # Visual según estado: disponible (sin mapa_destino) => fondo negro + borde VERDE + texto VERDE
+            # enlazado (con mapa_destino) => fondo negro + borde BLANCO + texto BLANCO
+            # Verificar mapa_destino para asegurar que AMBOS portales (origen y destino) queden blancos
+            linked = bool(getattr(p, 'mapa_destino', ''))
             if linked:
                 border_col = (255,255,255)
                 text_col = (255,255,255)
