@@ -357,9 +357,12 @@ class EditorMuros:
             self.mapa_imagen_original = pygame.image.load(mapa_info.ruta).convert_alpha()
             self.mapa_rect = self.mapa_imagen_original.get_rect()
             
-            # Calcular escala para que quepa en el área
-            escala_x = AREA_MAPA_ANCHO / self.mapa_rect.width
-            escala_y = ALTO / self.mapa_rect.height
+            # Calcular escala para que quepa en el área actual
+            ancho_pantalla, alto_pantalla = self.pantalla.get_size()
+            area_ancho = ancho_pantalla - PANEL_ANCHO
+            
+            escala_x = area_ancho / self.mapa_rect.width
+            escala_y = alto_pantalla / self.mapa_rect.height
             self.escala = min(escala_x, escala_y, 1.0)  # No agrandar, solo reducir
             
             # Zoom inicial igual a escala de ajuste
@@ -524,219 +527,6 @@ class EditorMuros:
         """Obtiene el muro en una posición (coordenadas del mapa original)"""
         for muro in reversed(self.muros):
             if muro.contiene_punto(x, y):
-                return muro
-        return None
-    
-    def dibujar_panel_lateral(self, surface):
-        """Dibuja el panel lateral con las secciones de mapas"""
-        # Fondo del panel
-        pygame.draw.rect(surface, COLOR_PANEL, (0, 0, PANEL_ANCHO, ALTO))
-        
-        # Título
-        titulo = self.fuente_titulo.render("EDITOR MUROS", True, COLOR_TEXTO)
-        surface.blit(titulo, (10, 10))
-        
-        # Botón de ayuda [?]
-        boton_ayuda = pygame.Rect(PANEL_ANCHO - 50, 20, 30, 30)
-        mouse_pos = pygame.mouse.get_pos()
-        color_boton_ayuda = COLOR_BOTON_HOVER if boton_ayuda.collidepoint(mouse_pos) else COLOR_BOTON
-        pygame.draw.rect(surface, color_boton_ayuda, boton_ayuda, border_radius=5)
-        pygame.draw.rect(surface, COLOR_TEXTO, boton_ayuda, 2, border_radius=5)
-        texto_ayuda = self.fuente.render("?", True, COLOR_TEXTO)
-        texto_rect = texto_ayuda.get_rect(center=boton_ayuda.center)
-        surface.blit(texto_ayuda, texto_rect)
-        
-        # Secciones de mapas
-        for seccion in self.secciones_mapas:
-            seccion.dibujar(surface)
-        
-        # Info del mapa actual
-        if self.mapa_actual:
-            y_info = ALTO - 150
-            pygame.draw.rect(surface, (30, 30, 40), (10, y_info, PANEL_ANCHO - 20, 140), border_radius=5)
-            
-            info_lineas = [
-                f"Mapa: {self.mapa_actual.nombre[:18]}",
-                f"Zoom: {self.zoom:.2f}x",
-                f"Muros: {len(self.muros)}",
-                f"Seleccionados: {len(self.muros_seleccionados)}",
-                "",
-                "G: Guardar",
-                "DEL: Eliminar",
-                "F: Fusionar",
-                "C: Export CSV",
-                "ESC: Salir"
-            ]
-            
-            for i, linea in enumerate(info_lineas):
-                color = COLOR_TEXTO if i < 3 else COLOR_TEXTO_SEC
-                texto = self.fuente_pequena.render(linea, True, color)
-                surface.blit(texto, (20, y_info + 10 + i * 18))
-    
-    def dibujar_area_mapa(self, surface):
-        """Dibuja el área del mapa y los muros"""
-        # Fondo
-        area_rect = pygame.Rect(PANEL_ANCHO, 0, AREA_MAPA_ANCHO, ALTO)
-        pygame.draw.rect(surface, (30, 30, 40), area_rect)
-        
-        if not self.mapa_actual or not self.mapa_imagen:
-            # Mensaje de ayuda
-            texto1 = self.fuente.render("Selecciona un mapa del panel izquierdo", True, COLOR_TEXTO_SEC)
-            texto2 = self.fuente_pequena.render("Click en las secciones para expandir", True, COLOR_TEXTO_SEC)
-            surface.blit(texto1, (PANEL_ANCHO + 50, ALTO // 2 - 20))
-            surface.blit(texto2, (PANEL_ANCHO + 50, ALTO // 2 + 10))
-            return
-        
-        # Dibujar mapa
-        mapa_x = PANEL_ANCHO + self.offset_x
-        mapa_y = self.offset_y
-        surface.blit(self.mapa_imagen, (mapa_x, mapa_y))
-        
-        # Dibujar muros existentes
-        for muro in self.muros:
-            if isinstance(muro, MuroPoligonal):
-                # Dibujar polígono
-                if len(muro.puntos) >= 3:
-                    puntos_pant = [self.convertir_coords_mapa_a_pantalla(px, py) for (px, py) in muro.puntos]
-                    seleccionado_multiple = muro in self.muros_seleccionados and len(self.muros_seleccionados) > 1
-                    if muro == self.muro_seleccionado and len(self.muros_seleccionados) == 1:
-                        pygame.draw.polygon(surface, (*COLOR_MURO_SELECCIONADO, 100), puntos_pant)
-                        pygame.draw.polygon(surface, COLOR_MURO_SELECCIONADO, puntos_pant, 3)
-                    elif seleccionado_multiple:
-                        pygame.draw.polygon(surface, (255, 140, 0, 80), puntos_pant)
-                        pygame.draw.polygon(surface, (255, 140, 0), puntos_pant, 2)
-                    elif muro == self.muro_hover:
-                        pygame.draw.polygon(surface, (255, 255, 0, 100), puntos_pant)
-                        pygame.draw.polygon(surface, (255, 255, 0), puntos_pant, 2)
-                    else:
-                        pygame.draw.polygon(surface, COLOR_MURO, puntos_pant)
-                        pygame.draw.polygon(surface, COLOR_MURO_BORDE, puntos_pant, 1)
-                continue
-            
-            # Muro rectangular
-            x_pant, y_pant = self.convertir_coords_mapa_a_pantalla(muro.x, muro.y)
-            w_pant = int(muro.w * self.zoom)
-            h_pant = int(muro.h * self.zoom)
-
-            surf_muro = pygame.Surface((w_pant, h_pant), pygame.SRCALPHA)
-            seleccionado_multiple = muro in self.muros_seleccionados and len(self.muros_seleccionados) > 1
-            if muro == self.muro_seleccionado and len(self.muros_seleccionados) == 1:
-                surf_muro.fill((*COLOR_MURO_SELECCIONADO, 128))
-                pygame.draw.rect(surface, COLOR_MURO_SELECCIONADO, (x_pant, y_pant, w_pant, h_pant), 3)
-            elif seleccionado_multiple:
-                surf_muro.fill((255, 140, 0, 100))
-                pygame.draw.rect(surface, (255, 140, 0), (x_pant, y_pant, w_pant, h_pant), 2)
-            elif muro == self.muro_hover:
-                surf_muro.fill((255, 255, 0, 128))
-                pygame.draw.rect(surface, (255, 255, 0), (x_pant, y_pant, w_pant, h_pant), 2)
-            else:
-                surf_muro.fill(COLOR_MURO)
-                pygame.draw.rect(surface, COLOR_MURO_BORDE, (x_pant, y_pant, w_pant, h_pant), 1)
-            surface.blit(surf_muro, (x_pant, y_pant))
-
-        # Handles si selección única (solo para muros rectangulares)
-        if len(self.muros_seleccionados) == 1:
-            muro_sel = self.muros_seleccionados[0]
-            if isinstance(muro_sel, Muro):  # No MuroPoligonal
-                self._dibujar_handles_muro(surface, muro_sel)
-        # Bounding box selección múltiple
-        if len(self.muros_seleccionados) > 1:
-            xs, ys, ws, hs = [], [], [], []
-            for m in self.muros_seleccionados:
-                if isinstance(m, MuroPoligonal):
-                    rect = m.get_bounding_rect()
-                    xs.append(rect.x)
-                    ys.append(rect.y)
-                    ws.append(rect.x + rect.w)
-                    hs.append(rect.y + rect.h)
-                else:
-                    xs.append(m.x)
-                    ys.append(m.y)
-                    ws.append(m.x + m.w)
-                    hs.append(m.y + m.h)
-            if xs:  # Evitar error si lista vacía
-                min_x, min_y, max_x, max_y = min(xs), min(ys), max(ws), max(hs)
-                bx, by = self.convertir_coords_mapa_a_pantalla(min_x, min_y)
-                bw = int((max_x - min_x) * self.zoom)
-                bh = int((max_y - min_y) * self.zoom)
-                pygame.draw.rect(surface, (255, 140, 0), (bx, by, bw, bh), 2)
-        
-        # Dibujar muro temporal (durante el dibujo)
-        if self.dibujando_muro and self.muro_inicio and self.muro_temp:
-            x_pant, y_pant = self.convertir_coords_mapa_a_pantalla(self.muro_temp.x, self.muro_temp.y)
-            w_pant = int(self.muro_temp.w * self.zoom)
-            h_pant = int(self.muro_temp.h * self.zoom)
-            
-            surf_temp = pygame.Surface((w_pant, h_pant), pygame.SRCALPHA)
-            surf_temp.fill(COLOR_MURO_NUEVO)
-            surface.blit(surf_temp, (x_pant, y_pant))
-            # Borde destacado y guías cruzadas
-            pygame.draw.rect(surface, (50, 255, 50), (x_pant, y_pant, w_pant, h_pant), 2)
-            cx = x_pant + w_pant // 2
-            cy = y_pant + h_pant // 2
-            pygame.draw.line(surface, (50, 255, 50), (cx, y_pant), (cx, y_pant + h_pant), 1)
-            pygame.draw.line(surface, (50, 255, 50), (x_pant, cy), (x_pant + w_pant, cy), 1)
-        
-        # Dibujar polígono en construcción
-        if self.dibujando_poligono and len(self.poligono_puntos) > 0:
-            puntos_pant = [self.convertir_coords_mapa_a_pantalla(px, py) for (px, py) in self.poligono_puntos]
-            if len(puntos_pant) >= 2:
-                pygame.draw.lines(surface, (0, 255, 255), False, puntos_pant, 2)
-            # Preview de cierre si hay 3+ puntos
-            if len(puntos_pant) >= 3:
-                pygame.draw.line(surface, (0, 255, 100, 150), puntos_pant[-1], puntos_pant[0], 2)
-            # Dibujar vértices
-            for i, pt in enumerate(puntos_pant):
-                pygame.draw.circle(surface, (0, 255, 255), pt, 5)
-                # Número del vértice
-                texto_num = self.fuente_pequena.render(str(i+1), True, (255, 255, 255))
-                surface.blit(texto_num, (pt[0] + 8, pt[1] - 8))
-            # Línea al cursor
-            if len(puntos_pant) > 0:
-                mouse_pos = pygame.mouse.get_pos()
-                if PANEL_ANCHO <= mouse_pos[0] <= ANCHO:
-                    pygame.draw.line(surface, (0, 255, 255, 100), puntos_pant[-1], mouse_pos, 1)
-    
-    def dibujar_barra_estado(self, surface):
-        """Dibuja barra de estado inferior"""
-        alto_barra = 30
-        pygame.draw.rect(surface, (45, 45, 65), (0, ALTO - alto_barra, ANCHO, alto_barra))
-        
-        # Mensaje temporal
-        if self.mensaje and pygame.time.get_ticks() - self.mensaje_tiempo < 3000:
-            texto = self.fuente_pequena.render(self.mensaje, True, (100, 255, 100))
-            surface.blit(texto, (PANEL_ANCHO + 20, ALTO - alto_barra + 8))
-        else:
-            # Instrucciones dinámicas
-            instrucciones = "L Polígono(Enter=cerrar) | R Rect | P Pincel | E Borrador | Shift+Click multi | F Fusionar | C CSV"
-            texto = self.fuente_pequena.render(instrucciones, True, COLOR_TEXTO_SEC)
-            surface.blit(texto, (PANEL_ANCHO + 20, ALTO - alto_barra + 8))
-
-        # Overlay superior derecha con modo y zoom
-        modo_display = self.modo_dibujo
-        extra_info = []
-        if self.dibujando_poligono:
-            modo_display = f"Polígono ({len(self.poligono_puntos)} pts)"
-            if len(self.poligono_puntos) >= 3:
-                extra_info.append("ENTER: Crear muro")
-            else:
-                extra_info.append(f"Min 3 puntos para crear")
-        overlay = [
-            f"Modo: {modo_display}",
-            f"Pincel: {self.pincel_tamano}px",
-            f"Zoom: {self.zoom:.2f}x (Max 1:1)"
-        ] + extra_info
-        for i, linea in enumerate(overlay):
-            surf = self.fuente_pequena.render(linea, True, (220, 220, 230))
-            fondo = pygame.Surface((surf.get_width() + 10, surf.get_height() + 4))
-            fondo.set_alpha(150)
-            fondo.fill((0, 0, 0))
-            x_overlay = ANCHO - (surf.get_width() + 30)
-            y_overlay = 10 + i * 22
-            surface.blit(fondo, (x_overlay, y_overlay))
-            surface.blit(surf, (x_overlay + 5, y_overlay + 2))
-
-    # === NUEVAS UTILIDADES DE DIBUJO ===
     def _aplicar_zoom_imagen(self):
         if not hasattr(self, 'mapa_imagen_original') or self.mapa_imagen_original is None:
             return
@@ -881,16 +671,18 @@ class EditorMuros:
     
     def _dibujar_ventana_ayuda(self):
         """Dibuja ventana modal con teclas y funciones"""
+        ancho_pantalla, alto_pantalla = self.pantalla.get_size()
         # Fondo semitransparente
-        overlay = pygame.Surface((ANCHO, ALTO), pygame.SRCALPHA)
+        overlay = pygame.Surface((ancho_pantalla, alto_pantalla), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, 180))
         self.pantalla.blit(overlay, (0, 0))
         
         # Ventana central
         ventana_w = 700
         ventana_h = 650
-        ventana_x = (ANCHO - ventana_w) // 2
-        ventana_y = (ALTO - ventana_h) // 2
+        ancho_pantalla, alto_pantalla = self.pantalla.get_size()
+        ventana_x = (ancho_pantalla - ventana_w) // 2
+        ventana_y = (alto_pantalla - ventana_h) // 2
         ventana_rect = pygame.Rect(ventana_x, ventana_y, ventana_w, ventana_h)
         
         pygame.draw.rect(self.pantalla, COLOR_PANEL, ventana_rect, border_radius=10)
