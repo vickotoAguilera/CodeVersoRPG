@@ -1639,40 +1639,12 @@ class EditorPortales:
                                 if obj and isinstance(obj, (PortalRect, PortalPoly)):
                                     # Si estamos en modo CREAR PORTALES, click derecho elimina el portal
                                     if self.toggle_crear_portales:
-                                        # eliminar portal y limpiar referencias cruzadas
-                                        linked = getattr(obj, 'linked_portal', None)
-                                        # spawns en este lado
-                                        spawns_this = self.izq_spawns if lado=='izq' else self.der_spawns
-                                        # spawns en otro lado
-                                        spawns_other = self.der_spawns if lado=='izq' else self.izq_spawns
-                                        # si hay partner, eliminar spawn correspondiente en este mapa (normalmente linked.spawn_destino_id)
-                                        if linked:
-                                            spawn_in_this = getattr(linked, 'spawn_destino_id', None)
-                                            if spawn_in_this:
-                                                for s in list(spawns_this):
-                                                    if s.id == spawn_in_this:
-                                                        spawns_this.remove(s)
-                                                        break
-                                            # limpiar partner
-                                            linked.linked_portal = None
-                                            linked.mapa_destino = ''
-                                            linked.spawn_destino_id = ''
-                                        # eliminar spawn en otro lado que este portal referenciaba
-                                        spawn_ref = getattr(obj, 'spawn_destino_id', None)
-                                        if spawn_ref:
-                                            for s in list(spawns_other):
-                                                if s.id == spawn_ref:
-                                                    spawns_other.remove(s)
-                                                    break
-                                        # finalmente eliminar el portal
-                                        try:
-                                            portales.remove(obj)
-                                        except Exception:
-                                            pass
+                                        # Usar desvinculación estricta
+                                        self._desvincular_completo(obj, portales, lado, eliminar_portal=True)
                                         self.seleccionados = []
                                         self.lado_seleccion = None
                                         self.cambios_pendientes = True
-                                        self._msg(f"✓ Portal eliminado")
+                                        self._msg(f"✓ Portal eliminado y vínculos limpiados")
                                         continue
 
                                     # Preferir portal->spawn flow si está activo
