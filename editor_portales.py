@@ -119,9 +119,10 @@ class Spawn:
     y: int
     direccion: str = 'abajo'
     tam: int = 12
+    linked_portal_id: str = ''
 
     def to_dict(self):
-        return {"id": self.id, "x": int(self.x), "y": int(self.y), "direccion": self.direccion, "tam": int(self.tam)}
+        return {"id": self.id, "x": int(self.x), "y": int(self.y), "direccion": self.direccion, "tam": int(self.tam), "linked_portal_id": self.linked_portal_id}
 
 
 class EditorPortales:
@@ -445,7 +446,8 @@ class EditorPortales:
                     s.get('id', ''),
                     s['x'], s['y'],
                     s.get('direccion', 'abajo'),
-                    s.get('tam', 12)
+                    s.get('tam', 12),
+                    s.get('linked_portal_id', '')
                 ))
         return portales, spawns
 
@@ -459,13 +461,22 @@ class EditorPortales:
             if sid:
                 referenced.add(sid)
         removed = []
-        # Mantener spawns cuyo id esté en referenced
+        # Mantener spawns cuyo id esté en referenced O que tengan linked_portal_id
         keep = []
         for s in spawns:
-            if s.id and s.id not in referenced:
-                removed.append(s.id)
-            else:
+            # Mantener si está referenciado por un portal O si tiene un linked_portal_id válido
+            has_portal_ref = s.id and s.id in referenced
+            has_linked_portal = bool(getattr(s, 'linked_portal_id', ''))
+            
+            # DEBUG
+            print(f"[DEBUG] Spawn {s.id}: portal_ref={has_portal_ref}, linked_portal_id='{getattr(s, 'linked_portal_id', '')}', has_linked={has_linked_portal}")
+            
+            if has_portal_ref or has_linked_portal:
                 keep.append(s)
+            else:
+                if s.id:
+                    removed.append(s.id)
+                    print(f"[DEBUG] ❌ Eliminando spawn {s.id} (no tiene referencia ni linked_portal_id)")
         if removed:
             spawns[:] = keep
         return removed
@@ -578,19 +589,6 @@ class EditorPortales:
             self.portal_vinculo_1 = None
             self.lado_vinculo_1 = None
             return
-        # Evitar sobrescribir un enlace ya existente hacia un tercero
-        if getattr(a, 'linked_portal', None) and getattr(a, 'linked_portal', None) is not b:
-            self._msg(f"⚠ '{a.id}' ya vinculado. Desvincula primero con click derecho en lista.")
-            print(f"[DEBUG] abort linking: portal_a ({getattr(a,'id',None)}) already linked to {getattr(a.linked_portal,'id',None)}")
-            self.portal_vinculo_1 = None
-            self.lado_vinculo_1 = None
-            return
-        if getattr(b, 'linked_portal', None) and getattr(b, 'linked_portal', None) is not a:
-            self._msg(f"⚠ '{b.id}' ya vinculado. Desvincula primero con click derecho en lista.")
-            print(f"[DEBUG] abort linking: portal_b ({getattr(b,'id',None)}) already linked to {getattr(b.linked_portal,'id',None)}")
-            self.portal_vinculo_1 = None
-            self.lado_vinculo_1 = None
-            return
 
         # Asignar IDs legibles a los portales si no tienen (respetando numeración única)
         if not getattr(a, 'id', None):
@@ -605,10 +603,12 @@ class EditorPortales:
 
         spawn_a_id = self._generar_spawn_id(mapa_origen, mapa_dest)
         cx_a, cy_a = centro_portal(a)
-        spawn_a = Spawn(id=spawn_a_id, x=cx_a, y=cy_a)
+        # Colocar spawn arriba del portal (50 píxeles arriba del centro)
+        spawn_a = Spawn(id=spawn_a_id, x=cx_a, y=cy_a - 50, linked_portal_id=a.id)
         spawn_b_id = self._generar_spawn_id(mapa_dest, mapa_origen)
         cx_b, cy_b = centro_portal(b)
-        spawn_b = Spawn(id=spawn_b_id, x=cx_b, y=cy_b)
+        # Colocar spawn arriba del portal (50 píxeles arriba del centro)
+        spawn_b = Spawn(id=spawn_b_id, x=cx_b, y=cy_b - 50, linked_portal_id=b.id)
 
         # Añadir spawns a las listas correspondientes según el lado
         if lado_a == 'izq':
@@ -643,7 +643,7 @@ class EditorPortales:
             return
 
         nuevo_id = self._generar_spawn_id(mapa_name, '')
-        nuevo_spawn = Spawn(id=nuevo_id, x=x, y=y)
+        nuevo_spawn = Spawn(id=nuevo_id, x=x, y=y, linked_portal_id=portal.id)
         spawns_list.append(nuevo_spawn)
         portal.spawn_destino_id = nuevo_spawn.id
         self._msg(f"✓ Spawn {nuevo_spawn.id} creado y vinculado a {portal.id}")
@@ -655,8 +655,15 @@ class EditorPortales:
         spawn_id = modal.get('spawn_id')
         # Limpiar referencia en el portal
         portal.spawn_destino_id = ''
-        # Intentar eliminar spawn si es huérfano en ese mapa
+        
+        # Buscar el spawn y limpiar su linked_portal_id
         spawns = self.izq_spawns if lado=='izq' else self.der_spawns
+        for s in spawns:
+            if s.id == spawn_id:
+                s.linked_portal_id = ''
+                break
+        
+        # Intentar eliminar spawn si es huérfano en ese mapa
         # ¿Está referenciado por otro portal en el mismo mapa?
         referenced = False
         for p in (self.izq_portales if lado=='izq' else self.der_portales):
@@ -959,15 +966,45 @@ class EditorPortales:
                         dest_txt = self.font_small.render(f"→ {p.mapa_destino}", True, (180,180,180))
                         self.screen.blit(dest_txt, (sx+6, sy+rh+2))
         
+        
         # Spawns
         for s in spawns:
             sx, sy = self._map_to_screen(s.x, s.y, lado, offset_x, offset_y, zoom)
             half = max(6, int(s.tam * zoom / 2))
-            pygame.draw.rect(self.screen, COLOR_SPAWN, (sx-half, sy-half, half*2, half*2), 1)
+            
+            # Determinar color según estado de enlazado
+            is_linked = bool(getattr(s, 'linked_portal_id', ''))
+            if is_linked:
+                # Spawn enlazado: BLANCO con fondo NEGRO
+                spawn_col = (255, 255, 255)
+                text_col = (255, 255, 255)
+                bg_rect = pygame.Rect(sx-half-2, sy-half-2, half*2+4, half*2+4)
+                pygame.draw.rect(self.screen, (0, 0, 0), bg_rect)
+                pygame.draw.rect(self.screen, spawn_col, bg_rect, 2)
+            else:
+                # Spawn sin enlazar: VERDE
+                spawn_col = (0, 200, 80)
+                text_col = (0, 200, 80)
+                pygame.draw.rect(self.screen, spawn_col, (sx-half, sy-half, half*2, half*2), 2)
+            
+            # Línea de dirección
             vec = {"arriba":(0,-18),"abajo":(0,18),"izquierda":(-18,0),"derecha":(18,0)}.get(s.direccion, (0,18))
-            pygame.draw.line(self.screen, COLOR_SPAWN, (sx, sy), (sx+vec[0], sy+vec[1]), 2)
+            pygame.draw.line(self.screen, spawn_col, (sx, sy), (sx+vec[0], sy+vec[1]), 2)
+            
+            # Nombre (fusionado si está enlazado)
             if s.id:
-                self.screen.blit(self.font_small.render(s.id, True, COLOR_TEXTO), (sx+8, sy-18))
+                if is_linked and s.linked_portal_id:
+                    display_name = f"{s.linked_portal_id}_{s.id}"
+                else:
+                    display_name = s.id
+                
+                txt = self.font_small.render(display_name, True, text_col)
+                if is_linked:
+                    txt_rect = txt.get_rect(topleft=(sx+8, sy-20))
+                    txt_rect.inflate_ip(4, 2)
+                    pygame.draw.rect(self.screen, (0, 0, 0), txt_rect, border_radius=3)
+                    pygame.draw.rect(self.screen, spawn_col, txt_rect, 1, border_radius=3)
+                self.screen.blit(txt, (sx+8, sy-18))
 
     def _dibujar_poligono_construccion(self, lado, offset_x, offset_y, zoom):
         if not self.poligono_puntos: return

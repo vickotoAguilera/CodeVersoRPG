@@ -4,13 +4,22 @@
       "id": "portal_mapa_taberna",
       "tipo": "portal_enlazado",
       "forma": "rect",
-      "x": 226,
-      "y": 375,
-      "w": 50,
-      "h": 66,
+      "x": 232,
+      "y": 405,
+      "w": 40,
+      "h": 61,
       "mapa_destino": "mapa_pueblo_final",
-      "spawn_destino_id": "S_mapa_pueblo_final_mapa_taberna_4"
+      "spawn_destino_id": "S_mapa_pueblo_final_mapa_taberna_5"
     }
   ],
-  "spawns": []
+  "spawns": [
+    {
+      "id": "S_mapa_taberna_mapa_pueblo_final_6",
+      "x": 253,
+      "y": 327,
+      "direccion": "abajo",
+      "tam": 12,
+      "linked_portal_id": "portal_mapa_taberna"
+    }
+  ]
 }

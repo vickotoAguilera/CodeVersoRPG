@@ -1,71 +1,101 @@
 {
   "portales": [
     {
-      "id": "Pmapa_pueblo_final_mapa_pradera",
-      "tipo": "portal_enlazado",
-      "forma": "rect",
-      "x": 455,
-      "y": 917,
-      "w": 71,
-      "h": 43,
-      "mapa_destino": "mapa_pradera",
-      "spawn_destino_id": "S6"
-    },
-    {
       "id": "portal_mapa_pueblo_final",
       "tipo": "portal_enlazado",
       "forma": "rect",
-      "x": 435,
-      "y": 371,
-      "w": 51,
-      "h": 61,
-      "mapa_destino": "mapa_posada",
-      "spawn_destino_id": "S_mapa_posada_mapa_pueblo_final_2"
+      "x": 297,
+      "y": 832,
+      "w": 48,
+      "h": 55,
+      "mapa_destino": "mapa_herrero",
+      "spawn_destino_id": "S_mapa_herrero_mapa_pueblo_final_4"
     },
     {
       "id": "portal_mapa_pueblo_final_1",
       "tipo": "portal_enlazado",
       "forma": "rect",
-      "x": 320,
-      "y": 482,
-      "w": 39,
-      "h": 53,
+      "x": 318,
+      "y": 491,
+      "w": 53,
+      "h": 65,
       "mapa_destino": "mapa_taberna",
-      "spawn_destino_id": "S_mapa_taberna_mapa_pueblo_final_3"
+      "spawn_destino_id": "S_mapa_taberna_mapa_pueblo_final_6"
     },
     {
       "id": "portal_mapa_pueblo_final_2",
       "tipo": "portal_enlazado",
       "forma": "rect",
-      "x": 290,
-      "y": 818,
-      "w": 46,
-      "h": 51,
-      "mapa_destino": "mapa_herrero",
-      "spawn_destino_id": "S_mapa_herrero_mapa_pueblo_final_6"
+      "x": 427,
+      "y": 374,
+      "w": 64,
+      "h": 72,
+      "mapa_destino": "mapa_posada",
+      "spawn_destino_id": "S_mapa_posada_mapa_pueblo_final_8"
     },
     {
       "id": "portal_mapa_pueblo_final_3",
       "tipo": "portal_enlazado",
       "forma": "rect",
-      "x": 659,
-      "y": 671,
-      "w": 57,
-      "h": 55,
+      "x": 654,
+      "y": 677,
+      "w": 58,
+      "h": 56,
       "mapa_destino": "mapa_tienda_items",
-      "spawn_destino_id": "S_mapa_tienda_items_mapa_pueblo_final_7"
+      "spawn_destino_id": "S_mapa_tienda_items_mapa_pueblo_final_10"
     },
     {
       "id": "portal_mapa_pueblo_final_4",
       "tipo": "portal_enlazado",
       "forma": "rect",
-      "x": 581,
-      "y": 386,
-      "w": 45,
-      "h": 42,
+      "x": 578,
+      "y": 389,
+      "w": 37,
+      "h": 45,
       "mapa_destino": "mapa_tienda_magia",
-      "spawn_destino_id": "S_mapa_tienda_magia_mapa_pueblo_final_10"
+      "spawn_destino_id": "S_mapa_tienda_magia_mapa_pueblo_final_12"
     }
   ],
-  "spawns": []
+  "spawns": [
+    {
+      "id": "S_mapa_pueblo_final_mapa_herrero_3",
+      "x": 387,
+      "y": 785,
+      "direccion": "abajo",
+      "tam": 12,
+      "linked_portal_id": "portal_mapa_pueblo_final"
+    },
+    {
+      "id": "S_mapa_pueblo_final_mapa_taberna_5",
+      "x": 427,
+      "y": 550,
+      "direccion": "abajo",
+      "tam": 12,
+      "linked_portal_id": "portal_mapa_pueblo_final_1"
+    },
+    {
+      "id": "S_mapa_pueblo_final_mapa_posada_7",
+      "x": 495,
+      "y": 458,
+      "direccion": "abajo",
+      "tam": 12,
+      "linked_portal_id": "portal_mapa_pueblo_final_2"
+    },
+    {
+      "id": "S_mapa_pueblo_final_mapa_tienda_items_9",
+      "x": 626,
+      "y": 730,
+      "direccion": "abajo",
+      "tam": 12,
+      "linked_portal_id": "portal_mapa_pueblo_final_3"
+    },
+    {
+      "id": "S_mapa_pueblo_final_mapa_tienda_magia_11",
+      "x": 584,
+      "y": 460,
+      "direccion": "abajo",
+      "tam": 12,
+      "linked_portal_id": "portal_mapa_pueblo_final_4"
+    }
+  ]
 }
