@@ -4,7 +4,7 @@ from pathlib import Path
 from dataclasses import dataclass
 from typing import List, Tuple, Optional
 
-ANCHO, ALTO = 1600, 900
+ANCHO, ALTO = 800, 600
 PANEL_ANCHO = 300
 FPS = 60
 
@@ -168,7 +168,7 @@ class SeccionPortales:
 class EditorPortales:
     def __init__(self):
         pygame.init()
-        self.screen = pygame.display.set_mode((ANCHO, ALTO))
+        self.screen = pygame.display.set_mode((ANCHO, ALTO), pygame.RESIZABLE)
         pygame.display.set_caption("Editor de Portales - CodeVerso RPG")
         self.clock = pygame.time.Clock()
         self.font = pygame.font.Font(None, 24)

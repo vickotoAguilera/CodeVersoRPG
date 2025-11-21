@@ -19,7 +19,7 @@ import random
 from pathlib import Path
 
 # === CONFIGURACIÓN ===
-ANCHO, ALTO = 1400, 900
+ANCHO, ALTO = 800, 600
 FPS = 60
 PANEL_ANCHO = 350
 ZOOM_MIN, ZOOM_MAX = 0.25, 2.0
@@ -130,7 +130,7 @@ class SeccionDesplegable:
 class EditorCofres:
     def __init__(self):
         pygame.init()
-        self.screen = pygame.display.set_mode((ANCHO, ALTO))
+        self.screen = pygame.display.set_mode((ANCHO, ALTO), pygame.RESIZABLE)
         pygame.display.set_caption("Editor de Cofres - CodeVerso RPG")
         self.clock = pygame.time.Clock()
         self.running = True

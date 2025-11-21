@@ -27,7 +27,7 @@ from pathlib import Path
 from datetime import datetime
 
 # === CONFIGURACIÓN ===
-ANCHO, ALTO = 1600, 900
+ANCHO, ALTO = 800, 600
 FPS = 60
 PANEL_ANCHO = 300
 ZOOM_MIN, ZOOM_MAX = 0.25, 3.0
@@ -109,7 +109,7 @@ class MapaInfo:
 class EditorUnificado:
     def __init__(self):
         pygame.init()
-        self.screen = pygame.display.set_mode((ANCHO, ALTO))
+        self.screen = pygame.display.set_mode((ANCHO, ALTO), pygame.RESIZABLE)
         pygame.display.set_caption("Editor Unificado - CodeVerso RPG")
         self.clock = pygame.time.Clock()
         self.running = True

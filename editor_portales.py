@@ -6,7 +6,7 @@ from pathlib import Path
 from dataclasses import dataclass
 from typing import List, Tuple, Optional
 
-ANCHO, ALTO = 1600, 900
+ANCHO, ALTO = 800, 600
 PANEL_ANCHO = 300
 FPS = 60
 
@@ -128,7 +128,7 @@ class Spawn:
 class EditorPortales:
     def __init__(self):
         pygame.init()
-        self.screen = pygame.display.set_mode((ANCHO, ALTO))
+        self.screen = pygame.display.set_mode((ANCHO, ALTO), pygame.RESIZABLE)
         self.clock = pygame.time.Clock()
         self.font = pygame.font.SysFont(None, 18)
         self.font_small = pygame.font.SysFont(None, 14)

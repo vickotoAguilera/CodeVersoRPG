@@ -21,8 +21,8 @@ from typing import List, Optional, Tuple
 # ========================================
 # CONFIGURACIÓN
 # ========================================
-ANCHO = 1600
-ALTO = 900
+ANCHO = 800
+ALTO = 600
 FPS = 60
 PANEL_ANCHO = 300
 AREA_BATALLA_ANCHO = ANCHO - PANEL_ANCHO
@@ -452,7 +452,7 @@ class EditorBatalla:
     
     def __init__(self):
         pygame.init()
-        self.pantalla = pygame.display.set_mode((ANCHO, ALTO))
+        self.pantalla = pygame.display.set_mode((ANCHO, ALTO), pygame.RESIZABLE)
         pygame.display.set_caption("Editor de Batalla - CodeVerso RPG")
         self.reloj = pygame.time.Clock()
         

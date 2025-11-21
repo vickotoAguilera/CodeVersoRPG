@@ -27,8 +27,8 @@ from typing import List, Dict, Optional, Tuple
 # ========================================
 # CONFIGURACIÓN
 # ========================================
-ANCHO = 1600
-ALTO = 900
+ANCHO = 800
+ALTO = 600
 FPS = 60
 PANEL_IZQUIERDO = 300
 PANEL_DERECHO = 300
@@ -251,7 +251,7 @@ class EditorMapaAvanzado:
     
     def __init__(self):
         pygame.init()
-        self.pantalla = pygame.display.set_mode((ANCHO, ALTO))
+        self.pantalla = pygame.display.set_mode((ANCHO, ALTO), pygame.RESIZABLE)
         pygame.display.set_caption("Editor de Mapas Profesional - CodeVerso RPG")
         self.reloj = pygame.time.Clock()
         

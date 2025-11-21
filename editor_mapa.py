@@ -28,8 +28,8 @@ from pathlib import Path
 from enum import Enum
 
 # Configuración
-ANCHO = 1400
-ALTO = 900
+ANCHO = 800
+ALTO = 600
 FPS = 60
 
 # Colores
@@ -143,7 +143,7 @@ class EditorMapa:
     
     def __init__(self, nombre_mapa, carpeta_mapa):
         pygame.init()
-        self.pantalla = pygame.display.set_mode((ANCHO, ALTO))
+        self.pantalla = pygame.display.set_mode((ANCHO, ALTO), pygame.RESIZABLE)
         pygame.display.set_caption(f"Editor de Mapa - {nombre_mapa}")
         self.reloj = pygame.time.Clock()
         
