@@ -339,6 +339,11 @@ class EditorPortales:
     # --------- IO ----------
     def _ruta_json(self, mapa: MapaInfo) -> Path:
         carpeta = Path('src/database/mapas')/mapa.categoria
+        
+        # Incluir subcarpeta si existe (fix para sincronización con otros editores)
+        if mapa.subcarpeta:
+            carpeta = carpeta / mapa.subcarpeta
+        
         carpeta.mkdir(parents=True, exist_ok=True)
         return carpeta/(mapa.nombre + '.json')
 
