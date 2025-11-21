@@ -1,5 +1,21 @@
 [
   {
+    "id": "test_mapa_a",
+    "nombre": "test_mapa_a",
+    "categoria": "ciudades",
+    "imagen": null,
+    "imagen_ruta": null,
+    "ruta_json": "src\\database\\mapas\\ciudades\\test_mapa_a.json"
+  },
+  {
+    "id": "test_mapa_b",
+    "nombre": "test_mapa_b",
+    "categoria": "ciudades",
+    "imagen": null,
+    "imagen_ruta": null,
+    "ruta_json": "src\\database\\mapas\\ciudades\\test_mapa_b.json"
+  },
+  {
     "id": "mapa_herrero",
     "nombre": "mapa_herrero",
     "categoria": "ciudades_y_pueblos",
@@ -51,8 +67,8 @@
     "id": "mapa_pradera",
     "nombre": "mapa_pradera",
     "categoria": "mundo",
-    "imagen": null,
-    "imagen_ruta": null,
+    "imagen": "mapa_pradera.jpg",
+    "imagen_ruta": "assets\\maps\\mundo\\mapa_pradera.jpg",
     "ruta_json": "src\\database\\mapas\\mundo\\mapa_pradera.json"
   }
 ]

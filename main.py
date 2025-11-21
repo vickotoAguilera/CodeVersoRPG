@@ -655,8 +655,20 @@ while True:
                 # Resolver nombre de archivo y categoría reales antes de crear Mapa
                 archivo_img, categoria_real = resolver_mapa(nombre_mapa_nuevo, categoria_nueva)
                 mi_mapa = Mapa(archivo_img, categoria_real, ANCHO, ALTO)
+                # Si el portal trae una posición explícita, usarla.
                 if pos_nueva:
                     heroe_lider.teletransportar(pos_nueva[0], pos_nueva[1])
+                else:
+                    # Si el portal trae un spawn_destino_id (desde el JSON original), buscarlo en el mapa nuevo
+                    spawn_id = portal_tocado.get('spawn_destino_id') if isinstance(portal_tocado, dict) else None
+                    if spawn_id and hasattr(mi_mapa, 'spawns_ids') and spawn_id in mi_mapa.spawns_ids:
+                        coord = mi_mapa.spawns_ids[spawn_id]
+                        heroe_lider.teletransportar(coord[0], coord[1])
+                    else:
+                        # Fallback: si el mapa tiene spawns, usar el primero
+                        if hasattr(mi_mapa, 'spawns') and mi_mapa.spawns:
+                            s = mi_mapa.spawns[0]
+                            heroe_lider.teletransportar(s[0], s[1])
                 portal_listo_para_usar = False
                 pasos_desde_batalla = 0
             elif not portal_tocado:

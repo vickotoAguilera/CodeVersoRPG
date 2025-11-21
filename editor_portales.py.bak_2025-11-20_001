@@ -119,10 +119,9 @@ class Spawn:
     y: int
     direccion: str = 'abajo'
     tam: int = 12
-    linked_portal_id: str = ''
 
     def to_dict(self):
-        return {"id": self.id, "x": int(self.x), "y": int(self.y), "direccion": self.direccion, "tam": int(self.tam), "linked_portal_id": self.linked_portal_id}
+        return {"id": self.id, "x": int(self.x), "y": int(self.y), "direccion": self.direccion, "tam": int(self.tam)}
 
 
 class EditorPortales:
@@ -398,59 +397,14 @@ class EditorPortales:
         if ruta.exists():
             with open(ruta, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-            
-            # Contador para generar IDs únicos al cargar portales sin ID
-            portal_counter = {}
-            
             for p in data.get('portales', []):
-                # Detectar estructura antigua con 'caja' (formato del juego)
-                if 'caja' in p:
-                    # Estructura del juego: {"caja": {"x": ..., "y": ..., "w": ..., "h": ...}, "mapa_destino": ...}
-                    caja = p['caja']
-                    x, y, w, h = caja['x'], caja['y'], caja['w'], caja['h']
-                    mapa_dest = p.get('mapa_destino', '')
-                    # Generar ID único basado en el mapa
-                    portal_id = self._generar_portal_id_from_loaded(mapa.nombre, portal_counter)
-                    spawn_dest_id = ''  # Los JSON antiguos no tienen spawn_destino_id
-                else:
-                    # Estructura del editor: {"id": ..., "x": ..., "y": ..., "w": ..., "h": ..., "mapa_destino": ..., "spawn_destino_id": ...}
-                    x = p.get('x')
-                    y = p.get('y')
-                    w = p.get('w')
-                    h = p.get('h')
-                    mapa_dest = p.get('mapa_destino', '')
-                    spawn_dest_id = p.get('spawn_destino_id', '')
-                    # Si no tiene ID o está vacío, generar uno
-                    portal_id = p.get('id', '') or self._generar_portal_id_from_loaded(mapa.nombre, portal_counter)
-                
-                # Crear portal según su forma
                 if p.get('forma') == 'poly':
-                    portales.append(PortalPoly(
-                        portal_id,
-                        [tuple(pt) for pt in p['puntos']],
-                        mapa_dest,
-                        spawn_dest_id
-                    ))
+                    portales.append(PortalPoly(p.get('id',''), [tuple(pt) for pt in p['puntos']], p.get('mapa_destino',''), p.get('spawn_destino_id','')))
                 else:
-                    # Solo crear si tenemos coordenadas válidas
-                    if x is not None and y is not None and w is not None and h is not None:
-                        portales.append(PortalRect(
-                            portal_id,
-                            x, y, w, h,
-                            mapa_dest,
-                            spawn_dest_id
-                        ))
-            
+                    portales.append(PortalRect(p.get('id',''), p['x'], p['y'], p['w'], p['h'], p.get('mapa_destino',''), p.get('spawn_destino_id','')))
             for s in data.get('spawns', []):
-                spawns.append(Spawn(
-                    s.get('id', ''),
-                    s['x'], s['y'],
-                    s.get('direccion', 'abajo'),
-                    s.get('tam', 12),
-                    s.get('linked_portal_id', '')
-                ))
+                spawns.append(Spawn(s.get('id',''), s['x'], s['y'], s.get('direccion','abajo'), s.get('tam', 12)))
         return portales, spawns
-
 
     def _limpiar_spawns_huerfanos(self, portales: List[object], spawns: List[Spawn]) -> List[str]:
         """Eliminar spawns que no están referenciados por ningún portal en este mapa.
@@ -461,22 +415,13 @@ class EditorPortales:
             if sid:
                 referenced.add(sid)
         removed = []
-        # Mantener spawns cuyo id esté en referenced O que tengan linked_portal_id
+        # Mantener spawns cuyo id esté en referenced
         keep = []
         for s in spawns:
-            # Mantener si está referenciado por un portal O si tiene un linked_portal_id válido
-            has_portal_ref = s.id and s.id in referenced
-            has_linked_portal = bool(getattr(s, 'linked_portal_id', ''))
-            
-            # DEBUG
-            print(f"[DEBUG] Spawn {s.id}: portal_ref={has_portal_ref}, linked_portal_id='{getattr(s, 'linked_portal_id', '')}', has_linked={has_linked_portal}")
-            
-            if has_portal_ref or has_linked_portal:
-                keep.append(s)
+            if s.id and s.id not in referenced:
+                removed.append(s.id)
             else:
-                if s.id:
-                    removed.append(s.id)
-                    print(f"[DEBUG] ❌ Eliminando spawn {s.id} (no tiene referencia ni linked_portal_id)")
+                keep.append(s)
         if removed:
             spawns[:] = keep
         return removed
@@ -526,28 +471,6 @@ class EditorPortales:
                 return c
             i += 1
 
-    def _generar_portal_id_from_loaded(self, mapa_name: str, counter_dict: dict) -> str:
-        """Genera ID único para portales cargados sin ID.
-        
-        Args:
-            mapa_name: Nombre del mapa
-            counter_dict: Diccionario para rastrear contadores por mapa
-        
-        Returns:
-            ID único como 'portal_{mapa}_{n}'
-        """
-        def clean(name: str) -> str:
-            if not name:
-                return 'unknown'
-            return ''.join(c if c.isalnum() else '_' for c in str(name))
-        
-        base = clean(mapa_name)
-        if base not in counter_dict:
-            counter_dict[base] = 0
-        
-        counter_dict[base] += 1
-        return f"portal_{base}_{counter_dict[base]}"
-
     # --------- Confirm/Action helpers for modal ----------
     def _confirm_create_pair_spawns(self, modal):
         a = modal.get('portal_a')
@@ -556,12 +479,6 @@ class EditorPortales:
         lado_b = modal.get('lado_b')
         mapa_origen = modal.get('mapa_origen')
         mapa_dest = modal.get('mapa_dest')
-
-        # Debug: log attempt
-        try:
-            print(f"[DEBUG] _confirm_create_pair_spawns called: a.id={getattr(a,'id',None)} lado_a={lado_a} a.spawn={getattr(a,'spawn_destino_id',None)} | b.id={getattr(b,'id',None)} lado_b={lado_b} b.spawn={getattr(b,'spawn_destino_id',None)} | mapa_origen={mapa_origen} mapa_dest={mapa_dest}")
-        except Exception:
-            print('[DEBUG] _confirm_create_pair_spawns called (could not format)')
 
         def centro_portal(p):
             if isinstance(p, PortalRect):
@@ -575,26 +492,16 @@ class EditorPortales:
                     return sum(xs)//len(xs), sum(ys)//len(ys)
             return 0, 0
 
-        # Seguridad: no sobrescribir spawns o enlaces existentes.
-        if getattr(a, 'spawn_destino_id', None):
-            self._msg(f"⚠ '{a.id}' ya vinculado a '{a.mapa_destino}'. Click derecho en lista para desvincular.")
-            print(f"[DEBUG] abort linking: portal_a ({getattr(a,'id',None)}) already has spawn {getattr(a,'spawn_destino_id',None)}")
-            # limpiar selección de vinculación
-            self.portal_vinculo_1 = None
-            self.lado_vinculo_1 = None
-            return
-        if getattr(b, 'spawn_destino_id', None):
-            self._msg(f"⚠ '{b.id}' ya vinculado a '{b.mapa_destino}'. Click derecho en lista para desvincular.")
-            print(f"[DEBUG] abort linking: portal_b ({getattr(b,'id',None)}) already has spawn {getattr(b,'spawn_destino_id',None)}")
-            self.portal_vinculo_1 = None
-            self.lado_vinculo_1 = None
-            return
-
-        # Asignar IDs legibles a los portales si no tienen (respetando numeración única)
+        # Asignar IDs legibles a los portales si no tienen
         if not getattr(a, 'id', None):
-            a.id = self._generar_portal_id(mapa_origen)
+            a.id = f"portal_{mapa_origen}"
         if not getattr(b, 'id', None):
-            b.id = self._generar_portal_id(mapa_dest)
+            b.id = f"portal_{mapa_dest}"
+
+        # Generar nombre compuesto para los portales enlazados
+        composite = f"portal_{mapa_origen}_{mapa_dest}"
+        a.id = composite
+        b.id = composite
         # Marcar los mapas destino y enlace directo entre objetos
         a.mapa_destino = mapa_dest
         b.mapa_destino = mapa_origen
@@ -603,12 +510,10 @@ class EditorPortales:
 
         spawn_a_id = self._generar_spawn_id(mapa_origen, mapa_dest)
         cx_a, cy_a = centro_portal(a)
-        # Colocar spawn arriba del portal (50 píxeles arriba del centro)
-        spawn_a = Spawn(id=spawn_a_id, x=cx_a, y=cy_a - 50, linked_portal_id=a.id)
+        spawn_a = Spawn(id=spawn_a_id, x=cx_a, y=cy_a)
         spawn_b_id = self._generar_spawn_id(mapa_dest, mapa_origen)
         cx_b, cy_b = centro_portal(b)
-        # Colocar spawn arriba del portal (50 píxeles arriba del centro)
-        spawn_b = Spawn(id=spawn_b_id, x=cx_b, y=cy_b - 50, linked_portal_id=b.id)
+        spawn_b = Spawn(id=spawn_b_id, x=cx_b, y=cy_b)
 
         # Añadir spawns a las listas correspondientes según el lado
         if lado_a == 'izq':
@@ -643,7 +548,7 @@ class EditorPortales:
             return
 
         nuevo_id = self._generar_spawn_id(mapa_name, '')
-        nuevo_spawn = Spawn(id=nuevo_id, x=x, y=y, linked_portal_id=portal.id)
+        nuevo_spawn = Spawn(id=nuevo_id, x=x, y=y)
         spawns_list.append(nuevo_spawn)
         portal.spawn_destino_id = nuevo_spawn.id
         self._msg(f"✓ Spawn {nuevo_spawn.id} creado y vinculado a {portal.id}")
@@ -655,15 +560,8 @@ class EditorPortales:
         spawn_id = modal.get('spawn_id')
         # Limpiar referencia en el portal
         portal.spawn_destino_id = ''
-        
-        # Buscar el spawn y limpiar su linked_portal_id
-        spawns = self.izq_spawns if lado=='izq' else self.der_spawns
-        for s in spawns:
-            if s.id == spawn_id:
-                s.linked_portal_id = ''
-                break
-        
         # Intentar eliminar spawn si es huérfano en ese mapa
+        spawns = self.izq_spawns if lado=='izq' else self.der_spawns
         # ¿Está referenciado por otro portal en el mismo mapa?
         referenced = False
         for p in (self.izq_portales if lado=='izq' else self.der_portales):
@@ -945,10 +843,6 @@ class EditorPortales:
                         pygame.draw.rect(self.screen, (0,0,0), bg_rect, border_radius=4)
                         pygame.draw.rect(self.screen, border_col, bg_rect, 1, border_radius=4)
                         self.screen.blit(txt, txt.get_rect(center=(cx, cy-15)))
-                        # Mostrar destino si está vinculado
-                        if linked and p.mapa_destino:
-                            dest_txt = self.font_small.render(f"→ {p.mapa_destino}", True, (180,180,180))
-                            self.screen.blit(dest_txt, (cx-dest_txt.get_width()//2, cy+15))
             else:
                 sx, sy = self._map_to_screen(p.x, p.y, lado, offset_x, offset_y, zoom)
                 rw, rh = int(p.w*zoom), int(p.h*zoom)
@@ -961,50 +855,16 @@ class EditorPortales:
                     pygame.draw.rect(self.screen, (0,0,0), bg_rect, border_radius=4)
                     pygame.draw.rect(self.screen, border_col, bg_rect, 1, border_radius=4)
                     self.screen.blit(txt, (sx+6, sy-18))
-                    # Mostrar destino si está vinculado
-                    if linked and p.mapa_destino:
-                        dest_txt = self.font_small.render(f"→ {p.mapa_destino}", True, (180,180,180))
-                        self.screen.blit(dest_txt, (sx+6, sy+rh+2))
-        
         
         # Spawns
         for s in spawns:
             sx, sy = self._map_to_screen(s.x, s.y, lado, offset_x, offset_y, zoom)
             half = max(6, int(s.tam * zoom / 2))
-            
-            # Determinar color según estado de enlazado
-            is_linked = bool(getattr(s, 'linked_portal_id', ''))
-            if is_linked:
-                # Spawn enlazado: BLANCO con fondo NEGRO
-                spawn_col = (255, 255, 255)
-                text_col = (255, 255, 255)
-                bg_rect = pygame.Rect(sx-half-2, sy-half-2, half*2+4, half*2+4)
-                pygame.draw.rect(self.screen, (0, 0, 0), bg_rect)
-                pygame.draw.rect(self.screen, spawn_col, bg_rect, 2)
-            else:
-                # Spawn sin enlazar: VERDE
-                spawn_col = (0, 200, 80)
-                text_col = (0, 200, 80)
-                pygame.draw.rect(self.screen, spawn_col, (sx-half, sy-half, half*2, half*2), 2)
-            
-            # Línea de dirección
+            pygame.draw.rect(self.screen, COLOR_SPAWN, (sx-half, sy-half, half*2, half*2), 1)
             vec = {"arriba":(0,-18),"abajo":(0,18),"izquierda":(-18,0),"derecha":(18,0)}.get(s.direccion, (0,18))
-            pygame.draw.line(self.screen, spawn_col, (sx, sy), (sx+vec[0], sy+vec[1]), 2)
-            
-            # Nombre (fusionado si está enlazado)
+            pygame.draw.line(self.screen, COLOR_SPAWN, (sx, sy), (sx+vec[0], sy+vec[1]), 2)
             if s.id:
-                if is_linked and s.linked_portal_id:
-                    display_name = f"{s.linked_portal_id}_{s.id}"
-                else:
-                    display_name = s.id
-                
-                txt = self.font_small.render(display_name, True, text_col)
-                if is_linked:
-                    txt_rect = txt.get_rect(topleft=(sx+8, sy-20))
-                    txt_rect.inflate_ip(4, 2)
-                    pygame.draw.rect(self.screen, (0, 0, 0), txt_rect, border_radius=3)
-                    pygame.draw.rect(self.screen, spawn_col, txt_rect, 1, border_radius=3)
-                self.screen.blit(txt, (sx+8, sy-18))
+                self.screen.blit(self.font_small.render(s.id, True, COLOR_TEXTO), (sx+8, sy-18))
 
     def _dibujar_poligono_construccion(self, lado, offset_x, offset_y, zoom):
         if not self.poligono_puntos: return
@@ -1327,469 +1187,5 @@ class EditorPortales:
                                             self.toggle_crear_portales = False
                                             self.toggle_crear_spawns = False
                                         continue
-                        else:
-                            lado = self._detectar_lado(mx)
-                            if lado:
-                                portales = self.izq_portales if lado=='izq' else self.der_portales
-                                spawns = self.izq_spawns if lado=='izq' else self.der_spawns
-                                offset_x = self.izq_offset_x if lado=='izq' else self.der_offset_x
-                                offset_y = self.izq_offset_y if lado=='izq' else self.der_offset_y
-                                zoom = self.izq_zoom if lado=='izq' else self.der_zoom
-                                x,y = self._screen_to_map(mx,my, lado, offset_x, offset_y, zoom)
-                                obj = self._obj_en_pos(x,y, portales, spawns)
-
-                                # Alt+LeftClick: seleccionar/link por nombres
-                                keys = pygame.key.get_pressed()
-                                mods = pygame.key.get_mods()
-                                alt_held = keys[pygame.K_LALT] or keys[pygame.K_RALT]
-                                if alt_held and isinstance(obj, (PortalRect, PortalPoly)):
-                                    if self.portal_vinculo_1 is None:
-                                        self.portal_vinculo_1 = obj
-                                        self.lado_vinculo_1 = lado
-                                        self._msg("✓ Portal 1 seleccionado (Alt+Click)")
-                                    elif self.portal_vinculo_1 is obj:
-                                        self._msg("Portal ya seleccionado")
-                                    else:
-                                        if lado == self.lado_vinculo_1:
-                                            self._msg("⚠ Debes seleccionar portal del otro mapa")
-                                        else:
-                                            if getattr(self.portal_vinculo_1, 'spawn_destino_id', None):
-                                                self._msg("⚠ Portal origen ya tiene un spawn vinculado. Desvincula primero.")
-                                            elif getattr(obj, 'spawn_destino_id', None):
-                                                self._msg("⚠ Portal destino ya tiene un spawn vinculado. Desvincula primero.")
-                                            else:
-                                                mapa_origen = self.mapa_izq.nombre if self.lado_vinculo_1=='izq' else self.mapa_der.nombre
-                                                mapa_dest = self.mapa_der.nombre if self.lado_vinculo_1=='izq' else self.mapa_izq.nombre
-                                                self.confirm_modal = {
-                                                    'type': 'create_pair_spawns',
-                                                    'portal_a': self.portal_vinculo_1,
-                                                    'lado_a': self.lado_vinculo_1,
-                                                    'portal_b': obj,
-                                                    'lado_b': lado,
-                                                    'mapa_origen': mapa_origen,
-                                                    'mapa_dest': mapa_dest
-                                                }
-                                                # Ejecutar inmediatamente la creación/vinculación en vez de abrir modal
-                                                self._confirm_create_pair_spawns({
-                                                    'portal_a': self.portal_vinculo_1,
-                                                    'lado_a': self.lado_vinculo_1,
-                                                    'portal_b': obj,
-                                                    'lado_b': lado,
-                                                    'mapa_origen': mapa_origen,
-                                                    'mapa_dest': mapa_dest
-                                                })
-                                    continue
-
-                                if obj:
-                                    # Doble-click para editar nombre
-                                    if es_doble and isinstance(obj, (PortalRect, PortalPoly)):
-                                        self.editando_nombre = True
-                                        self.portal_editando = obj
-                                        self.lado_editando = lado
-                                        self.texto_nombre = obj.id or ""
-                                        self._msg("Editando nombre...")
-                                    else:
-                                        # Vinculación — solo disponible en modo 'portal'
-                                        if isinstance(obj, (PortalRect, PortalPoly)):
-                                            if not (self.toggle_crear_portales or self.toggle_enlazar_spawns):
-                                                self._msg("Modo SPAWN: portales desactivados")
-                                            else:
-                                                # Shift+Click para modo portal→spawn
-                                                if mods & pygame.KMOD_SHIFT:
-                                                    self.portal_para_spawn = obj
-                                                    self.lado_portal_spawn = lado
-                                                    self._msg(f"✓ {obj.id or 'Portal'} seleccionado. Click DERECHO para spawn")
-                                                elif self.portal_vinculo_1 is None:
-                                                    if not (self.mapa_izq and self.mapa_der):
-                                                        self._msg("⚠ Carga 2 mapas primero")
-                                                    else:
-                                                        self.portal_vinculo_1 = obj
-                                                        self.lado_vinculo_1 = lado
-                                                        self._msg("✓ Portal 1 seleccionado")
-                                                elif self.portal_vinculo_1 is not obj:
-                                                    if lado == self.lado_vinculo_1:
-                                                        self._msg("⚠ Debes seleccionar portal del otro mapa")
-                                                    else:
-                                                        if getattr(self.portal_vinculo_1, 'spawn_destino_id', None):
-                                                            self._msg("⚠ Portal origen ya tiene un spawn vinculado. Desvincula primero.")
-                                                        elif getattr(obj, 'spawn_destino_id', None):
-                                                            self._msg("⚠ Portal destino ya tiene un spawn vinculado. Desvincula primero.")
-                                                        else:
-                                                            mapa_origen = self.mapa_izq.nombre if self.lado_vinculo_1=='izq' else self.mapa_der.nombre
-                                                            mapa_dest = self.mapa_der.nombre if self.lado_vinculo_1=='izq' else self.mapa_izq.nombre
-                                                            self.confirm_modal = {
-                                                                'type': 'create_pair_spawns',
-                                                                'portal_a': self.portal_vinculo_1,
-                                                                'lado_a': self.lado_vinculo_1,
-                                                                'portal_b': obj,
-                                                                'lado_b': lado,
-                                                                'mapa_origen': mapa_origen,
-                                                                'mapa_dest': mapa_dest
-                                                            }
-                                                            self._msg('Confirmar creación de spawns para vinculación (ENTER/ESC)')
-
-                                        # Selección
-                                        mods = pygame.key.get_mods()
-                                        if mods & pygame.KMOD_SHIFT:
-                                            if obj in self.seleccionados:
-                                                self.seleccionados.remove(obj)
-                                            else:
-                                                self.seleccionados.append(obj)
-                                        else:
-                                            self.seleccionados = [obj]
-                                        self.lado_seleccion = lado
-                                        self.arrastrando = True
-                                        self.grupo_offsets = []
-                                        for o in self.seleccionados:
-                                            if isinstance(o, PortalPoly) and o.puntos:
-                                                px,py = o.puntos[0]
-                                                self.grupo_offsets.append((px-x, py-y))
-                                            elif isinstance(o, PortalRect):
-                                                self.grupo_offsets.append((o.x-x, o.y-y))
-                                            else:
-                                                self.grupo_offsets.append((o.x-x, o.y-y))
                                 else:
-                                    # Crear
-                                    if self.toggle_crear_spawns:
-                                        izq_rect, der_rect = self._get_viewport_rects()
-                                        vp_rect = izq_rect if lado=='izq' else der_rect
-                                        center_screen_x = vp_rect.x + vp_rect.width//2
-                                        center_screen_y = ALTO//2
-                                        cx, cy = self._screen_to_map(center_screen_x, center_screen_y, lado, offset_x, offset_y, zoom)
-                                        new_id = self._generar_spawn_id(
-                                            self.mapa_izq.nombre if lado=='izq' and self.mapa_izq else (self.mapa_der.nombre if lado=='der' and self.mapa_der else ''),
-                                            '')
-                                        spawns.append(Spawn(id=new_id, x=cx, y=cy))
-                                        self._msg(f"✓ Spawn {new_id} creado en el centro")
-                                        self.cambios_pendientes = True
-                                    elif self.toggle_crear_portales:
-                                        if self.submodo=='poly':
-                                            self.poligono_puntos.append((x,y))
-                                            self.dibujando_poligono=True
-                                            self.lado_poly = lado
-                                        else:
-                                            self.creando_rect = True
-                                            self.rect_inicio = (x,y)
-                                            self.lado_rect = lado
-                    elif ev.button == 3:
-                        # Right-click: manejar polígono o acciones específicas
-                        if self.submodo=='poly' and self.dibujando_poligono and self.poligono_puntos:
-                            self.poligono_puntos.pop()
-                            if not self.poligono_puntos: self.dibujando_poligono=False
-                        else:
-                            # Si el click derecho cae en el panel izquierdo, interpretar como acción sobre listas
-                            if mx < PANEL_ANCHO:
-                                # comprobar si se clickeó un item en vínculos
-                                item_v = self.seccion_vinculos.get_item_en_posicion((mx,my)) if self.seccion_vinculos else None
-                                if item_v:
-                                    # formato: "{portal_id} <-> {mapa_destino}"
-                                    texto = str(item_v.nombre)
-                                    parts = texto.split(' <-> ')
-                                    portal_id = parts[0].strip() if parts else texto
-                                    # localizar el portal y desvincularlo
-                                    found = None
-                                    for lst, lado in ((self.izq_portales,'izq'), (self.der_portales,'der')):
-                                        for p in list(lst):
-                                            if getattr(p,'id',None) == portal_id:
-                                                found = (p,lst,lado)
-                                                break
-                                        if found: break
-                                    if found:
-                                        p, lst, lado_p = found
-                                        linked = getattr(p, 'linked_portal', None)
-                                        # eliminar spawns relacionados (el spawn que quedó en este mapa suele estar en linked.spawn_destino_id)
-                                        spawns = self.izq_spawns if lado_p=='izq' else self.der_spawns
-                                        if linked:
-                                            # spawn en este mapa referenciado por linked.spawn_destino_id
-                                            spawn_to_remove = getattr(linked, 'spawn_destino_id', None)
-                                            if spawn_to_remove:
-                                                for s in list(spawns):
-                                                    if s.id == spawn_to_remove:
-                                                        spawns.remove(s)
-                                                        break
-                                            # limpiar partner
-                                            linked.linked_portal = None
-                                            linked.mapa_destino = ''
-                                            linked.spawn_destino_id = ''
-                                        # si este portal referenciaba spawn en otro mapa, eliminar ese spawn también
-                                        other_spawns = self.der_spawns if lado_p=='izq' else self.izq_spawns
-                                        spawn_id_ref = getattr(p,'spawn_destino_id', None)
-                                        if spawn_id_ref:
-                                            for s in list(other_spawns):
-                                                if s.id == spawn_id_ref:
-                                                    other_spawns.remove(s)
-                                                    break
-                                        # finalmente eliminar el portal
-                                        try:
-                                            lst.remove(p)
-                                        except Exception:
-                                            pass
-                                        self._msg(f"✓ Vinculo {portal_id} eliminado")
-                                        self.cambios_pendientes = True
-                                    else:
-                                        self._msg("No se encontró portal para eliminar")
-                                    continue
-
-                                item_s = self.seccion_portal_spawns.get_item_en_posicion((mx,my)) if self.seccion_portal_spawns else None
-                                if item_s:
-                                    # formato: "{portal_id} → {spawn_id}"
-                                    texto = str(item_s.nombre)
-                                    parts = texto.split(' → ')
-                                    if len(parts) < 2:
-                                        parts = texto.split(' -> ')
-                                    portal_id = parts[0].strip()
-                                    spawn_id = parts[1].strip() if len(parts)>1 else ''
-                                    # localizar portal y desvincular spawn
-                                    found = None
-                                    for lst, spawns, lado in ((self.izq_portales,self.izq_spawns,'izq'), (self.der_portales,self.der_spawns,'der')):
-                                        for p in lst:
-                                            if getattr(p,'id',None) == portal_id:
-                                                found = (p, spawns, lado)
-                                                break
-                                        if found: break
-                                    if found:
-                                        p, spawns_list, lado_p = found
-                                        # desvincular
-                                        sid = getattr(p,'spawn_destino_id',None)
-                                        p.spawn_destino_id = ''
-                                        # eliminar spawn si no referenciado por otros
-                                        referenced = False
-                                        for other in (self.izq_portales if lado_p=='izq' else self.der_portales):
-                                            if getattr(other,'spawn_destino_id',None) == sid:
-                                                referenced = True; break
-                                        if not referenced:
-                                            for s in list(spawns_list):
-                                                if s.id == sid:
-                                                    spawns_list.remove(s)
-                                                    break
-                                        self._msg(f"✓ Spawn {sid} desvinculado de {portal_id}")
-                                        self.cambios_pendientes = True
-                                    else:
-                                        self._msg("No se encontró portal para desvincular spawn")
-                                    continue
-
-                                # Si no fue item del panel, caer a comportamiento normal
-                            lado = self._detectar_lado(mx)
-                            if lado:
-                                portales = self.izq_portales if lado=='izq' else self.der_portales
-                                spawns = self.izq_spawns if lado=='izq' else self.der_spawns
-                                offset_x = self.izq_offset_x if lado=='izq' else self.der_offset_x
-                                offset_y = self.izq_offset_y if lado=='izq' else self.der_offset_y
-                                zoom = self.izq_zoom if lado=='izq' else self.der_zoom
-                                x,y = self._screen_to_map(mx,my, lado, offset_x, offset_y, zoom)
-                                obj = self._obj_en_pos(x,y, portales, spawns)
-
-                                if obj and isinstance(obj, (PortalRect, PortalPoly)):
-                                    # Si estamos en modo CREAR PORTALES, click derecho elimina el portal
-                                    if self.toggle_crear_portales:
-                                        # eliminar portal y limpiar referencias cruzadas
-                                        linked = getattr(obj, 'linked_portal', None)
-                                        # spawns en este lado
-                                        spawns_this = self.izq_spawns if lado=='izq' else self.der_spawns
-                                        # spawns en otro lado
-                                        spawns_other = self.der_spawns if lado=='izq' else self.izq_spawns
-                                        # si hay partner, eliminar spawn correspondiente en este mapa (normalmente linked.spawn_destino_id)
-                                        if linked:
-                                            spawn_in_this = getattr(linked, 'spawn_destino_id', None)
-                                            if spawn_in_this:
-                                                for s in list(spawns_this):
-                                                    if s.id == spawn_in_this:
-                                                        spawns_this.remove(s)
-                                                        break
-                                            # limpiar partner
-                                            linked.linked_portal = None
-                                            linked.mapa_destino = ''
-                                            linked.spawn_destino_id = ''
-                                        # eliminar spawn en otro lado que este portal referenciaba
-                                        spawn_ref = getattr(obj, 'spawn_destino_id', None)
-                                        if spawn_ref:
-                                            for s in list(spawns_other):
-                                                if s.id == spawn_ref:
-                                                    spawns_other.remove(s)
-                                                    break
-                                        # finalmente eliminar el portal
-                                        try:
-                                            portales.remove(obj)
-                                        except Exception:
-                                            pass
-                                        self.seleccionados = []
-                                        self.lado_seleccion = None
-                                        self.cambios_pendientes = True
-                                        self._msg(f"✓ Portal eliminado")
-                                        continue
-
-                                    # Preferir portal->spawn flow si está activo
-                                    if self.toggle_crear_spawns and self.portal_para_spawn and lado == self.lado_portal_spawn:
-                                        izq_rect, der_rect = self._get_viewport_rects()
-                                        vp_rect = izq_rect if lado=='izq' else der_rect
-                                        center_screen_x = vp_rect.x + vp_rect.width//2
-                                        center_screen_y = ALTO//2
-                                        cx,cy = self._screen_to_map(center_screen_x, center_screen_y, lado, offset_x, offset_y, zoom)
-                                        spawn_existente = None
-                                        for s in spawns:
-                                            half = max(8, int(s.tam/2))
-                                            if abs(s.x - cx) <= half and abs(s.y - cy) <= half:
-                                                spawn_existente = s
-                                                break
-                                        if spawn_existente:
-                                            self.portal_para_spawn.spawn_destino_id = spawn_existente.id
-                                            self._msg(f"✓ {self.portal_para_spawn.id} → {spawn_existente.id}")
-                                        else:
-                                            if getattr(self.portal_para_spawn, 'spawn_destino_id', None):
-                                                self._msg(f"⚠ {self.portal_para_spawn.id} ya tiene spawn vinculado ({self.portal_para_spawn.spawn_destino_id})")
-                                            else:
-                                                mapa_name = self.mapa_izq.nombre if lado=='izq' and self.mapa_izq else (self.mapa_der.nombre if lado=='der' and self.mapa_der else '')
-                                                self.confirm_modal = {
-                                                    'type': 'create_spawn',
-                                                    'portal': self.portal_para_spawn,
-                                                    'lado': lado,
-                                                    'mapa_name': mapa_name,
-                                                    'pos': (cx, cy),
-                                                    'spawns_list': spawns
-                                                }
-                                                self._msg('Confirmar creación de spawn en centro del viewport (ENTER/ESC)')
-
-                                        self.portal_para_spawn = None
-                                        self.lado_portal_spawn = None
-                                        self.cambios_pendientes = True
-                                    else:
-                                        # Right-click linking between two portals
-                                        if self.portal_vinculo_1 is None:
-                                            self.portal_vinculo_1 = obj
-                                            self.lado_vinculo_1 = lado
-                                            self._msg("✓ Portal 1 seleccionado (right-click)")
-                                        elif self.portal_vinculo_1 is obj:
-                                            self._msg("Portal ya seleccionado")
-                                        else:
-                                            if lado == self.lado_vinculo_1:
-                                                self._msg("⚠ Debes seleccionar portal del otro mapa")
-                                            else:
-                                                if getattr(self.portal_vinculo_1, 'spawn_destino_id', None):
-                                                    self._msg("⚠ Portal origen ya tiene un spawn vinculado. Desvincula primero.")
-                                                elif getattr(obj, 'spawn_destino_id', None):
-                                                    self._msg("⚠ Portal destino ya tiene un spawn vinculado. Desvincula primero.")
-                                                else:
-                                                    mapa_origen = self.mapa_izq.nombre if self.lado_vinculo_1=='izq' else self.mapa_der.nombre
-                                                    mapa_dest = self.mapa_der.nombre if self.lado_vinculo_1=='izq' else self.mapa_izq.nombre
-                                                    self.confirm_modal = {
-                                                        'type': 'create_pair_spawns',
-                                                        'portal_a': self.portal_vinculo_1,
-                                                        'lado_a': self.lado_vinculo_1,
-                                                        'portal_b': obj,
-                                                        'lado_b': lado,
-                                                        'mapa_origen': mapa_origen,
-                                                        'mapa_dest': mapa_dest
-                                                    }
-                                                    self._msg('Confirmar creación de spawns para vinculación (ENTER/ESC)')
-                                else:
-                                    self.arrastrando_camara = True
-                                    self.mouse_anterior = (mx,my)
-                                    self.lado_pan = lado
-                            else:
-                                self.arrastrando_camara = True
-                                self.mouse_anterior = (mx,my)
-                                self.lado_pan = self._detectar_lado(mx)
-                    elif ev.button == 2:
-                        self.arrastrando_camara = True
-                        self.mouse_anterior = (mx,my)
-                        self.lado_pan = self._detectar_lado(mx)
-                elif ev.type == pygame.MOUSEBUTTONUP:
-                    mx,my = ev.pos
-                    if ev.button == 1:
-                        if self.arrastrando_mapa:
-                            lado = self._detectar_lado(mx)
-                            if lado and self.mapa_arrastrado:
-                                self.cargar_mapa_en_lado(self.mapa_arrastrado, lado)
-                            self.arrastrando_mapa = False
-                            self.mapa_arrastrado = None
-                        if getattr(self,'creando_rect', False):
-                            lado = getattr(self, 'lado_rect', None)
-                            if lado:
-                                portales = self.izq_portales if lado=='izq' else self.der_portales
-                                offset_x = self.izq_offset_x if lado=='izq' else self.der_offset_x
-                                offset_y = self.izq_offset_y if lado=='izq' else self.der_offset_y
-                                zoom = self.izq_zoom if lado=='izq' else self.der_zoom
-                                x1,y1 = self.rect_inicio
-                                x2,y2 = self._screen_to_map(mx,my, lado, offset_x, offset_y, zoom)
-                                x=min(x1,x2); y=min(y1,y2); w=abs(x2-x1); h=abs(y2-y1)
-                                if w>5 and h>5:
-                                    # Generar id legible automático basado en el mapa
-                                    mapa_name = self.mapa_izq.nombre if lado=='izq' and self.mapa_izq else (self.mapa_der.nombre if lado=='der' and self.mapa_der else '')
-                                    new_id = self._generar_portal_id(mapa_name)
-                                    self.contador_portales += 1
-                                    portales.append(PortalRect(id=new_id, x=x, y=y, w=w, h=h))
-                                    self._msg(f"✓ Portal {new_id} creado")
-                                    self.cambios_pendientes = True
-                                    # Si estamos en modo ENLAZAR y hay un portal 1 seleccionado en el otro lado,
-                                    # abrir modal para crear pair spawns y vincular ambos portales.
-                                    if self.toggle_enlazar_spawns and getattr(self, 'portal_vinculo_1', None):
-                                        new_portal = (self.izq_portales[-1] if lado=='izq' else self.der_portales[-1])
-                                        if self.lado_vinculo_1 and self.lado_vinculo_1 != lado:
-                                            mapa_origen = self.mapa_izq.nombre if self.lado_vinculo_1=='izq' else self.mapa_der.nombre
-                                            mapa_dest = self.mapa_der.nombre if self.lado_vinculo_1=='izq' else self.mapa_izq.nombre
-                                            # Vincular inmediatamente al crear el segundo portal
-                                            self._confirm_create_pair_spawns({
-                                                'portal_a': self.portal_vinculo_1,
-                                                'lado_a': self.lado_vinculo_1,
-                                                'portal_b': new_portal,
-                                                'lado_b': lado,
-                                                'mapa_origen': mapa_origen,
-                                                'mapa_dest': mapa_dest
-                                            })
-                            self.creando_rect=False
-                        if self.arrastrando:
-                            self.arrastrando = False
-                    if ev.button in (2,3):
-                        self.arrastrando_camara = False
-                        self.lado_pan = None
-                elif ev.type == pygame.MOUSEMOTION:
-                    mx,my = ev.pos
-                    if self.arrastrando and self.seleccionados and self.lado_seleccion:
-                        lado = self.lado_seleccion
-                        offset_x = self.izq_offset_x if lado=='izq' else self.der_offset_x
-                        offset_y = self.izq_offset_y if lado=='izq' else self.der_offset_y
-                        zoom = self.izq_zoom if lado=='izq' else self.der_zoom
-                        x,y = self._screen_to_map(mx,my, lado, offset_x, offset_y, zoom)
-                        for i,o in enumerate(self.seleccionados):
-                            offx, offy = self.grupo_offsets[i]
-                            nx, ny = x+offx, y+offy
-                            if isinstance(o, PortalPoly):
-                                if o.puntos:
-                                    px0,py0 = o.puntos[0]
-                                    dx,dy = nx-px0, ny-py0
-                                    o.puntos = [(px+dx, py+dy) for (px,py) in o.puntos]
-                            elif isinstance(o, PortalRect):
-                                o.x, o.y = nx, ny
-                            else:
-                                o.x, o.y = nx, ny
-                        self.cambios_pendientes = True
-                    if self.arrastrando_camara and self.lado_pan:
-                        dx = mx - self.mouse_anterior[0]
-                        dy = my - self.mouse_anterior[1]
-                        if self.lado_pan == 'izq':
-                            self.izq_offset_x += dx
-                            self.izq_offset_y += dy
-                        else:
-                            self.der_offset_x += dx
-                            self.der_offset_y += dy
-                        self.mouse_anterior = (mx,my)
-
-            # Draw
-            self.screen.fill(COLOR_FONDO)
-            self.dibujar_panel()
-            self.dibujar_mapas()
-            self.dibujar_overlay()
-            if self.mostrar_ayuda:
-                self._dibujar_ayuda()
-            pygame.display.flip()
-            self.clock.tick(FPS)
-
-            # Autosave
-            if self.cambios_pendientes and pygame.time.get_ticks()-self.ultimo_autosave>2000:
-                self.ultimo_autosave = pygame.time.get_ticks()
-                self.guardar()
-
-            # (modal handled in KEYDOWN event processing)
-
-if __name__ == '__main__':
-    EditorPortales().run()
+                                    .... (file truncated in backup)

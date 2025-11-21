@@ -23,6 +23,7 @@ import time
 import sys
 import subprocess
 from pathlib import Path
+from pathlib import Path
 from datetime import datetime
 
 # === CONFIGURACIÓN ===
@@ -138,6 +139,10 @@ class EditorUnificado:
             'npcs': False,
             'eventos': False
         }
+        # Estados de expansión por capa (mostrar lista de elementos)
+        self.capas_expandidas = {k: False for k in self.capas_visibles.keys()}
+        # Hitboxes para el control de expandir/contraer y para cada elemento expandido
+        self.capas_expanded_hitboxes = {}
         
         # Navegación
         self.panning = False
@@ -173,6 +178,8 @@ class EditorUnificado:
         self.scroll_mapas = 0
         # Hitboxes para UI (generadas al dibujar)
         self.capas_hitboxes = {}
+        # Hitbox para el botón de selector de mapas (panel)
+        self.boton_mapas_rect = None
         self.selector_hitboxes = {'categorias': {}, 'mapas': [], 'cerrar': None}
         
         # Validación
@@ -598,8 +605,11 @@ class EditorUnificado:
         # Guardar muros
         self._guardar_muros(nombre, elementos_por_tipo['muro'])
         
-        # Guardar portales
-        self._guardar_portales(nombre, elementos_por_tipo['portal'])
+        # Guardar portales (con validación)
+        ok_portales = self._guardar_portales(nombre, elementos_por_tipo['portal'])
+        if not ok_portales:
+            print('✗ Guardado cancelado por validación de portales')
+            return
         
         # Guardar spawns
         self._guardar_spawns(nombre, elementos_por_tipo['spawn'])
@@ -614,18 +624,19 @@ class EditorUnificado:
         self.mensaje_guardado = "✓ GUARDADO"
         self.tiempo_mensaje_guardado = time.time()
         
-        # Actualizar índice de mapas y validar (para que el juego detecte el nuevo mapa)
+        # Actualizar índice de mapas y ejecutar merge unificador
         try:
             gen = Path('tools') / 'generate_maps_index.py'
-            val = Path('tools') / 'validate_map.py'
             if gen.exists():
                 print('Actualizando índice de mapas...')
                 subprocess.run([sys.executable, str(gen)], check=False)
-            if val.exists():
-                print('Validando mapas...')
-                subprocess.run([sys.executable, str(val)], check=False)
+            # Ejecutar merge unificador para consolidar parciales
+            merge = Path('tools') / 'merge_map_parts.py'
+            if merge.exists():
+                print('Ejecutando merge de parciales...')
+                subprocess.run([sys.executable, str(merge), '--apply'], check=False)
         except Exception as e:
-            print('⚠ Error al actualizar índice/validar:', e)
+            print('⚠ Error al actualizar índice/merge:', e)
     
     def _guardar_muros(self, nombre_mapa, muros):
         """Guarda muros en JSON del mapa"""
@@ -664,6 +675,13 @@ class EditorUnificado:
             
             # Actualizar solo los portales
             data['portales'] = []
+            # Validación: verificar que ningún portal tenga 'mapa_destino' vacío (cadena vacía)
+            for portal in portales:
+                md = portal.datos.get('mapa_destino') if isinstance(portal.datos, dict) else None
+                if md is not None and isinstance(md, str) and md.strip() == '':
+                    print(f"⚠ Portal inválido: {portal.datos} -> mapa_destino vacío")
+                    return False
+
             for portal in portales:
                 # Si el portal es poligonal, actualizar 'puntos' si es necesario
                 if portal.puntos:
@@ -1059,11 +1077,44 @@ class EditorUnificado:
         if elemento:
             # Abrir menú contextual (futuro)
             print(f"Elemento: {elemento.tipo} {elemento.id}")
-        else:
-            # Iniciar panning
-            self.panning = True
-            self.ultimo_mouse_pos = (mx, my)
-    
+        # Primer, manejar filas normales (checkbox filas)
+        for capa, rect in self.capas_hitboxes.items():
+            # Soporte para filas expandidas agrupadas bajo la clave '_expanded_items'
+            if capa == '_expanded_items':
+                continue
+            if rect.collidepoint(mx, my):
+                self.capas_visibles[capa] = not self.capas_visibles.get(capa, True)
+                print(f"{capa}: {'ON' if self.capas_visibles[capa] else 'OFF'}")
+                return
+
+        # Segundo, manejar control de expandir/contraer (chevrons)
+        for capa, rect in self.capas_expanded_hitboxes.items():
+            if rect.collidepoint(mx, my):
+                # Toggle expansion
+                self.capas_expandidas[capa] = not self.capas_expandidas.get(capa, False)
+                return
+
+        # Tercero, clicks sobre elementos listados cuando una capa está expandida
+        expanded_items = self.capas_hitboxes.get('_expanded_items', {})
+        for capa, items in expanded_items.items():
+            for elem, rect in items:
+                if rect.collidepoint(mx, my):
+                    # Centrar la vista en el elemento (si hay mapa cargado) o seleccionarlo
+                    # Esto es un comportamiento útil: centrar en el elemento en el viewport
+                    if hasattr(self, 'mapa_img') and self.mapa_img:
+                        # Mover offset para centrar
+                        centro_x = elem.x + elem.ancho // 2
+                        centro_y = elem.y + elem.alto // 2
+                        ancho_viewport = ANCHO - PANEL_ANCHO
+                        alto_viewport = ALTO
+                        self.mapa_offset_x = (ancho_viewport // 2) - int(centro_x * self.mapa_zoom)
+                        self.mapa_offset_y = (alto_viewport // 2) - int(centro_y * self.mapa_zoom)
+                    # Seleccionar elemento
+                    for e in self.elementos:
+                        e.seleccionado = False
+                    elem.seleccionado = True
+                    self.elementos_seleccionados = [elem]
+                    return
     def _handle_mouse_motion(self, mx, my):
         """Maneja movimiento del mouse"""
         if self.panning:
@@ -1132,6 +1183,11 @@ class EditorUnificado:
     def _handle_click_panel(self, mx, my):
         """Maneja clicks en el panel"""
         # Selector de mapas
+        # Si se ha pulsado el botón de mapas en el panel, alternar selector
+        if self.boton_mapas_rect and self.boton_mapas_rect.collidepoint(mx, my):
+            self.mostrar_selector_mapas = not self.mostrar_selector_mapas
+            return
+
         if self.mostrar_selector_mapas:
             self._handle_click_selector_mapas(mx, my)
             return
@@ -1205,6 +1261,8 @@ class EditorUnificado:
         color_boton = (60, 60, 80) if not self.mostrar_selector_mapas else (80, 100, 120)
         pygame.draw.rect(self.screen, color_boton, boton_mapas)
         pygame.draw.rect(self.screen, (100, 100, 120), boton_mapas, 2)
+        # Guardar hitbox del botón para interacción (click)
+        self.boton_mapas_rect = boton_mapas
         
         if self.mapa_actual:
             # Mostrar categoría/ruta + nombre para evitar confusiones entre mapas con mismo nombre
@@ -1267,6 +1325,33 @@ class EditorUnificado:
             }
             color = color_tipo.get(capa, (200, 200, 200))
             pygame.draw.rect(self.screen, color, (PANEL_ANCHO - 40, y, 30, 20))
+
+            # Expand/collapse control (small chevron on the right of the row)
+            chevron_x = PANEL_ANCHO - 14
+            chevron_rect = pygame.Rect(chevron_x, y, 12, 20)
+            flecha = "▼" if self.capas_expandidas.get(capa, False) else "▶"
+            chev_txt = self.font_tiny.render(flecha, True, COLOR_TEXTO)
+            self.screen.blit(chev_txt, (chevron_x - 6, y + 2))
+            # Guardar hitbox del control
+            self.capas_expanded_hitboxes[capa] = chevron_rect
+
+            # Si la capa está expandida, mostrar breve lista de elementos (IDs)
+            if self.capas_expandidas.get(capa, False):
+                # Extraer elementos del tipo correspondiente
+                tipo_singular = singular_map.get(capa, capa[:-1])
+                lista_elem = [e for e in self.elementos if e.tipo == tipo_singular]
+                ey = y + 28
+                max_visible = 6
+                self.capas_hitboxes.setdefault('_expanded_items', {})
+                self.capas_hitboxes['_expanded_items'].setdefault(capa, [])
+                self.capas_hitboxes['_expanded_items'][capa] = []
+                for i, elem in enumerate(lista_elem[:max_visible]):
+                    txt = self.font_tiny.render(f"  - {elem.id}", True, (180, 180, 180))
+                    self.screen.blit(txt, (20, ey + i * 18))
+                    row_rect = pygame.Rect(10, ey + i * 18, PANEL_ANCHO - 20, 18)
+                    self.capas_hitboxes['_expanded_items'][capa].append((elem, row_rect))
+                # Ajustar y para siguientes filas del panel
+                y += 18 * min(len(lista_elem), max_visible)
 
             # Guardar hitbox completa de la fila
             self.capas_hitboxes[capa] = rect_hover

@@ -1,51 +1,25 @@
 {
   "portales": [
     {
-      "id": "Pmapa_posada_mapa_pueblo_final",
-      "tipo": "portal_enlazado",
-      "forma": "poly",
-      "puntos": [
-        [
-          720,
-          763
-        ],
-        [
-          809,
-          778
-        ],
-        [
-          839,
-          921
-        ],
-        [
-          704,
-          911
-        ]
-      ],
-      "mapa_destino": "mapa_pueblo_final",
-      "spawn_destino_id": "S6"
-    },
-    {
-      "id": "#3",
+      "id": "portal_mapa_posada",
       "tipo": "portal_enlazado",
       "forma": "rect",
-      "x": 608,
-      "y": 416,
-      "w": 863,
-      "h": 18,
-      "mapa_destino": "",
-      "spawn_destino_id": ""
+      "x": 703,
+      "y": 782,
+      "w": 133,
+      "h": 140,
+      "mapa_destino": "mapa_pueblo_final",
+      "spawn_destino_id": "S_mapa_pueblo_final_mapa_posada_7"
     }
   ],
   "spawns": [
     {
-      "id": "S6",
-      "tipo": "spawn",
-      "x": 228,
-      "y": 680,
+      "id": "S_mapa_posada_mapa_pueblo_final_8",
+      "x": 221,
+      "y": 495,
       "direccion": "abajo",
-      "tam": 12
+      "tam": 12,
+      "linked_portal_id": "portal_mapa_posada"
     }
-  ],
-  "cofres": []
+  ]
 }
