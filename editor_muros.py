@@ -1063,6 +1063,118 @@ class EditorMuros:
             self.cambios_pendientes = False
         return True
     
+    def dibujar_panel_lateral(self, surface):
+        """Dibuja el panel lateral con layout dinámico"""
+        # Fondo panel
+        ancho_pantalla, alto_pantalla = self.pantalla.get_size()
+        rect_panel = pygame.Rect(0, 0, PANEL_ANCHO, alto_pantalla)
+        pygame.draw.rect(surface, COLOR_PANEL, rect_panel)
+        
+        # Título
+        texto_titulo = self.fuente_titulo.render("Mapas", True, COLOR_TEXTO)
+        surface.blit(texto_titulo, (20, 15))
+        
+        # Línea separadora
+        pygame.draw.line(surface, COLOR_BOTON, (10, 50), (PANEL_ANCHO - 10, 50), 2)
+        
+        # Dibujar secciones con layout dinámico
+        y_actual = 60
+        for seccion in self.secciones_mapas:
+            # Actualizar posición Y de la sección antes de dibujar
+            seccion.rect_titulo.y = y_actual
+            seccion.dibujar(surface)
+            y_actual += seccion.get_alto_total() + 10
+
+        # Info inferior (pegada al fondo)
+        y_info = alto_pantalla - 100
+        pygame.draw.line(surface, COLOR_BOTON, (10, y_info), (PANEL_ANCHO - 10, y_info), 2)
+        
+        info_lines = [
+            f"Muros: {len(self.muros)}",
+            f"Selecc: {len(self.muros_seleccionados)}",
+            "Ayuda: H"
+        ]
+        
+        for i, linea in enumerate(info_lines):
+            texto = self.fuente.render(linea, True, COLOR_TEXTO_SEC)
+            surface.blit(texto, (20, y_info + 15 + i * 25))
+
+    def dibujar_area_mapa(self, surface):
+        """Dibuja el área de edición"""
+        ancho_pantalla, alto_pantalla = self.pantalla.get_size()
+        
+        # Área de recorte para el mapa
+        rect_area = pygame.Rect(PANEL_ANCHO, 0, ancho_pantalla - PANEL_ANCHO, alto_pantalla - 30) # -30 para barra estado
+        surface.set_clip(rect_area)
+        
+        # Fondo gris oscuro para área de mapa
+        pygame.draw.rect(surface, (40, 40, 50), rect_area)
+        
+        if self.mapa_imagen:
+            # Dibujar mapa centrado/offset
+            x_img = PANEL_ANCHO + self.offset_x
+            y_img = self.offset_y
+            surface.blit(self.mapa_imagen, (x_img, y_img))
+            
+            # Dibujar muros
+            for muro in self.muros:
+                self._dibujar_muro(surface, muro)
+                
+            # Dibujar selección
+            for muro in self.muros_seleccionados:
+                self._dibujar_seleccion(surface, muro)
+                
+            # Dibujar polígono en construcción
+            if self.dibujando_poligono and len(self.poligono_puntos) > 0:
+                pts_pantalla = [self.convertir_coords_mapa_a_pantalla(p[0], p[1]) for p in self.poligono_puntos]
+                if len(pts_pantalla) >= 2:
+                    pygame.draw.lines(surface, COLOR_MURO_NUEVO, False, pts_pantalla, 2)
+                for p in pts_pantalla:
+                    pygame.draw.circle(surface, COLOR_MURO_NUEVO, p, 3)
+                # Línea elástica al mouse
+                if len(pts_pantalla) > 0:
+                    pygame.draw.line(surface, COLOR_MURO_NUEVO, pts_pantalla[-1], pygame.mouse.get_pos(), 1)
+
+        else:
+            # Mensaje si no hay mapa
+            texto = self.fuente.render("Selecciona un mapa del panel lateral", True, COLOR_TEXTO_SEC)
+            rect_texto = texto.get_rect(center=(PANEL_ANCHO + (ancho_pantalla - PANEL_ANCHO)//2, alto_pantalla//2))
+            surface.blit(texto, rect_texto)
+            
+        surface.set_clip(None)
+
+    def _dibujar_muro(self, surface, muro):
+        if isinstance(muro, MuroPoligonal):
+            if len(muro.puntos) >= 3:
+                pts = [self.convertir_coords_mapa_a_pantalla(p[0], p[1]) for p in muro.puntos]
+                pygame.draw.polygon(surface, COLOR_MURO, pts)
+                pygame.draw.polygon(surface, COLOR_MURO_BORDE, pts, 2)
+        else:
+            # Rectángulo
+            x, y = self.convertir_coords_mapa_a_pantalla(muro.x, muro.y)
+            w = int(muro.w * self.zoom)
+            h = int(muro.h * self.zoom)
+            s = pygame.Surface((w, h), pygame.SRCALPHA)
+            s.fill(COLOR_MURO)
+            surface.blit(s, (x, y))
+            pygame.draw.rect(surface, COLOR_MURO_BORDE, (x, y, w, h), 2)
+
+    def _dibujar_seleccion(self, surface, muro):
+        if isinstance(muro, MuroPoligonal):
+            if len(muro.puntos) >= 3:
+                pts = [self.convertir_coords_mapa_a_pantalla(p[0], p[1]) for p in muro.puntos]
+                pygame.draw.polygon(surface, COLOR_MURO_SELECCIONADO, pts, 2)
+                # Handles en vértices
+                for p in pts:
+                    pygame.draw.rect(surface, (0, 255, 255), (p[0]-3, p[1]-3, 6, 6))
+        else:
+            x, y = self.convertir_coords_mapa_a_pantalla(muro.x, muro.y)
+            w = int(muro.w * self.zoom)
+            h = int(muro.h * self.zoom)
+            pygame.draw.rect(surface, COLOR_MURO_SELECCIONADO, (x-2, y-2, w+4, h+4), 2)
+            # Handles
+            self._dibujar_handles_muro(surface, muro)
+
     def ejecutar(self):
         """Bucle principal"""
         ejecutando = True
