@@ -487,49 +487,72 @@ class EditorPortales:
         return removed
 
     def _generar_spawn_id(self, mapa_from: str, mapa_to: str) -> str:
-        """Genera un id de spawn legible y único, incluyendo nombres de mapas.
-
-        El id tiene formato: S_{from}_{to}_{n} donde from/to son los nombres de mapa
-        limpiados (solo alfanuméricos y guiones bajos) y n es un contador incremental.
-        """
+        """Genera un id de spawn legible y único, rellenando huecos numéricos."""
         def clean(name: str) -> str:
-            if not name:
-                return 'unknown'
+            if not name: return 'unknown'
             return ''.join(c if c.isalnum() else '_' for c in str(name))
 
         base_from = clean(mapa_from)
         base_to = clean(mapa_to)
-
-        # Intentar generar un id que no exista ya en las listas cargadas
-        while True:
-            self.contador_spawns += 1
-            candidate = f"S_{base_from}_{base_to}_{self.contador_spawns}"
-            exists = False
-            for s in (self.izq_spawns + self.der_spawns):
-                if getattr(s, 'id', None) == candidate:
-                    exists = True
-                    break
-            if not exists:
-                return candidate
+        base_prefix = f"S_{base_from}_{base_to}_"
+        
+        # Recolectar números usados
+        used_nums = set()
+        for s in (self.izq_spawns + self.der_spawns):
+            sid = getattr(s, 'id', '')
+            if sid.startswith(base_prefix):
+                try:
+                    suffix = sid[len(base_prefix):]
+                    if suffix.isdigit():
+                        used_nums.add(int(suffix))
+                except: pass
+        
+        # Encontrar primer hueco
+        i = 1
+        while i in used_nums:
+            i += 1
+            
+        return f"{base_prefix}{i}"
 
     def _generar_portal_id(self, mapa_name: str) -> str:
-        """Genera un id legible para portal: portal_{mapa}, añadiendo sufijo numérico si ya existe."""
+        """Genera un id legible para portal, rellenando huecos numéricos."""
         def clean(name: str) -> str:
-            if not name:
-                return 'unknown'
+            if not name: return 'unknown'
             return ''.join(c if c.isalnum() else '_' for c in str(name))
+            
         base = clean(mapa_name)
-        candidate = f"portal_{base}"
+        base_prefix = f"portal_{base}"
+        
+        # Recolectar números usados (incluyendo el caso base sin sufijo como 0 o especial)
+        # Convención: portal_mapa (sin sufijo) -> tratamos como 0? O simplemente buscamos sufijos _N
+        # El usuario quiere 1, 2, 3... así que usaremos sufijos _N siempre si es posible, 
+        # o mantendremos la lógica mixta pero rellenando.
+        
         taken = {getattr(p, 'id', '') for p in (self.izq_portales + self.der_portales)}
-        if candidate not in taken:
-            return candidate
-        # añadir sufijo incremental
+        
+        # Si portal_{base} está libre, usarlo primero (opcional, o forzar numeración)
+        # Para consistencia con "1, 2, 3", intentaremos usar sufijos numéricos para los nuevos
+        # pero respetando si existe el base.
+        
+        if base_prefix not in taken:
+            return base_prefix
+            
+        # Buscar huecos en portal_{base}_{N}
+        used_nums = set()
+        prefix_n = f"{base_prefix}_"
+        for pid in taken:
+            if pid.startswith(prefix_n):
+                try:
+                    suffix = pid[len(prefix_n):]
+                    if suffix.isdigit():
+                        used_nums.add(int(suffix))
+                except: pass
+        
         i = 1
-        while True:
-            c = f"{candidate}_{i}"
-            if c not in taken:
-                return c
+        while i in used_nums:
             i += 1
+            
+        return f"{prefix_n}{i}"
 
     def _generar_portal_id_from_loaded(self, mapa_name: str, counter_dict: dict) -> str:
         """Genera ID único para portales cargados sin ID.
@@ -653,6 +676,58 @@ class EditorPortales:
         portal.spawn_destino_id = nuevo_spawn.id
         self._msg(f"✓ Spawn {nuevo_spawn.id} creado y vinculado a {portal.id}")
         self.cambios_pendientes = True
+
+    def _desvincular_completo(self, p, lst, lado_p, eliminar_portal=False):
+        """Desvincula un portal de su pareja y elimina los spawns asociados en ambos lados.
+           Si eliminar_portal es True, también elimina el objeto portal de su lista."""
+        
+        # Definir listas del OTRO lado
+        other_lst = self.der_portales if lado_p == 'izq' else self.izq_portales
+        other_spawns = self.der_spawns if lado_p == 'izq' else self.izq_spawns
+        my_spawns = self.izq_spawns if lado_p == 'izq' else self.der_spawns
+        
+        # --- 1. Encontrar pareja (p2) ---
+        p2 = getattr(p, 'linked_portal', None)
+        spawn_dest_id = getattr(p, 'spawn_destino_id', None)
+        
+        if not p2 and spawn_dest_id:
+            # Buscar vía spawn
+            s2 = next((s for s in other_spawns if s.id == spawn_dest_id), None)
+            if s2:
+                p2_id = getattr(s2, 'linked_portal_id', None)
+                if p2_id:
+                    p2 = next((x for x in other_lst if getattr(x, 'id', None) == p2_id), None)
+
+        # --- 2. Limpiar lado pareja (p2) ---
+        if p2:
+            # Eliminar spawn en MI lado que apunta a p2
+            s1_id = getattr(p2, 'spawn_destino_id', None)
+            if s1_id:
+                s1 = next((s for s in my_spawns if s.id == s1_id), None)
+                if s1: 
+                    if s1 in my_spawns: my_spawns.remove(s1)
+            
+            # Desvincular p2
+            p2.mapa_destino = ''
+            p2.spawn_destino_id = ''
+            p2.linked_portal = None
+        
+        # --- 3. Limpiar lado propio (p) ---
+        # Eliminar spawn en OTRO lado que apunta a p
+        if spawn_dest_id:
+            s2 = next((s for s in other_spawns if s.id == spawn_dest_id), None)
+            if s2:
+                if s2 in other_spawns: other_spawns.remove(s2)
+
+        # Desvincular p
+        p.mapa_destino = ''
+        p.spawn_destino_id = ''
+        p.linked_portal = None
+        
+        # --- 4. Eliminar objeto si se solicita ---
+        if eliminar_portal:
+            if p in lst:
+                lst.remove(p)
 
     def _confirm_unlink_spawn(self, modal):
         portal = modal.get('portal')
@@ -1272,11 +1347,12 @@ class EditorPortales:
                             if self.seleccionados and self.lado_seleccion:
                                 portales = self.izq_portales if self.lado_seleccion=='izq' else self.der_portales
                                 spawns = self.izq_spawns if self.lado_seleccion=='izq' else self.der_spawns
-                                for o in self.seleccionados:
+                                for o in list(self.seleccionados):
                                     if isinstance(o, Spawn) and o in spawns:
                                         spawns.remove(o)
                                     elif o in portales:
-                                        portales.remove(o)
+                                        # Usar desvinculación estricta al borrar
+                                        self._desvincular_completo(o, portales, self.lado_seleccion, eliminar_portal=True)
                                 self.seleccionados.clear()
                                 self.lado_seleccion = None
                                 self.cambios_pendientes = True
@@ -1504,57 +1580,7 @@ class EditorPortales:
                                         if found: break
                                     if found:
                                         p, lst, lado_p = found
-                                        
-                                        # Definir listas del OTRO lado
-                                        other_lst = self.der_portales if lado_p == 'izq' else self.izq_portales
-                                        other_spawns = self.der_spawns if lado_p == 'izq' else self.izq_spawns
-                                        my_spawns = self.izq_spawns if lado_p == 'izq' else self.der_spawns
-                                        
-                                        # Intentar encontrar el portal pareja (p2)
-                                        p2 = getattr(p, 'linked_portal', None)
-                                        
-                                        # Si no hay referencia directa (ej. tras cargar JSON), buscar vía spawn
-                                        spawn_dest_id = getattr(p, 'spawn_destino_id', None)
-                                        if not p2 and spawn_dest_id:
-                                            # Buscar el spawn al que apunta p en el otro lado
-                                            s2 = next((s for s in other_spawns if s.id == spawn_dest_id), None)
-                                            if s2:
-                                                # Ese spawn apunta al portal pareja
-                                                p2_id = getattr(s2, 'linked_portal_id', None)
-                                                if p2_id:
-                                                    p2 = next((x for x in other_lst if getattr(x, 'id', None) == p2_id), None)
-
-                                        # --- Limpiar lado pareja (p2) ---
-                                        if p2:
-                                            # El portal pareja tiene un spawn en MI lado (s1). Eliminarlo.
-                                            s1_id = getattr(p2, 'spawn_destino_id', None)
-                                            if s1_id:
-                                                s1 = next((s for s in my_spawns if s.id == s1_id), None)
-                                                if s1: 
-                                                    try: my_spawns.remove(s1)
-                                                    except: pass
-                                            
-                                            # Desvincular p2
-                                            p2.mapa_destino = ''
-                                            p2.spawn_destino_id = ''
-                                            p2.linked_portal = None
-                                        
-                                        # --- Limpiar lado propio (p) ---
-                                        # Eliminar el spawn destino en el otro lado (s2)
-                                        if spawn_dest_id:
-                                            s2 = next((s for s in other_spawns if s.id == spawn_dest_id), None)
-                                            if s2:
-                                                try: other_spawns.remove(s2)
-                                                except: pass
-
-                                        # Desvincular p
-                                        p.mapa_destino = ''
-                                        p.spawn_destino_id = ''
-                                        p.linked_portal = None
-                                        
-                                        # NOTA: NO eliminamos p de la lista (lst.remove(p)). 
-                                        # Solo rompemos el vínculo para que vuelva a ser un portal disponible (verde).
-
+                                        self._desvincular_completo(p, lst, lado_p)
                                         self._msg(f"✓ Vínculo roto: {getattr(p,'id','')} y su pareja desvinculados.")
                                         self.cambios_pendientes = True
                                     else:
