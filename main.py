@@ -162,6 +162,13 @@ tiempo_ultimo_autoguardado = None
 aviso_autoguardado_activo = False
 aviso_autoguardado_inicio = 0
 
+# Variables de interacción con cofres
+mensaje_cofre_activo = False
+mensaje_cofre_texto = ""
+mensaje_cofre_inicio = 0
+DURACION_MENSAJE_COFRE = 3000  # 3 segundos
+
+
 # 4. Bucle principal del juego
 while True:
     
@@ -569,6 +576,35 @@ while True:
             if event.key == pygame.K_x:
                 if estado_juego == "pantalla_habilidades" and mi_pantalla_habilidades:
                     mi_pantalla_habilidades.update_input(event.key)
+            
+            # ¡NUEVO! - Tecla E para interactuar con cofres
+            if event.key == pygame.K_e:
+                if estado_juego == "mapa" and mi_mapa and grupo_heroes:
+                    heroe_lider = grupo_heroes[0]
+                    cofre_cercano = mi_mapa.chequear_cofre_cercano(heroe_lider.heroe_rect)
+                    
+                    if cofre_cercano:
+                        # Interactuar con el cofre
+                        resultado = cofre_cercano.interactuar(grupo_heroes, ITEMS_DB)
+                        
+                        # Construir mensaje para mostrar
+                        if resultado["exito"]:
+                            items_texto = ""
+                            for item_id, cantidad in resultado["items_obtenidos"].items():
+                                nombre_item = ITEMS_DB.get(item_id, {}).get("nombre", item_id)
+                                items_texto += f"{nombre_item} x{cantidad}, "
+                            items_texto = items_texto.rstrip(", ")
+                            mensaje_cofre_texto = f"¡Cofre abierto! Obtenido: {items_texto}"
+                        elif "nombre_llave_necesaria" in resultado:
+                            mensaje_cofre_texto = f"Cofre cerrado. Necesitas: {resultado['nombre_llave_necesaria']}"
+                        else:
+                            mensaje_cofre_texto = resultado["mensaje"]
+                        
+                        # Activar mensaje
+                        mensaje_cofre_activo = True
+                        mensaje_cofre_inicio = tiempo_actual_ticks
+                        print(f"[Cofre] {mensaje_cofre_texto}")
+
 
     # 6. Actualizar lógica
     if estado_juego == "titulo":
@@ -715,6 +751,14 @@ while True:
             texto_coords = f"X: {heroe_lider.heroe_rect.x}  Y: {heroe_lider.heroe_rect.y}"
             texto_surf = mi_fuente_debug.render(texto_coords, True, (255, 255, 255), (0, 0, 0))
             PANTALLA.blit(texto_surf, (10, 10))
+            
+            # Indicador de cofre cercano
+            cofre_cercano = mi_mapa.chequear_cofre_cercano(heroe_lider.heroe_rect)
+            if cofre_cercano:
+                texto_interaccion = "Presiona E para interactuar"
+                texto_surf_interaccion = mi_fuente_debug.render(texto_interaccion, True, (255, 255, 0), (0, 0, 0))
+                PANTALLA.blit(texto_surf_interaccion, (ANCHO // 2 - texto_surf_interaccion.get_width() // 2, ALTO - 50))
+
 
     elif estado_juego == "batalla":
         if batalla_actual: batalla_actual.draw(PANTALLA) 
@@ -769,6 +813,21 @@ while True:
             PANTALLA.blit(aviso_surf, aviso_rect)
         else:
             aviso_autoguardado_activo = False
+
+    # --- Mensaje de interacción con cofre ---
+    if mensaje_cofre_activo:
+        tiempo_transcurrido = tiempo_actual_ticks - mensaje_cofre_inicio
+        if tiempo_transcurrido < DURACION_MENSAJE_COFRE:
+            mensaje_surf = mi_fuente_debug.render(mensaje_cofre_texto, True, (255, 255, 255), (0, 0, 0))
+            mensaje_rect = mensaje_surf.get_rect(center=(ANCHO // 2, 100))
+            fondo_mensaje = pygame.Surface((mensaje_rect.width + 20, mensaje_rect.height + 10))
+            fondo_mensaje.set_alpha(200)
+            fondo_mensaje.fill((0, 0, 0))
+            PANTALLA.blit(fondo_mensaje, (mensaje_rect.x - 10, mensaje_rect.y - 5))
+            PANTALLA.blit(mensaje_surf, mensaje_rect)
+        else:
+            mensaje_cofre_activo = False
+
 
     
     # 8. Actualizar la pantalla

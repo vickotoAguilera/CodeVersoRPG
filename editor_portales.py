@@ -390,12 +390,22 @@ class EditorPortales:
 
     def _guardar_mapa(self, mapa: MapaInfo, portales: List[object], spawns: List[Spawn]):
         ruta = self._ruta_json(mapa)
-        data = {
-            "portales": [p.to_dict() for p in portales],
-            "spawns": [s.to_dict() for s in spawns]
-        }
+        
+        # IMPORTANTE: Leer datos existentes para NO sobrescribir muros, cofres, etc.
+        data_existente = {}
+        if ruta.exists():
+            try:
+                with open(ruta, 'r', encoding='utf-8') as f:
+                    data_existente = json.load(f)
+            except:
+                pass
+        
+        # Actualizar SOLO portales y spawns, manteniendo el resto
+        data_existente["portales"] = [p.to_dict() for p in portales]
+        data_existente["spawns"] = [s.to_dict() for s in spawns]
+        
         with open(ruta, 'w', encoding='utf-8') as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+            json.dump(data_existente, f, ensure_ascii=False, indent=2)
 
     def _cargar_mapa_data(self, mapa: MapaInfo) -> Tuple[List[object], List[Spawn]]:
         ruta = self._ruta_json(mapa)

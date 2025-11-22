@@ -1,33 +1,10 @@
 {
-  "portales": [
-    {
-      "id": "portal_mapa_herrero_1",
-      "tipo": "portal_enlazado",
-      "forma": "rect",
-      "x": 207,
-      "y": 163,
-      "w": 48,
-      "h": 64,
-      "mapa_destino": "mapa_pueblo_final",
-      "spawn_destino_id": "",
-      "caja": {
-        "x": 299,
-        "y": 315,
-        "w": 48,
-        "h": 64
-      }
-    }
-  ],
-  "spawns": [
-    {
-      "id": "S_mapa_herrero_mapa_pueblo_final_1",
-      "x": 307,
-      "y": 263,
-      "direccion": "abajo",
-      "tam": 12,
-      "linked_portal_id": "portal_mapa_herrero"
-    }
-  ],
+  "mapa_base": "mapa_herrero",
+  "categoria": "ciudades_y_pueblos/pueblo_inicio",
+  "imagen": "mapa_herrero.png",
+  "ultima_modificacion": "2025-11-21T20:25:20.097072",
+  "version_editor": "1.0",
+  "editado_por": "Script Auto-Generador",
   "muros": [
     {
       "tipo": "poly",
@@ -223,9 +200,36 @@
       ]
     }
   ],
-  "nombre": "mapa_herrero",
-  "carpeta": "ciudades_y_pueblos",
-  "zonas_batalla": [],
+  "portales": [
+    {
+      "id": "portal_mapa_herrero_1",
+      "tipo": "portal_enlazado",
+      "forma": "rect",
+      "x": 207,
+      "y": 163,
+      "w": 48,
+      "h": 64,
+      "mapa_destino": "mapa_pueblo_final",
+      "spawn_destino_id": "",
+      "caja": {
+        "x": 299,
+        "y": 315,
+        "w": 48,
+        "h": 64
+      }
+    }
+  ],
+  "spawns": [
+    {
+      "id": "S_mapa_herrero_mapa_pueblo_final_1",
+      "x": 307,
+      "y": 263,
+      "direccion": "abajo",
+      "tam": 12,
+      "linked_portal_id": "portal_mapa_herrero"
+    }
+  ],
   "cofres": [],
-  "npcs": []
+  "npcs": [],
+  "eventos": []
 }

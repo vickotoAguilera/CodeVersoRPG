@@ -1,6 +1,5 @@
 {
   "comentario": "Base de datos de configuraciones de cofres por tipo. El editor_cofres.py usará estos valores por defecto.",
-
   "tipos_cofre": {
     "madera": {
       "requiere_llave": null,
@@ -11,7 +10,11 @@
       "items_random": {
         "min": 2,
         "max": 5,
-        "pool_consumibles": ["POCION_BASICA", "ETER_BASICO", "ANTIDOTO"],
+        "pool_consumibles": [
+          "POCION_BASICA",
+          "ETER_BASICO",
+          "ANTIDOTO"
+        ],
         "pool_equipo": [
           "ESPADA_COBRE",
           "ESCUDO_MADERA",
@@ -84,8 +87,16 @@
       "items_random": {
         "min": 5,
         "max": 5,
-        "pool_consumibles": ["POCION_GRANDE", "ETER_GRANDE", "ELIXIR"],
-        "pool_equipo": ["MANDOBLE_HIERRO", "ANILLO_AGILIDAD", "COLLAR_SALUD"]
+        "pool_consumibles": [
+          "POCION_GRANDE",
+          "ETER_GRANDE",
+          "ELIXIR"
+        ],
+        "pool_equipo": [
+          "MANDOBLE_HIERRO",
+          "ANILLO_AGILIDAD",
+          "COLLAR_SALUD"
+        ]
       }
     },
     "especial": {
@@ -113,7 +124,6 @@
       }
     }
   },
-
   "cofres_mapa": {
     "COFRE_PRADERA_01": {
       "nombre": "Cofre Pradera 1",
@@ -130,7 +140,6 @@
       "ultima_apertura": 0,
       "descripcion": "Un cofre simple sin cerradura"
     },
-
     "COFRE_PRADERA_SECRETO": {
       "nombre": "Cofre Secreto",
       "tipo": "bronce",
@@ -148,7 +157,6 @@
       "ultima_apertura": 0,
       "descripcion": "Un cofre cerrado con llave de bronce"
     },
-
     "COFRE_PUEBLO_01": {
       "nombre": "Cofre del Pueblo",
       "tipo": "plata",
@@ -166,7 +174,6 @@
       "ultima_apertura": 0,
       "descripcion": "Cofre cerrado con llave de plata"
     },
-
     "COFRE_TESORO_ORO": {
       "nombre": "Cofre de Oro",
       "tipo": "oro",
@@ -185,7 +192,6 @@
       "ultima_apertura": 0,
       "descripcion": "Un cofre dorado muy valioso"
     },
-
     "COFRE_ESPECIAL_EXPANSOR": {
       "nombre": "Cofre Místico",
       "tipo": "especial",
@@ -200,6 +206,69 @@
       "puede_reabrir": false,
       "ultima_apertura": 0,
       "descripcion": "Un cofre que emana energía mágica. Solo puede abrirse una vez."
+    },
+    "C3": {
+      "nombre": "Cofre_Madera_C3",
+      "tipo": "madera",
+      "sprite_cerrado": "cofre_madera_1.png",
+      "sprite_abierto": "cofre_madera_3.png",
+      "requiere_llave": null,
+      "oro": 50,
+      "items_contenido": {
+        "ETER_BASICO": 10,
+        "POCION_BASICA": 5
+      },
+      "equipo_contenido": {
+        "MANDOBLE_HIERRO": 3
+      },
+      "especiales_contenido": {
+        "CRISTAL_RESURRECION": 5
+      },
+      "puede_reabrir": true,
+      "ultima_apertura": 0,
+      "descripcion": "Cofre de madera en la pradera"
+    },
+    "C5": {
+      "nombre": "Cofre_Madera_C5",
+      "tipo": "madera",
+      "sprite_cerrado": "cofre_madera_1.png",
+      "sprite_abierto": "cofre_madera_3.png",
+      "requiere_llave": null,
+      "oro": 300,
+      "items_contenido": {
+        "ETER_BASICO": 10,
+        "POCION_BASICA": 5
+      },
+      "equipo_contenido": {
+        "MANDOBLE_HIERRO": 3
+      },
+      "especiales_contenido": {
+        "CRISTAL_RESURRECION": 5
+      },
+      "puede_reabrir": true,
+      "ultima_apertura": 0,
+      "descripcion": "Cofre de madera en la pradera"
+    },
+    "C6": {
+      "nombre": "Cofre_Madera_C6",
+      "tipo": "madera",
+      "sprite_cerrado": "cofre_madera_1.png",
+      "sprite_abierto": "cofre_madera_3.png",
+      "requiere_llave": null,
+      "oro": 18,
+      "items_contenido": {
+        "ETER_BASICO": 10,
+        "POCION_BASICA": 5
+      },
+      "equipo_contenido": {
+        "MANDOBLE_HIERRO": 3
+      },
+      "especiales_contenido": {
+        "CRISTAL_RESURRECION": 5
+      },
+      "puede_reabrir": true,
+      "ultima_apertura": 0,
+      "descripcion": "Cofre de madera en la pradera"
     }
   }
 }

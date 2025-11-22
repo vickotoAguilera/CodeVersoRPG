@@ -98,50 +98,82 @@ class Mapa:
 
     # --- ¡MODIFICADO! "EL MOTOR" PARA LEER JSON ---
     def cargar_datos_mapa(self):
-        # 1. Averiguamos el nombre del archivo JSON (igual que antes)
+        # 1. Averiguamos el nombre del archivo JSON
         nombre_base = os.path.splitext(self.nombre_archivo)[0]
-        nombre_json = f"{nombre_base}.json"
         
-        # ¡MODIFICADO! ¡Ahora busca el JSON en la sub-carpeta correcta!
-        ruta_json = os.path.join(DATABASE_PATH, "mapas", self.categoria, nombre_json)
+        # ¡NUEVO! PRIORIDAD 1: Intentar cargar desde mapas_unificados/
+        nombre_unificado = f"{nombre_base}_unificado.json"
+        ruta_unificado = os.path.join(DATABASE_PATH, "mapas_unificados", nombre_unificado)
         
-        print(f"Buscando datos del mapa en: {ruta_json}")
-
-        # 2. Abrimos y leemos el archivo JSON (igual que antes)
-        try:
-            # --- ¡MODIFICADO! Añadimos encoding='utf-8' ---
-            with open(ruta_json, 'r', encoding='utf-8') as f:
-                datos = json.load(f)
-        except FileNotFoundError:
-            # Intentar resolver mediante el índice maps_index.json si existe
+        datos = None
+        ruta_cargada = None
+        
+        # Intentar cargar archivo unificado primero
+        if os.path.exists(ruta_unificado):
+            try:
+                with open(ruta_unificado, 'r', encoding='utf-8') as f:
+                    datos = json.load(f)
+                ruta_cargada = ruta_unificado
+                print(f"[UNIFICADO] Cargando desde: {ruta_unificado}")
+            except json.JSONDecodeError as e:
+                print(f"[ERROR] Archivo unificado mal formado: {ruta_unificado}")
+                print(f"  Error: {e}")
+                datos = None
+            except Exception as e:
+                print(f"[ERROR] No se pudo leer archivo unificado: {e}")
+                datos = None
+        
+        # PRIORIDAD 2: Si no hay archivo unificado, buscar en mapas/{categoria}/
+        if datos is None:
+            nombre_json = f"{nombre_base}.json"
+            ruta_json = os.path.join(DATABASE_PATH, "mapas", self.categoria, nombre_json)
+            
+            if os.path.exists(ruta_json):
+                try:
+                    with open(ruta_json, 'r', encoding='utf-8') as f:
+                        datos = json.load(f)
+                    ruta_cargada = ruta_json
+                    print(f"[PARCIAL] Cargando desde: {ruta_json}")
+                except json.JSONDecodeError as e:
+                    print(f"[ERROR] El archivo JSON está mal escrito: {ruta_json}")
+                    print(f"  Error: {e}")
+                    pygame.quit(); sys.exit()
+                except Exception as e:
+                    print(f"[ERROR] No se pudo leer: {e}")
+                    datos = None
+        
+        # PRIORIDAD 3: Intentar resolver mediante el índice maps_index.json
+        if datos is None:
             ruta_indice = os.path.join(DATABASE_PATH, 'maps_index.json')
-            datos = None
             if os.path.exists(ruta_indice):
                 try:
                     with open(ruta_indice, 'r', encoding='utf-8') as fi:
                         entradas = json.load(fi)
                     for e in entradas:
-                        # buscar por id o por nombre base
                         if e.get('id') == nombre_base or os.path.splitext(os.path.basename(e.get('ruta_json','')))[0] == nombre_base:
                             posible = e.get('ruta_json')
                             if posible and os.path.exists(posible):
                                 try:
                                     with open(posible, 'r', encoding='utf-8') as f:
                                         datos = json.load(f)
-                                    print(f"Cargado JSON desde índice: {posible}")
+                                    ruta_cargada = posible
+                                    print(f"[INDICE] Cargado desde índice: {posible}")
                                     break
                                 except Exception:
                                     datos = None
-                except Exception:
-                    datos = None
-
-            if datos is None:
-                print(f"¡ADVERTENCIA! No se encontró el archivo de datos: {ruta_json}")
-                print("El mapa se cargará vacío (sin muros, portales, etc.)")
-                return
-        except json.JSONDecodeError:
-            print(f"¡ERROR! El archivo JSON está mal escrito: {ruta_json}")
-            pygame.quit(); sys.exit()
+                except Exception as e:
+                    print(f"[!] Error leyendo maps_index.json: {e}")
+        
+        # Si no se encontró ningún archivo, advertir y salir
+        if datos is None:
+            print(f"[ADVERTENCIA] No se encontró archivo de datos para '{nombre_base}'")
+            print(f"  Intentado:")
+            print(f"    1. {ruta_unificado}")
+            if 'ruta_json' in locals():
+                print(f"    2. {ruta_json}")
+            print(f"    3. Índice de mapas")
+            print("El mapa se cargará vacío (sin muros, portales, etc.)")
+            return
 
         # 3. "Traducimos" los datos JSON (¡MODIFICADO!)
         # Helper local para escalar coordenadas si el mapa fue escalado
@@ -381,7 +413,7 @@ class Mapa:
                 else:
                     print(f"¡ADVERTENCIA! Cofre '{id_cofre}' no encontrado en cofres_db.json")
         
-        print(f"¡Datos del mapa '{nombre_json}' cargados con éxito!")
+        print(f"¡Datos del mapa cargados con éxito desde: {ruta_cargada}!")
         print(f"  > Muros: {len(self.muros)}")
         print(f"  > Zonas: {len(self.zonas_batalla)}")
         print(f"  > Portales: {len(self.portales)}")
@@ -468,8 +500,10 @@ class Mapa:
         
         try:
             with open(ruta_cofres_db, 'r', encoding='utf-8') as f:
-                self.cofres_db = json.load(f)
-            print(f"✓ Base de datos de cofres cargada: {len(self.cofres_db)} cofres definidos")
+                datos_completos = json.load(f)
+            # Extraer solo el diccionario de cofres_mapa
+            self.cofres_db = datos_completos.get("cofres_mapa", {})
+            print(f"[OK] Base de datos de cofres cargada: {len(self.cofres_db)} cofres definidos")
         except FileNotFoundError:
             print(f"¡ADVERTENCIA! No se encontró cofres_db.json en: {ruta_cofres_db}")
             self.cofres_db = {}

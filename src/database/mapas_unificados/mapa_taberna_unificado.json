@@ -1,0 +1,14 @@
+{
+  "mapa_base": "mapa_taberna",
+  "categoria": "ciudades_y_pueblos/pueblo_inicio",
+  "imagen": "mapa_taberna.png",
+  "ultima_modificacion": "2025-11-21T20:25:20.167068",
+  "version_editor": "1.0",
+  "editado_por": "Script Auto-Generador",
+  "muros": [],
+  "portales": [],
+  "spawns": [],
+  "cofres": [],
+  "npcs": [],
+  "eventos": []
+}

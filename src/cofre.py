@@ -8,7 +8,7 @@ class Cofre:
     Un cofre puede estar: ABIERTO_CON_ITEMS, CERRADO, o VACIO
     """
     
-    def __init__(self, x, y, id_cofre, requiere_llave=None, items_contenido=None, escala=1.0):
+    def __init__(self, x, y, id_cofre, requiere_llave=None, items_contenido=None, escala=1.0, sprite_cerrado=None, sprite_abierto=None):
         """
         Constructor del cofre.
         
@@ -18,11 +18,15 @@ class Cofre:
             requiere_llave: ID de la llave necesaria (None si no requiere)
             items_contenido: Diccionario de items {"item_id": cantidad}
             escala: Escala del sprite (1.0 = tamaño original)
+            sprite_cerrado: Nombre del archivo sprite cerrado (ej: "cofre_madera_1.png")
+            sprite_abierto: Nombre del archivo sprite abierto (ej: "cofre_madera_3.png")
         """
         self.id_cofre = id_cofre
         self.requiere_llave = requiere_llave
         self.items_contenido = items_contenido if items_contenido else {}
         self.escala = escala
+        self.sprite_cerrado_path = sprite_cerrado
+        self.sprite_abierto_path = sprite_abierto
         
         # Estados del cofre
         self.abierto = False  # Si ya fue abierto alguna vez
@@ -40,7 +44,43 @@ class Cofre:
         self.sprite_actual = self.sprite_cerrado
     
     def _cargar_sprites(self):
-        """Carga los 3 estados del cofre desde el spritesheet"""
+        """Carga los sprites del cofre desde archivos individuales o spritesheet"""
+        # Si se proporcionaron rutas de sprites individuales, usarlas
+        if self.sprite_cerrado_path and self.sprite_abierto_path:
+            try:
+                ruta_cerrado = os.path.join(ASSETS_PATH, "sprites", "cofres y demas", self.sprite_cerrado_path)
+                ruta_abierto = os.path.join(ASSETS_PATH, "sprites", "cofres y demas", self.sprite_abierto_path)
+                
+                sprite_cerrado = pygame.image.load(ruta_cerrado).convert_alpha()
+                sprite_abierto = pygame.image.load(ruta_abierto).convert_alpha()
+                
+                # Escalar si es necesario
+                if self.escala != 1.0:
+                    ancho_cerrado, alto_cerrado = sprite_cerrado.get_size()
+                    ancho_abierto, alto_abierto = sprite_abierto.get_size()
+                    
+                    self.sprite_cerrado = pygame.transform.scale(
+                        sprite_cerrado, 
+                        (int(ancho_cerrado * self.escala), int(alto_cerrado * self.escala))
+                    )
+                    self.sprite_abierto = pygame.transform.scale(
+                        sprite_abierto,
+                        (int(ancho_abierto * self.escala), int(alto_abierto * self.escala))
+                    )
+                    self.sprite_vacio = self.sprite_abierto  # Usar mismo sprite para vacío
+                else:
+                    self.sprite_cerrado = sprite_cerrado
+                    self.sprite_abierto = sprite_abierto
+                    self.sprite_vacio = sprite_abierto  # Usar mismo sprite para vacío
+                
+                print(f"[OK] Sprites del cofre '{self.id_cofre}' cargados: {self.sprite_cerrado_path}, {self.sprite_abierto_path}")
+                return
+                
+            except FileNotFoundError as e:
+                print(f"¡ADVERTENCIA! No se encontraron sprites individuales: {e}")
+                print(f"  Intentando cargar desde spritesheet...")
+        
+        # Fallback: Cargar desde spritesheet (código original)
         try:
             ruta_cofre = os.path.join(ASSETS_PATH, "sprites", "cofres y demas", "cofre.png")
             hoja_completa = pygame.image.load(ruta_cofre).convert_alpha()
@@ -73,7 +113,7 @@ class Cofre:
                 self.sprite_cerrado = sprite_cerrado
                 self.sprite_vacio = sprite_vacio
             
-            print(f"✓ Sprites del cofre '{self.id_cofre}' cargados correctamente")
+            print(f"[OK] Sprites del cofre '{self.id_cofre}' cargados correctamente")
             
         except FileNotFoundError:
             print(f"¡ERROR! No se encontró el sprite del cofre en: {ruta_cofre}")
@@ -136,7 +176,7 @@ class Cofre:
                 }
             
             # IMPORTANTE: La llave NO se consume, solo se verifica
-            print(f"✓ Llave encontrada: {self.requiere_llave} (no se consume)")
+            print(f"[OK] Llave encontrada: {self.requiere_llave} (no se consume)")
         
         # Abrir el cofre y dar items
         self.abierto = True
@@ -161,7 +201,7 @@ class Cofre:
                     lider.inventario[item_id] += cantidad
                 else:
                     lider.inventario[item_id] = cantidad
-                print(f"  → {item_id} x{cantidad} agregado al inventario")
+                print(f"  -> {item_id} x{cantidad} agregado al inventario")
         
         items_obtenidos = self.items_contenido.copy()
         

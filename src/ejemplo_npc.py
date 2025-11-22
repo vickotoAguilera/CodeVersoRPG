@@ -32,7 +32,7 @@ def npc_vender_item(heroe_comprador, item_id, cantidad, precio, items_db, grupo_
                 heroe_comprador.inventario[item_id] += cantidad
             else:
                 heroe_comprador.inventario[item_id] = cantidad
-            print(f"  → {item_id} x{cantidad} agregado al inventario")
+            print(f"  -> {item_id} x{cantidad} agregado al inventario")
     
     return True
 
@@ -57,7 +57,7 @@ def npc_dar_recompensa_quest(heroe_receptor, item_id, cantidad, items_db, grupo_
                 heroe_receptor.inventario[item_id] += cantidad
             else:
                 heroe_receptor.inventario[item_id] = cantidad
-            print(f"  → {item_id} x{cantidad} agregado al inventario")
+            print(f"  -> {item_id} x{cantidad} agregado al inventario")
 
 
 # EJEMPLO 3: Drop de batalla (monstruo que dropea item especial)
@@ -80,7 +80,7 @@ def monstruo_dropear_item(heroe_receptor, item_id, cantidad, items_db, grupo_her
                 heroe_receptor.inventario[item_id] += cantidad
             else:
                 heroe_receptor.inventario[item_id] = cantidad
-            print(f"  → {item_id} x{cantidad} agregado al inventario")
+            print(f"  -> {item_id} x{cantidad} agregado al inventario")
 
 
 """
@@ -89,8 +89,8 @@ RESUMEN:
 Siempre que agregues un item especial (Expansor de Ranuras, Llaves, etc.):
 
 1. Verificar si es tipo "Especial" en items_db
-2. SI ES ESPECIAL → Usar: heroe.agregar_item_especial(item_id, cantidad, items_db, grupo_heroes)
-3. SI ES NORMAL → Agregar directamente a heroe.inventario[item_id]
+2. SI ES ESPECIAL -> Usar: heroe.agregar_item_especial(item_id, cantidad, items_db, grupo_heroes)
+3. SI ES NORMAL -> Agregar directamente a heroe.inventario[item_id]
 
 El método agregar_item_especial() se encarga de:
 - Agregarlo al inventario_especiales

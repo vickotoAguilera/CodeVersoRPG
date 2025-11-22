@@ -1,4 +1,11 @@
 {
+  "mapa_base": "mapa_pradera",
+  "categoria": "mundo",
+  "imagen": "mapa_pradera.png",
+  "ultima_modificacion": "2025-11-21T20:25:20.178321",
+  "version_editor": "1.0",
+  "editado_por": "Script Auto-Generador",
+  "muros": [],
   "portales": [
     {
       "id": "Pmapa_pradera_mapa_pueblo_final",
@@ -10,13 +17,7 @@
       "h": 44,
       "mapa_destino": "mapa_pueblo_final",
       "spawn_destino_id": "S2",
-      "categoria_destino": "mundo",
-      "caja": {
-        "x": 556,
-        "y": 606,
-        "w": 35,
-        "h": 44
-      }
+      "categoria_destino": "mundo"
     }
   ],
   "spawns": [
@@ -78,8 +79,8 @@
       "tipo": "madera",
       "x": 609,
       "y": 132,
-      "ancho": 51,
-      "alto": 51,
+      "ancho": 60,
+      "alto": 59,
       "sprite_cerrado": null,
       "sprite_abierto_items": null,
       "sprite_abierto_vacio": null,
@@ -125,8 +126,6 @@
       "tiempo_reapertura": 60
     }
   ],
-  "muros": [],
-  "zonas_batalla": [],
-  "id": "mapa_pradera",
-  "imagen": "mapa_pradera.jpg"
+  "npcs": [],
+  "eventos": []
 }

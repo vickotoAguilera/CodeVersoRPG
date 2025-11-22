@@ -1,16 +1,4 @@
 {
-  "portales": [
-    {
-      "id": "portal_test_final",
-      "tipo": "portal_enlazado",
-      "forma": "rect",
-      "x": 30,
-      "y": 40,
-      "w": 24,
-      "h": 32,
-      "mapa_destino": "test_mapa_b",
-      "spawn_destino_id": "S_test_mapa_b_test_mapa_a_2"
-    }
-  ],
+  "portales": [],
   "spawns": []
 }

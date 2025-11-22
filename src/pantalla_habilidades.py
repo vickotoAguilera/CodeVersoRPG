@@ -367,7 +367,7 @@ class PantallaHabilidades:
         # (porque la lista inventario_habilidades siempre la contiene, solo se filtra visualmente)
         habilidad_anterior = self.heroe.habilidades_activas[ranura_idx]
         if habilidad_anterior:
-            print(f"  → La habilidad '{habilidad_anterior}' regresa al inventario disponible.")
+            print(f"  -> La habilidad '{habilidad_anterior}' regresa al inventario disponible.")
         
         # Equipar la nueva habilidad
         self.heroe.habilidades_activas[ranura_idx] = id_habilidad
@@ -792,13 +792,13 @@ class PantallaHabilidades:
         
         if self.modo == "equipando":
             # Modo especial: equipando habilidad
-            instruc = "SELECCIONA UNA RANURA con ←→ | ENTER: Confirmar | ESC: Cancelar"
+            instruc = "SELECCIONA UNA RANURA con ←-> | ENTER: Confirmar | ESC: Cancelar"
             color_instruc = self.COLOR_TEXTO_SEL  # Amarillo para destacar
         elif self.panel_activo == "inventario":
             instruc = "FLECHAS: Navegar | ENTER: Equipar | ESC: Salir"
             color_instruc = self.COLOR_TEXTO
         elif self.panel_activo == "ranuras":
-            instruc = "←→: Cambiar Ranura | ENTER: Desequipar | X: Desequipar | ESC: Salir"
+            instruc = "←->: Cambiar Ranura | ENTER: Desequipar | X: Desequipar | ESC: Salir"
             color_instruc = self.COLOR_TEXTO
         elif self.panel_activo == "boton_volver":
             instruc = "ENTER: Volver al Menú | FLECHAS: Navegar"

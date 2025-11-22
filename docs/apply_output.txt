@@ -1,0 +1,19 @@
+﻿python : Traceback (most recent call last):
+En línea: 1 Carácter: 1
++ python apply_fixes.py 2>&1 | Out-File -Encoding utf8 apply_output.txt ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Traceback (most recent call last)::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  File "C:\Users\vicko\Documents\RPG\apply_fixes.py", line 212, in <module>
+
+    print("\u2713 Cambios aplicados exitosamente a src/mapa.py")
+
+  File "C:\Program Files\Python312\Lib\encodings\cp1252.py", line 19, in encode
+
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+UnicodeEncodeError: 'charmap' codec can't encode character '\u2713' in position 0: character maps to <undefined>
+

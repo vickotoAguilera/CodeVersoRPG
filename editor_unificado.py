@@ -130,14 +130,14 @@ class EditorUnificado:
         self.elementos = []  # Lista de todos los elementos
         self.elementos_seleccionados = []  # Lista de elementos seleccionados
         
-        # Capas visibles
+        # Capas visibles - TODAS VISIBLES POR DEFECTO para ver elementos superpuestos
         self.capas_visibles = {
             'muros': True,
             'portales': True,
             'spawns': True,
             'cofres': True,
-            'npcs': False,
-            'eventos': False
+            'npcs': True,
+            'eventos': True
         }
         # Estados de expansión por capa (mostrar lista de elementos)
         self.capas_expandidas = {k: False for k in self.capas_visibles.keys()}
@@ -185,25 +185,64 @@ class EditorUnificado:
         # Validación
         self.elementos_con_error = []
         
+        # Confirmación de borrado
+        self.confirmar_borrado = False
+        self.tiempo_confirmacion_borrado = 0
+        
         # Cargar mapas disponibles
         self._cargar_lista_mapas()
         self._agrupar_mapas_por_categoria()
         
+        # Cargar base de datos de cofres para sprites
+        self.cofres_db = self._cargar_json("src/database/cofres_db.json")
+        
         print("Editor Unificado iniciado")
         print("H: Ayuda | G: Grid | S: Snap | V: Validar | E: Exportar | M: Mapas")
     
+    def _cargar_json(self, ruta):
+        """Carga un archivo JSON de forma segura"""
+        try:
+            with open(ruta, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"Error cargando JSON {ruta}: {e}")
+            return {}
+
     def _cargar_lista_mapas(self):
         """Carga lista de mapas disponibles"""
         self.mapas_disponibles = []
         
         ruta_mapas = Path("src/database/mapas")
         if not ruta_mapas.exists():
-            print(f"⚠ No se encontró: {ruta_mapas}")
+            print(f"[!] No se encontró: {ruta_mapas}")
             return
         
         # Buscar recursivamente en todas las subcarpetas
         for json_file in ruta_mapas.rglob("*.json"):
             nombre = json_file.stem
+            
+            # FILTRAR archivos que NO son mapas completos
+            # Excluir archivos parciales (muros, portales, spawns, cofres individuales)
+            if any(palabra in nombre.lower() for palabra in ['_muros', '_portales', '_spawns', '_cofres', '_batalla']):
+                continue
+            
+            # Excluir archivos de test
+            if nombre.lower().startswith('test_'):
+                continue
+            
+            # Verificar que el JSON tenga estructura de mapa completo
+            try:
+                with open(json_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                
+                # Un mapa completo debe tener al menos una de estas claves
+                if not any(key in data for key in ['muros', 'portales', 'spawns', 'zonas_batalla', 'cofres']):
+                    print(f"  [SKIP] {nombre} - no parece un mapa completo")
+                    continue
+            except:
+                # Si no se puede leer, saltar
+                continue
+            
             # Categoría relativa a src/database/mapas
             categoria_rel = json_file.relative_to(ruta_mapas).parent
             
@@ -214,7 +253,7 @@ class EditorUnificado:
             mapa_info = MapaInfo(nombre, str(categoria_rel), json_file, ruta_img)
             self.mapas_disponibles.append(mapa_info)
         
-        print(f"✓ Cargados {len(self.mapas_disponibles)} mapas")
+        print(f"[OK] Cargados {len(self.mapas_disponibles)} mapas")
     
     def _agrupar_mapas_por_categoria(self):
         """Agrupa mapas por categoría para el selector"""
@@ -257,82 +296,90 @@ class EditorUnificado:
                 return img
         
         # Si aún no encuentra, crear imagen placeholder
-        print(f"⚠ No se encontró imagen para: {nombre}")
+        print(f"[!] No se encontró imagen para: {nombre}")
         return None
     
     def cargar_mapa(self, mapa_info):
         """Carga un mapa y todos sus elementos"""
-        print(f"\n=== Cargando mapa: {mapa_info.nombre} ===")
+        print(f"\n[>>] Cargando mapa: {mapa_info.nombre}")
         
         self.mapa_actual = mapa_info
+        self.elementos = []
         
-        # Cargar imagen o crear placeholder
-        if mapa_info.ruta_imagen and mapa_info.ruta_imagen.exists():
+        # Cargar imagen del mapa
+        if mapa_info.ruta_imagen and Path(mapa_info.ruta_imagen).exists():
             try:
-                self.mapa_img = pygame.image.load(str(mapa_info.ruta_imagen))
-                print(f"✓ Imagen cargada: {mapa_info.ruta_imagen.name}")
+                self.mapa_img = pygame.image.load(str(mapa_info.ruta_imagen)).convert()
+                print(f"  [OK] Imagen cargada: {Path(mapa_info.ruta_imagen).name}")
             except Exception as e:
-                print(f"✗ Error cargando imagen: {e}")
+                print(f"  [!] Error cargando imagen: {e}")
                 self._crear_imagen_placeholder()
         else:
-            print(f"⚠ Sin imagen, creando placeholder")
+            print(f"  [!] No se encontro imagen del mapa")
             self._crear_imagen_placeholder()
         
-        # Limpiar elementos anteriores
-        self.elementos = []
-        self.elementos_seleccionados = []
-        
-        # Cargar todos los elementos
+        # Cargar elementos del mapa
         self._cargar_muros(mapa_info.nombre)
         self._cargar_portales(mapa_info.nombre)
         self._cargar_spawns(mapa_info.nombre)
         self._cargar_cofres(mapa_info.ruta_json)
         
-        # Auto-fit zoom y centrar
+        # Configurar zoom y offset iniciales
         if self.mapa_img:
             ancho_img = self.mapa_img.get_width()
             alto_img = self.mapa_img.get_height()
-            ancho_viewport = ANCHO - PANEL_ANCHO
-            alto_viewport = ALTO
+            viewport_ancho = ANCHO - PANEL_ANCHO
+            viewport_alto = ALTO
             
-            # Calcular zoom para que quepa completo
-            zoom_x = (ancho_viewport - 40) / ancho_img
-            zoom_y = (alto_viewport - 40) / alto_img
+            zoom_x = viewport_ancho / ancho_img
+            zoom_y = viewport_alto / alto_img
             self.mapa_zoom = min(zoom_x, zoom_y, 1.0)
             
-            # Centrar el mapa en el viewport
-            ancho_scaled = ancho_img * self.mapa_zoom
-            alto_scaled = alto_img * self.mapa_zoom
-            self.mapa_offset_x = (ancho_viewport - ancho_scaled) // 2
-            self.mapa_offset_y = (alto_viewport - alto_scaled) // 2
+            self.mapa_offset_x = (viewport_ancho - ancho_img * self.mapa_zoom) // 2
+            self.mapa_offset_y = (viewport_alto - alto_img * self.mapa_zoom) // 2
         
-        print(f"✓ Total elementos cargados: {len(self.elementos)}")
-        print(f"  - Muros: {len([e for e in self.elementos if e.tipo == 'muro'])}")
-        print(f"  - Portales: {len([e for e in self.elementos if e.tipo == 'portal'])}")
-        print(f"  - Spawns: {len([e for e in self.elementos if e.tipo == 'spawn'])}")
-        print(f"  - Cofres: {len([e for e in self.elementos if e.tipo == 'cofre'])}")
-        
-        # Guardar timestamps para hot-reload
+        # Actualizar timestamps para hot-reload
         self._actualizar_timestamps()
+        
+        print(f"[OK] Mapa cargado: {len(self.elementos)} elementos totales")
     
     def _crear_imagen_placeholder(self):
-        """Crea una imagen placeholder cuando no existe imagen del mapa"""
-        # Crear superficie gris con grid
-        ancho, alto = 800, 600
+        """Crea una imagen placeholder dinámica basada en los elementos cargados"""
+        if not self.elementos:
+            # Si no hay elementos, crear placeholder fijo
+            ancho, alto = 800, 600
+            self.mapa_img = pygame.Surface((ancho, alto))
+            self.mapa_img.fill((60, 60, 70))
+            self.mapa_offset_x = 0
+            self.mapa_offset_y = 0
+            return
+        
+        # Calcular bounding box de todos los elementos
+        min_x = min(elem.x for elem in self.elementos)
+        min_y = min(elem.y for elem in self.elementos)
+        max_x = max(elem.x + elem.ancho for elem in self.elementos)
+        max_y = max(elem.y + elem.alto for elem in self.elementos)
+        
+        # Añadir margen
+        margen = 32
+        ancho = int(max_x - min_x + 2 * margen)
+        alto = int(max_y - min_y + 2 * margen)
+        
+        # Crear superficie
         self.mapa_img = pygame.Surface((ancho, alto))
         self.mapa_img.fill((60, 60, 70))
         
         # Dibujar grid
         for x in range(0, ancho, 32):
-            pygame.draw.line(self.mapa_img, (80, 80, 90), (x, 0), (x, alto))
+            pygame.draw.line(self.mapa_img, (70, 70, 75), (x, 0), (x, alto))
         for y in range(0, alto, 32):
-            pygame.draw.line(self.mapa_img, (80, 80, 90), (0, y), (ancho, y))
+            pygame.draw.line(self.mapa_img, (70, 70, 75), (0, y), (ancho, y))
         
-        # Texto "Sin imagen"
-        font = pygame.font.Font(None, 48)
-        texto = font.render("SIN IMAGEN", True, (150, 150, 150))
-        texto_rect = texto.get_rect(center=(ancho//2, alto//2))
-        self.mapa_img.blit(texto, texto_rect)
+        # Ajustar offsets para que el origen del mapa esté correctamente posicionado
+        self.mapa_offset_x = -int(min_x - margen)
+        self.mapa_offset_y = -int(min_y - margen)
+        
+        print(f"  [OK] Placeholder dinamico creado: {ancho}x{alto} px")
     
     def _cargar_muros(self, nombre_mapa):
         """Carga muros desde JSON del mapa"""
@@ -340,8 +387,14 @@ class EditorUnificado:
             with open(self.mapa_actual.ruta_json, 'r', encoding='utf-8') as f:
                 data = json.load(f)
             
-            for i, muro in enumerate(data.get('muros', [])):
-                tipo_muro = muro.get('tipo', 'rect')
+            muros_data = data.get('muros', [])
+            print(f"  DEBUG: Encontrados {len(muros_data)} muros")
+            
+            for i, muro in enumerate(muros_data):
+                # Determinar si es polígono o rectángulo
+                tipo_muro = 'rect'
+                if 'puntos' in muro or muro.get('forma') == 'poly':
+                    tipo_muro = 'poly'
                 
                 if tipo_muro == 'poly':
                     # Polígono: calcular bounding box
@@ -378,7 +431,7 @@ class EditorUnificado:
                     self.elementos.append(elemento)
         
         except Exception as e:
-            print(f"⚠ Error cargando muros: {e}")
+            print(f"[!] Error cargando muros: {e}")
     
     def _cargar_portales(self, nombre_mapa):
         """Carga portales desde JSON del mapa"""
@@ -387,8 +440,11 @@ class EditorUnificado:
                 data = json.load(f)
             
             portales_data = data.get('portales', [])
+            print(f"  DEBUG: Claves en JSON: {list(data.keys())}")
             if portales_data:
                 print(f"  DEBUG: Encontrados {len(portales_data)} portales")
+            else:
+                print("  DEBUG: No se encontró la clave 'portales' o está vacía")
             
             for i, portal in enumerate(portales_data):
                 # Soportar diferentes estructuras, incluyendo polígonos ('puntos')
@@ -412,7 +468,7 @@ class EditorUnificado:
                             puntos=puntos
                         )
                         self.elementos.append(elemento)
-                        print(f"    ✓ Portal P{i+1} (poly) cargado en bbox ({x_min}, {y_min})")
+                        print(f"    [OK] Portal P{i+1} (poly) cargado en bbox ({x_min}, {y_min})")
                         continue
 
                 # 2) Estructura con 'caja'
@@ -439,10 +495,10 @@ class EditorUnificado:
                     datos=portal
                 )
                 self.elementos.append(elemento)
-                print(f"    ✓ Portal P{i+1} cargado en ({x}, {y})")
+                print(f"    [OK] Portal P{i+1} cargado en ({x}, {y})")
         
         except Exception as e:
-            print(f"⚠ Error cargando portales: {e}")
+            print(f"[!] Error cargando portales: {e}")
     
     def _cargar_spawns(self, nombre_mapa):
         """Carga zonas de spawn desde JSON del mapa"""
@@ -453,7 +509,9 @@ class EditorUnificado:
             # Buscar spawns en diferentes estructuras
             spawns_data = data.get('zonas_batalla', []) or data.get('spawns', [])
             if spawns_data:
-                print(f"  DEBUG: Encontrados {len(spawns_data)} spawns")
+                print(f"  DEBUG: Encontrados {len(spawns_data)} spawns (zonas_batalla/spawns)")
+            else:
+                print("  DEBUG: No se encontraron 'zonas_batalla' ni 'spawns'")
             
             for i, zona in enumerate(spawns_data):
                 # Soportar diferentes estructuras
@@ -483,10 +541,10 @@ class EditorUnificado:
                     datos=zona
                 )
                 self.elementos.append(elemento)
-                print(f"    ✓ Spawn S{i+1} cargado en ({x}, {y})")
+                print(f"    [OK] Spawn S{i+1} cargado en ({x}, {y})")
         
         except Exception as e:
-            print(f"⚠ Error cargando spawns: {e}")
+            print(f"[!] Error cargando spawns: {e}")
     
     def _cargar_cofres(self, ruta_json):
         """Carga cofres desde JSON del mapa"""
@@ -507,7 +565,7 @@ class EditorUnificado:
                 self.elementos.append(elemento)
         
         except Exception as e:
-            print(f"⚠ Error cargando cofres: {e}")
+            print(f"[!] Error cargando cofres: {e}")
     
     def _actualizar_timestamps(self):
         """Guarda timestamps de archivos para hot-reload"""
@@ -554,7 +612,7 @@ class EditorUnificado:
                 pass
         
         if cambios:
-            print(f"\n🔄 Hot-reload: Cambios detectados en {', '.join(cambios)}")
+            print(f"\n[RELOAD] Hot-reload: Cambios detectados en {', '.join(cambios)}")
             # Guardar estado de selección y zoom actual
             zoom_actual = self.mapa_zoom
             offset_x = self.mapa_offset_x
@@ -570,7 +628,7 @@ class EditorUnificado:
 
             # Si cambió el índice global, recargar la lista de mapas y agrupaciones
             if 'maps_index' in cambios:
-                print('🔁 maps_index cambiado: recargando lista de mapas')
+                print('[RELOAD] maps_index cambiado: recargando lista de mapas')
                 self._cargar_lista_mapas()
                 self._agrupar_mapas_por_categoria()
             
@@ -579,14 +637,99 @@ class EditorUnificado:
             self.mapa_offset_x = offset_x
             self.mapa_offset_y = offset_y
             
-            print(f"✓ Recargados {len(self.elementos)} elementos")
+            print(f"[OK] Recargados {len(self.elementos)} elementos")
+    
+    def _guardar_archivo_unificado(self):
+        """Genera el archivo unificado consolidando todos los elementos con metadata"""
+        if not self.mapa_actual:
+            return False
+        
+        print("\n[UNIFY] Generando archivo unificado...")
+        
+        # Crear directorio si no existe
+        dir_unificados = Path("src/database/mapas_unificados")
+        dir_unificados.mkdir(parents=True, exist_ok=True)
+        
+        # Nombre del archivo unificado
+        nombre_archivo = dir_unificados / f"{self.mapa_actual.nombre}_unificado.json"
+        
+        # Agrupar elementos por tipo
+        elementos_por_tipo = {
+            'muro': [],
+            'portal': [],
+            'spawn': [],
+            'cofre': [],
+            'npc': [],
+            'evento': []
+        }
+        
+        for elem in self.elementos:
+            if elem.tipo in elementos_por_tipo:
+                # Actualizar datos del elemento con posición/tamaño actual
+                datos = elem.datos.copy()
+                
+                if elem.puntos:
+                    # Polígono: actualizar puntos
+                    datos['puntos'] = elem.puntos
+                else:
+                    # Rectángulo: actualizar coordenadas
+                    if elem.tipo == 'portal' and 'caja' in datos:
+                        datos['caja']['x'] = elem.x
+                        datos['caja']['y'] = elem.y
+                        datos['caja']['w'] = elem.ancho
+                        datos['caja']['h'] = elem.alto
+                    elif elem.tipo == 'spawn' and 'caja' in datos:
+                        datos['caja']['x'] = elem.x
+                        datos['caja']['y'] = elem.y
+                        datos['caja']['w'] = elem.ancho
+                        datos['caja']['h'] = elem.alto
+                    else:
+                        datos['x'] = elem.x
+                        datos['y'] = elem.y
+                        datos['w'] = elem.ancho
+                        datos['h'] = elem.alto
+                
+                elementos_por_tipo[elem.tipo].append(datos)
+        
+        # Construir estructura unificada con metadata
+        estructura_unificada = {
+            "metadata": {
+                "mapa_base": self.mapa_actual.nombre,
+                "categoria": str(self.mapa_actual.categoria),
+                "imagen": str(self.mapa_actual.ruta_imagen.name) if self.mapa_actual.ruta_imagen else None,
+                "ultima_modificacion": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "version_editor": "1.0",
+                "editado_por": "Editor Unificado"
+            },
+            "muros": elementos_por_tipo['muro'],
+            "portales": elementos_por_tipo['portal'],
+            "spawns": elementos_por_tipo['spawn'],
+            "cofres": elementos_por_tipo['cofre'],
+            "npcs": elementos_por_tipo['npc'],
+            "eventos": elementos_por_tipo['evento']
+        }
+        
+        # Guardar archivo
+        try:
+            with open(nombre_archivo, 'w', encoding='utf-8') as f:
+                json.dump(estructura_unificada, f, indent=2, ensure_ascii=False)
+            
+            print(f"[OK] Archivo unificado guardado: {nombre_archivo.name}")
+            print(f"     - Muros: {len(elementos_por_tipo['muro'])}")
+            print(f"     - Portales: {len(elementos_por_tipo['portal'])}")
+            print(f"     - Spawns: {len(elementos_por_tipo['spawn'])}")
+            print(f"     - Cofres: {len(elementos_por_tipo['cofre'])}")
+            return True
+        except Exception as e:
+            print(f"[X] Error guardando archivo unificado: {e}")
+            return False
     
     def guardar_cambios(self):
-        """Guarda todos los cambios en los archivos correspondientes"""
+        """Guarda todos los cambios en los archivos correspondientes Y genera archivo unificado"""
         if not self.mapa_actual:
             return
         
-        print("\n💾 Guardando cambios...")
+        print("\n[SAVE] Guardando cambios...")
         
         nombre = self.mapa_actual.nombre
         
@@ -608,7 +751,7 @@ class EditorUnificado:
         # Guardar portales (con validación)
         ok_portales = self._guardar_portales(nombre, elementos_por_tipo['portal'])
         if not ok_portales:
-            print('✗ Guardado cancelado por validación de portales')
+            print('[X] Guardado cancelado por validación de portales')
             return
         
         # Guardar spawns
@@ -618,11 +761,19 @@ class EditorUnificado:
         self._guardar_cofres(elementos_por_tipo['cofre'])
         
         self._actualizar_timestamps()
-        print("✓ Cambios guardados")
         
-        # Mensaje visual
-        self.mensaje_guardado = "✓ GUARDADO"
-        self.tiempo_mensaje_guardado = time.time()
+        # Generar archivo unificado
+        exito_unificado = self._guardar_archivo_unificado()
+        
+        if exito_unificado:
+            print("[OK] Cambios guardados y archivo unificado generado")
+            # Mensaje visual
+            self.mensaje_guardado = "[OK] GUARDADO + UNIFICADO"
+            self.tiempo_mensaje_guardado = time.time()
+        else:
+            print("[OK] Cambios guardados (error en unificado)")
+            self.mensaje_guardado = "[OK] GUARDADO"
+            self.tiempo_mensaje_guardado = time.time()
         
         # Actualizar índice de mapas y ejecutar merge unificador
         try:
@@ -636,7 +787,7 @@ class EditorUnificado:
                 print('Ejecutando merge de parciales...')
                 subprocess.run([sys.executable, str(merge), '--apply'], check=False)
         except Exception as e:
-            print('⚠ Error al actualizar índice/merge:', e)
+            print('[!] Error al actualizar índice/merge:', e)
     
     def _guardar_muros(self, nombre_mapa, muros):
         """Guarda muros en JSON del mapa"""
@@ -664,7 +815,7 @@ class EditorUnificado:
                 json.dump(data, f, indent=2, ensure_ascii=False)
         
         except Exception as e:
-            print(f"✗ Error guardando muros: {e}")
+            print(f"[X] Error guardando muros: {e}")
     
     def _guardar_portales(self, nombre_mapa, portales):
         """Guarda portales en JSON del mapa"""
@@ -679,7 +830,7 @@ class EditorUnificado:
             for portal in portales:
                 md = portal.datos.get('mapa_destino') if isinstance(portal.datos, dict) else None
                 if md is not None and isinstance(md, str) and md.strip() == '':
-                    print(f"⚠ Portal inválido: {portal.datos} -> mapa_destino vacío")
+                    print(f"[!] Portal inválido: {portal.datos} -> mapa_destino vacío")
                     return False
 
             for portal in portales:
@@ -704,7 +855,7 @@ class EditorUnificado:
                 json.dump(data, f, indent=2, ensure_ascii=False)
         
         except Exception as e:
-            print(f"✗ Error guardando portales: {e}")
+            print(f"[X] Error guardando portales: {e}")
     
     def _guardar_spawns(self, nombre_mapa, spawns):
         """Guarda spawns en JSON del mapa"""
@@ -742,7 +893,7 @@ class EditorUnificado:
                 json.dump(data, f, indent=2, ensure_ascii=False)
         
         except Exception as e:
-            print(f"✗ Error guardando spawns: {e}")
+            print(f"[X] Error guardando spawns: {e}")
     
     def _guardar_cofres(self, cofres):
         """Guarda cofres en JSON del mapa"""
@@ -762,8 +913,20 @@ class EditorUnificado:
                 json.dump(data, f, indent=2, ensure_ascii=False)
         
         except Exception as e:
-            print(f"✗ Error guardando cofres: {e}")
+            print(f"[X] Error guardando cofres: {e}")
     
+    def _get_capa_key(self, tipo):
+        """Devuelve la clave correcta para el diccionario de capas"""
+        mapa_plural = {
+            'muro': 'muros',
+            'portal': 'portales',
+            'spawn': 'spawns',
+            'cofre': 'cofres',
+            'npc': 'npcs',
+            'evento': 'eventos'
+        }
+        return mapa_plural.get(tipo, tipo + 's')
+
     def _screen_to_map(self, screen_x, screen_y):
         """Convierte coordenadas de pantalla a coordenadas del mapa"""
         map_x = (screen_x - PANEL_ANCHO - self.mapa_offset_x) / self.mapa_zoom
@@ -790,7 +953,8 @@ class EditorUnificado:
         
         # Revisar en orden inverso (últimos elementos primero)
         for elemento in reversed(self.elementos):
-            if not self.capas_visibles.get(elemento.tipo + 's', True):
+            capa = self._get_capa_key(elemento.tipo)
+            if not self.capas_visibles.get(capa, True):
                 continue
             
             if elemento.contiene_punto(mx_map, my_map):
@@ -901,15 +1065,28 @@ class EditorUnificado:
         
         elif event.key == pygame.K_DELETE:
             if self.elementos_seleccionados:
-                for elem in self.elementos_seleccionados:
-                    self.elementos.remove(elem)
-                print(f"✓ Eliminados {len(self.elementos_seleccionados)} elementos")
-                self.elementos_seleccionados = []
+                # Primera vez: pedir confirmación
+                if not self.confirmar_borrado:
+                    self.confirmar_borrado = True
+                    self.tiempo_confirmacion_borrado = time.time()
+                    print(f"[!] Presiona DELETE de nuevo para confirmar borrado de {len(self.elementos_seleccionados)} elementos")
+                # Segunda vez (dentro de 3 segundos): borrar
+                elif time.time() - self.tiempo_confirmacion_borrado < 3.0:
+                    for elem in self.elementos_seleccionados:
+                        self.elementos.remove(elem)
+                    print(f"[OK] Eliminados {len(self.elementos_seleccionados)} elementos")
+                    self.elementos_seleccionados = []
+                    self.confirmar_borrado = False
+                else:
+                    # Timeout: reiniciar confirmación
+                    self.confirmar_borrado = True
+                    self.tiempo_confirmacion_borrado = time.time()
+                    print(f"[!] Presiona DELETE de nuevo para confirmar borrado de {len(self.elementos_seleccionados)} elementos")
         
         elif event.key == pygame.K_c and ctrl:
             if self.elementos_seleccionados:
                 self.elementos_copiados = [e for e in self.elementos_seleccionados]
-                print(f"✓ Copiados {len(self.elementos_copiados)} elementos")
+                print(f"[OK] Copiados {len(self.elementos_copiados)} elementos")
         
         elif event.key == pygame.K_v and ctrl:
             if self.elementos_copiados:
@@ -947,15 +1124,15 @@ class EditorUnificado:
                         elem.seleccionado = True
                     self.elementos_seleccionados = nuevos
                     
-                    print(f"✓ Pegados {len(nuevos)} elementos")
+                    print(f"[OK] Pegados {len(nuevos)} elementos")
         
         elif event.key == pygame.K_a and ctrl:
             # Seleccionar todos
             self.elementos_seleccionados = [e for e in self.elementos 
-                                           if self.capas_visibles.get(e.tipo + 's', True)]
+                                           if self.capas_visibles.get(self._get_capa_key(e.tipo), True)]
             for elem in self.elementos_seleccionados:
                 elem.seleccionado = True
-            print(f"✓ Seleccionados {len(self.elementos_seleccionados)} elementos")
+            print(f"[OK] Seleccionados {len(self.elementos_seleccionados)} elementos")
         
         elif event.key == pygame.K_v and not ctrl:
             # Validar
@@ -976,7 +1153,7 @@ class EditorUnificado:
                     print('Exportando mapa con comando:', ' '.join(cmd))
                     subprocess.run(cmd, check=False)
                 except Exception as e:
-                    print('⚠ Error exportando mapa:', e)
+                    print('[!] Error exportando mapa:', e)
             else:
                 # Exportar screenshot (comportamiento original)
                 self._exportar_screenshot()
@@ -986,7 +1163,17 @@ class EditorUnificado:
             self.mostrar_selector_mapas = not self.mostrar_selector_mapas
     
     def _generar_id(self, tipo):
-        """Genera un ID único para el tipo de elemento"""
+        """
+        Genera un ID único para el tipo de elemento.
+        
+        LÓGICA DE AUTO-INCREMENTO CON RELLENO DE HUECOS:
+        - Si hay huecos en la secuencia (ej: C1, C2, C4), usa el primer hueco (C3)
+        - Si no hay huecos, incrementa al siguiente número (ej: C1, C2, C3 -> C4)
+        
+        Ejemplo:
+        - IDs existentes: [C1, C3, C5] -> Nuevo ID: C2 (rellena hueco)
+        - IDs existentes: [C1, C2, C3] -> Nuevo ID: C4 (incrementa)
+        """
         prefijos = {
             'muro': 'M',
             'portal': 'P',
@@ -996,13 +1183,28 @@ class EditorUnificado:
         }
         
         prefijo = prefijos.get(tipo, 'X')
+        
+        # Obtener todos los números de IDs existentes del mismo tipo
         ids_existentes = [int(e.id[1:]) for e in self.elementos 
                          if e.tipo == tipo and e.id[1:].isdigit()]
         
-        if ids_existentes:
-            nuevo_num = max(ids_existentes) + 1
-        else:
+        if not ids_existentes:
+            # No hay elementos de este tipo, empezar en 1
             nuevo_num = 1
+        else:
+            # Ordenar los IDs existentes
+            ids_existentes.sort()
+            
+            # Buscar el primer hueco en la secuencia
+            nuevo_num = None
+            for i in range(1, max(ids_existentes) + 1):
+                if i not in ids_existentes:
+                    nuevo_num = i
+                    break
+            
+            # Si no hay huecos, incrementar al siguiente
+            if nuevo_num is None:
+                nuevo_num = max(ids_existentes) + 1
         
         return f"{prefijo}{nuevo_num}"
     
@@ -1065,18 +1267,16 @@ class EditorUnificado:
                 self.elementos_seleccionados = []
     
     def _handle_click_derecho(self, mx, my):
-        """Maneja click derecho"""
+        """Maneja click derecho - inicia panning de cámara"""
         if mx < PANEL_ANCHO:
             return
         
         if not self.mapa_actual:
             return
         
-        elemento = self._get_elemento_en_posicion(mx, my)
-        
-        if elemento:
-            # Abrir menú contextual (futuro)
-            print(f"Elemento: {elemento.tipo} {elemento.id}")
+        # Iniciar panning
+        self.panning = True
+        self.ultimo_mouse_pos = (mx, my)
         # Primer, manejar filas normales (checkbox filas)
         for capa, rect in self.capas_hitboxes.items():
             # Soporte para filas expandidas agrupadas bajo la clave '_expanded_items'
@@ -1192,9 +1392,31 @@ class EditorUnificado:
             self._handle_click_selector_mapas(mx, my)
             return
         
-        # Toggles de capas - área clickeable más grande
+        # Primero verificar clicks en chevrones de expansión (tienen prioridad)
+        for capa, chevron_rect in self.capas_expanded_hitboxes.items():
+            if chevron_rect.collidepoint(mx, my):
+                self.capas_expandidas[capa] = not self.capas_expandidas.get(capa, False)
+                print(f"{'v' if self.capas_expandidas[capa] else '>'} {capa}: {'EXPANDIDO' if self.capas_expandidas[capa] else 'CONTRAÍDO'}")
+                return
+        
+        # Verificar clicks en elementos expandidos (para seleccionarlos)
+        if '_expanded_items' in self.capas_hitboxes:
+            for capa, items_list in self.capas_hitboxes['_expanded_items'].items():
+                for elem, item_rect in items_list:
+                    if item_rect.collidepoint(mx, my):
+                        # Seleccionar este elemento
+                        for e in self.elementos:
+                            e.seleccionado = False
+                        elem.seleccionado = True
+                        self.elementos_seleccionados = [elem]
+                        print(f"Seleccionado: {elem.tipo} {elem.id}")
+                        return
+        
+        # Toggles de capas (checkbox) - área clickeable más grande
         # Usar hitboxes generadas durante el draw para asegurar coincidencia visual
         for capa, rect in self.capas_hitboxes.items():
+            if capa == '_expanded_items':  # Skip internal key
+                continue
             if rect.collidepoint(mx, my):
                 self.capas_visibles[capa] = not self.capas_visibles.get(capa, True)
                 print(f"{capa}: {'ON' if self.capas_visibles[capa] else 'OFF'}")
@@ -1208,17 +1430,10 @@ class EditorUnificado:
             self.mostrar_selector_mapas = False
             return
 
-        # Categorías
-        for categoria, rect in self.selector_hitboxes.get('categorias', {}).items():
-            if rect.collidepoint(mx, my):
-                self.categorias_expandidas[categoria] = not self.categorias_expandidas.get(categoria, False)
-                print(f"▼ {categoria}" if self.categorias_expandidas[categoria] else f"▶ {categoria}")
-                return
-
-        # Mapas (lista de tuplas (mapa, rect))
+        # Mapas (lista de tuplas (mapa, rect)) - ya no hay categorías
         for mapa, rect in self.selector_hitboxes.get('mapas', []):
             if rect.collidepoint(mx, my):
-                print(f"\n📂 Cambiando a mapa: {mapa.nombre}")
+                print(f"\n[>>] Cambiando a mapa: {mapa.nombre}")
                 self.cargar_mapa(mapa)
                 self.mostrar_selector_mapas = False
                 return
@@ -1265,12 +1480,11 @@ class EditorUnificado:
         self.boton_mapas_rect = boton_mapas
         
         if self.mapa_actual:
-            # Mostrar categoría/ruta + nombre para evitar confusiones entre mapas con mismo nombre
-            ruta_display = f"{self.mapa_actual.categoria}/{self.mapa_actual.nombre}" if getattr(self.mapa_actual, 'categoria', '') else self.mapa_actual.nombre
-            texto = self.font_tiny.render(f"📂 {ruta_display}", True, COLOR_TEXTO)
+            # Mostrar solo el nombre del mapa para mantenerlo limpio
+            texto = self.font_tiny.render(f"[>>] {self.mapa_actual.nombre}", True, COLOR_TEXTO)
             self.screen.blit(texto, (20, 52))
         else:
-            texto = self.font_tiny.render("📂 Sin mapa (M: Abrir)", True, (150, 150, 150))
+            texto = self.font_tiny.render("[>>] Sin mapa (M: Abrir)", True, (150, 150, 150))
             self.screen.blit(texto, (20, 52))
         
         # Selector de mapas (si está activo)
@@ -1329,7 +1543,7 @@ class EditorUnificado:
             # Expand/collapse control (small chevron on the right of the row)
             chevron_x = PANEL_ANCHO - 14
             chevron_rect = pygame.Rect(chevron_x, y, 12, 20)
-            flecha = "▼" if self.capas_expandidas.get(capa, False) else "▶"
+            flecha = "v" if self.capas_expandidas.get(capa, False) else ">"
             chev_txt = self.font_tiny.render(flecha, True, COLOR_TEXTO)
             self.screen.blit(chev_txt, (chevron_x - 6, y + 2))
             # Guardar hitbox del control
@@ -1391,7 +1605,7 @@ class EditorUnificado:
             y += 18
     
     def _draw_selector_mapas(self):
-        """Dibuja el selector de mapas expandible"""
+        """Dibuja el selector de mapas como lista simple (sin categorías)"""
         # Fondo
         pygame.draw.rect(self.screen, (35, 35, 40), (0, 80, PANEL_ANCHO, ALTO - 80))
         
@@ -1400,62 +1614,43 @@ class EditorUnificado:
         self.screen.blit(texto, (10, 85))
         
         # Instrucciones
-        texto = self.font_tiny.render("Click categoría = expandir", True, (150, 150, 150))
-        self.screen.blit(texto, (10, 110))
         texto = self.font_tiny.render("Click mapa = cargar", True, (150, 150, 150))
-        self.screen.blit(texto, (10, 125))
+        self.screen.blit(texto, (10, 110))
         texto = self.font_tiny.render("M = cerrar selector", True, (150, 150, 150))
-        self.screen.blit(texto, (10, 140))
+        self.screen.blit(texto, (10, 125))
         
-        # Lista de mapas
-        y = 170 - self.scroll_mapas
+        # Lista PLANA de mapas (sin categorías)
+        y = 155 - self.scroll_mapas
         # Resetear hitboxes del selector
         self.selector_hitboxes = {'categorias': {}, 'mapas': [], 'cerrar': None}
 
-        for categoria, mapas in sorted(self.mapas_por_categoria.items()):
-            # Categoría
-            expandida = self.categorias_expandidas.get(categoria, False)
-            icono = "▼" if expandida else "▶"
+        # Crear lista plana de todos los mapas
+        todos_mapas = []
+        for categoria in sorted(self.mapas_por_categoria.keys()):
+            for mapa in self.mapas_por_categoria[categoria]:
+                todos_mapas.append(mapa)
+        
+        # Dibujar cada mapa
+        for i, mapa in enumerate(todos_mapas):
+            if y > 155 and y < ALTO - 50:  # Solo dibujar si está visible
+                # Highlight si es el mapa actual
+                es_actual = self.mapa_actual and mapa.nombre == self.mapa_actual.nombre
+                color_fondo = (70, 100, 70) if es_actual else (45, 45, 50)
 
-            # Fondo de categoría
-            rect_categoria = pygame.Rect(10, y, PANEL_ANCHO - 20, 25)
-            pygame.draw.rect(self.screen, (50, 50, 60), rect_categoria)
-            pygame.draw.rect(self.screen, (80, 80, 100), rect_categoria, 1)
+                rect_mapa = pygame.Rect(10, y, PANEL_ANCHO - 20, 22)
+                pygame.draw.rect(self.screen, color_fondo, rect_mapa)
+                pygame.draw.rect(self.screen, (60, 60, 70), rect_mapa, 1)
 
-            # Texto de categoría
-            cat_display = categoria.replace('_', ' ').title()
-            texto = self.font_tiny.render(f"{icono} {cat_display} ({len(mapas)})", True, COLOR_TEXTO)
-            self.screen.blit(texto, (15, y + 5))
+                # Nombre del mapa (solo nombre, sin categoría)
+                nombre_display = mapa.nombre[:25] + "..." if len(mapa.nombre) > 25 else mapa.nombre
+                color_texto = (100, 255, 100) if es_actual else (200, 200, 200)
+                texto = self.font_tiny.render(f"  {nombre_display}", True, color_texto)
+                self.screen.blit(texto, (15, y + 3))
 
-            # Guardar hitbox de categoría (relative to screen)
-            self.selector_hitboxes['categorias'][categoria] = rect_categoria
+                # Guardar hitbox para este mapa
+                self.selector_hitboxes['mapas'].append((mapa, rect_mapa))
 
-            y += 30
-
-            # Mapas (si está expandida)
-            if expandida:
-                for i, mapa in enumerate(mapas):
-                    if y > 170 and y < ALTO - 50:  # Solo dibujar si está visible
-                        # Highlight si es el mapa actual
-                        es_actual = self.mapa_actual and mapa.nombre == self.mapa_actual.nombre
-                        color_fondo = (70, 100, 70) if es_actual else (45, 45, 50)
-
-                        rect_mapa = pygame.Rect(30, y, PANEL_ANCHO - 40, 22)
-                        pygame.draw.rect(self.screen, color_fondo, rect_mapa)
-                        pygame.draw.rect(self.screen, (60, 60, 70), rect_mapa, 1)
-
-                        # Nombre del mapa + categoría (ruta corta)
-                        cat = mapa.categoria.replace('\\', '/').strip('.')
-                        ruta_corta = f"{cat}/{mapa.nombre}" if cat else mapa.nombre
-                        nombre_display = ruta_corta[:28] + "..." if len(ruta_corta) > 28 else ruta_corta
-                        color_texto = (100, 255, 100) if es_actual else (200, 200, 200)
-                        texto = self.font_tiny.render(f"  {nombre_display}", True, color_texto)
-                        self.screen.blit(texto, (35, y + 3))
-
-                        # Guardar hitbox para este mapa
-                        self.selector_hitboxes['mapas'].append((mapa, rect_mapa))
-
-                    y += 25
+            y += 25
         
         # Botón cerrar
         boton_cerrar = pygame.Rect(10, ALTO - 40, PANEL_ANCHO - 20, 30)
@@ -1483,7 +1678,8 @@ class EditorUnificado:
         # Elementos
         for elemento in self.elementos:
             # Solo dibujar si capa visible
-            if not self.capas_visibles.get(elemento.tipo + 's', True):
+            capa = self._get_capa_key(elemento.tipo)
+            if not self.capas_visibles.get(capa, True):
                 continue
             
             self._draw_elemento(elemento)
@@ -1504,6 +1700,40 @@ class EditorUnificado:
             pygame.draw.line(self.screen, COLOR_GRID, (x_offset, y), (x_offset + ancho, y), 1)
             y += grid_size_scaled
     
+    def _get_sprite_image(self, ruta_relativa):
+        """Carga y cachea una imagen de sprite"""
+        if not hasattr(self, 'imagenes_sprites'):
+            self.imagenes_sprites = {}
+            
+        if not ruta_relativa:
+            return None
+            
+        if ruta_relativa in self.imagenes_sprites:
+            return self.imagenes_sprites[ruta_relativa]
+            
+        # Intentar cargar - CORREGIDO: ruta directa a cofres y demas
+        full_path = Path("assets/sprites/cofres y demas") / ruta_relativa
+        # Si la ruta ya incluye "assets/...", intentar usarla directa o ajustarla
+        if "assets" in ruta_relativa:
+             full_path = Path(ruta_relativa)
+             
+        if not full_path.exists():
+             # Intentar buscar solo por nombre de archivo en la carpeta de cofres y demas
+             nombre = Path(ruta_relativa).name
+             found = list(Path("assets/sprites/cofres y demas").rglob(nombre))
+             if found:
+                 full_path = found[0]
+             else:
+                 return None
+        
+        try:
+            img = pygame.image.load(str(full_path)).convert_alpha()
+            self.imagenes_sprites[ruta_relativa] = img
+            return img
+        except Exception as e:
+            print(f"Error cargando sprite {full_path}: {e}")
+            return None
+
     def _draw_elemento(self, elemento):
         """Dibuja un elemento"""
         color = elemento.color
@@ -1548,12 +1778,48 @@ class EditorUnificado:
             
             rect = pygame.Rect(x, y, ancho, alto)
             
-            # Fondo semi-transparente
-            surface = pygame.Surface((ancho, alto), pygame.SRCALPHA)
-            surface.fill((*color, alpha))
+            # Renderizado especial para cofres con sprite
+            sprite_dibujado = False
+            if elemento.tipo == 'cofre':
+                # Intentar obtener sprite del dato del elemento
+                sprite_path = elemento.datos.get('sprite_cerrado')
+                
+                # Si no tiene, intentar buscar en cofres_db por ID o tipo
+                if not sprite_path and hasattr(self, 'cofres_db'):
+                    cofre_id = elemento.id
+                    # Buscar en cofres_mapa por ID
+                    cofre_info = self.cofres_db.get("cofres_mapa", {}).get(cofre_id)
+                    if cofre_info:
+                        sprite_path = cofre_info.get("sprite_cerrado")
+                
+                # Si aún no tiene sprite, usar default por tipo
+                if not sprite_path:
+                    # Intentar obtener tipo del cofre (puede estar en datos o ser desconocido)
+                    tipo_cofre = elemento.datos.get('tipo', 'madera')
+                    defaults = {
+                        "madera": "cofre_madera_1.png",
+                        "bronce": "cofre_madera_2.png", 
+                        "plata": "cofre_madera_3.png",
+                        "oro": "cofre.png",
+                        "especial": "cofre.png"
+                    }
+                    sprite_path = defaults.get(tipo_cofre)
+
+                if sprite_path:
+                    sprite_img = self._get_sprite_image(sprite_path)
+                    if sprite_img:
+                        img_scaled = pygame.transform.scale(sprite_img, (ancho, alto))
+                        self.screen.blit(img_scaled, rect)
+                        pygame.draw.rect(self.screen, borde_color, rect, borde_width)
+                        sprite_dibujado = True
             
-            self.screen.blit(surface, rect)
-            pygame.draw.rect(self.screen, borde_color, rect, borde_width)
+            if not sprite_dibujado:
+                # Fondo semi-transparente standard
+                surface = pygame.Surface((ancho, alto), pygame.SRCALPHA)
+                surface.fill((*color, alpha))
+                
+                self.screen.blit(surface, rect)
+                pygame.draw.rect(self.screen, borde_color, rect, borde_width)
             
             # ID del elemento
             if ancho > 40 and alto > 20:
@@ -1565,6 +1831,13 @@ class EditorUnificado:
         """Dibuja información en pantalla"""
         y = 10
         x = PANEL_ANCHO + 10
+        
+        # Mensaje de confirmación de borrado
+        if self.confirmar_borrado and time.time() - self.tiempo_confirmacion_borrado < 3.0:
+            tiempo_restante = 3.0 - (time.time() - self.tiempo_confirmacion_borrado)
+            texto = self.font.render(f"[!] CONFIRMAR BORRADO: Presiona DELETE ({tiempo_restante:.1f}s)", True, (255, 100, 100))
+            self.screen.blit(texto, (x, y))
+            y += 35
         
         # Mensaje de guardado (3 segundos)
         if self.mensaje_guardado and time.time() - self.tiempo_mensaje_guardado < 3.0:
@@ -1645,7 +1918,7 @@ class EditorUnificado:
     
     def _validar_elementos(self):
         """Valida elementos y detecta problemas"""
-        print("\n🔍 Validando elementos...")
+        print("\n[CHECK] Validando elementos...")
         
         self.elementos_con_error = []
         errores = []
@@ -1657,7 +1930,7 @@ class EditorUnificado:
                     rect1 = elem1.get_rect()
                     rect2 = elem2.get_rect()
                     if rect1.colliderect(rect2):
-                        errores.append(f"⚠ Superposición: {elem1.id} y {elem2.id}")
+                        errores.append(f"[!] Superposición: {elem1.id} y {elem2.id}")
                         if elem1 not in self.elementos_con_error:
                             self.elementos_con_error.append(elem1)
                         if elem2 not in self.elementos_con_error:
@@ -1670,26 +1943,26 @@ class EditorUnificado:
             
             for elem in self.elementos:
                 if elem.x < 0 or elem.y < 0:
-                    errores.append(f"⚠ {elem.id} está fuera del mapa (coordenadas negativas)")
+                    errores.append(f"[!] {elem.id} está fuera del mapa (coordenadas negativas)")
                     if elem not in self.elementos_con_error:
                         self.elementos_con_error.append(elem)
                 
                 if elem.x + elem.ancho > ancho_mapa or elem.y + elem.alto > alto_mapa:
-                    errores.append(f"⚠ {elem.id} se sale del mapa")
+                    errores.append(f"[!] {elem.id} se sale del mapa")
                     if elem not in self.elementos_con_error:
                         self.elementos_con_error.append(elem)
         
         if errores:
-            print(f"✗ Encontrados {len(errores)} problemas:")
+            print(f"[X] Encontrados {len(errores)} problemas:")
             for error in errores[:10]:  # Mostrar máximo 10
                 print(f"  {error}")
         else:
-            print("✓ No se encontraron problemas")
+            print("[OK] No se encontraron problemas")
     
     def _exportar_screenshot(self):
         """Exporta screenshot del mapa"""
         if not self.mapa_actual:
-            print("⚠ No hay mapa cargado")
+            print("[!] No hay mapa cargado")
             return
         
         # Crear carpeta de exports
@@ -1705,7 +1978,7 @@ class EditorUnificado:
         sub = self.screen.subsurface(viewport_rect)
         
         pygame.image.save(sub, str(filename))
-        print(f"✓ Screenshot guardado: {filename}")
+        print(f"[OK] Screenshot guardado: {filename}")
 
 # === MAIN ===
 if __name__ == "__main__":

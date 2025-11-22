@@ -873,29 +873,94 @@ class EditorCofres:
         for cofre in self.cofres:
             self._draw_cofre(cofre)
     
+
+    def _get_sprite_image(self, ruta_relativa):
+        """Carga y cachea una imagen de sprite"""
+        if not hasattr(self, 'imagenes_sprites'):
+            self.imagenes_sprites = {}
+            
+        if not ruta_relativa:
+            return None
+            
+        if ruta_relativa in self.imagenes_sprites:
+            return self.imagenes_sprites[ruta_relativa]
+            
+        # Intentar cargar - CORREGIDO: ruta directa a cofres y demas
+        full_path = Path("assets/sprites/cofres y demas") / ruta_relativa
+        # Si la ruta ya incluye "assets/...", intentar usarla directa o ajustarla
+        if "assets" in ruta_relativa:
+             full_path = Path(ruta_relativa)
+             
+        if not full_path.exists():
+             # Intentar buscar solo por nombre de archivo en la carpeta de cofres y demas
+             nombre = Path(ruta_relativa).name
+             found = list(Path("assets/sprites/cofres y demas").rglob(nombre))
+             if found:
+                 full_path = found[0]
+             else:
+                 return None
+        
+        try:
+            img = pygame.image.load(str(full_path)).convert_alpha()
+            self.imagenes_sprites[ruta_relativa] = img
+            return img
+        except Exception as e:
+            print(f"Error cargando sprite {full_path}: {e}")
+            return None
+
     def _draw_cofre(self, cofre):
         """Dibuja un cofre en el mapa"""
         sx, sy = self._map_to_screen(cofre.x, cofre.y)
         ancho_screen = int(cofre.ancho * self.mapa_zoom)
         alto_screen = int(cofre.alto * self.mapa_zoom)
         
-        # Color según tipo
-        colores = {
-            "madera": COLOR_COFRE_MADERA,
-            "bronce": COLOR_COFRE_BRONCE,
-            "plata": COLOR_COFRE_PLATA,
-            "oro": COLOR_COFRE_ORO,
-            "especial": COLOR_COFRE_ESPECIAL
-        }
-        color = colores.get(cofre.tipo, COLOR_COFRE_MADERA)
-        
-        # Rectángulo del cofre
+        # Rectángulo del cofre (para selección y fallback)
         rect = pygame.Rect(sx, sy, ancho_screen, alto_screen)
-        pygame.draw.rect(self.screen, color, rect)
         
-        # Borde
-        borde_color = COLOR_SELECCION if cofre == self.cofre_seleccionado else COLOR_BORDE
-        pygame.draw.rect(self.screen, borde_color, rect, 2)
+        # Intentar dibujar sprite
+        sprite_path = cofre.sprite_cerrado
+        
+        # Si no tiene, intentar buscar en cofres_db por ID
+        if not sprite_path and hasattr(self, 'cofres_db'):
+            # Intentar buscar por ID si coincide con la DB
+            cofre_info = self.cofres_db.get("cofres_mapa", {}).get(cofre.id)
+            if cofre_info:
+                sprite_path = cofre_info.get("sprite_cerrado")
+        
+        # Si aún no tiene sprite, usar default por tipo
+        if not sprite_path:
+            defaults = {
+                "madera": "cofre_madera_1.png",
+                "bronce": "cofre_madera_2.png", 
+                "plata": "cofre_madera_3.png",
+                "oro": "cofre.png",
+                "especial": "cofre.png"
+            }
+            sprite_path = defaults.get(cofre.tipo)
+
+        sprite_img = self._get_sprite_image(sprite_path)
+        
+        if sprite_img:
+            # Escalar imagen
+            img_scaled = pygame.transform.scale(sprite_img, (ancho_screen, alto_screen))
+            self.screen.blit(img_scaled, (sx, sy))
+        else:
+            # Fallback: Color según tipo
+            colores = {
+                "madera": COLOR_COFRE_MADERA,
+                "bronce": COLOR_COFRE_BRONCE,
+                "plata": COLOR_COFRE_PLATA,
+                "oro": COLOR_COFRE_ORO,
+                "especial": COLOR_COFRE_ESPECIAL
+            }
+            color = colores.get(cofre.tipo, COLOR_COFRE_MADERA)
+            pygame.draw.rect(self.screen, color, rect)
+        
+        # Borde de selección
+        if cofre == self.cofre_seleccionado:
+            pygame.draw.rect(self.screen, COLOR_SELECCION, rect, 2)
+        elif not sprite_img:
+            pygame.draw.rect(self.screen, COLOR_BORDE, rect, 2)
         
         # Label con nombre
         if self.mapa_zoom > 0.5:
@@ -908,15 +973,19 @@ class EditorCofres:
     
     def _draw_modal(self):
         """Dibuja modal de edición de cofre con listas de items disponibles"""
+        # Obtener tamaño actual de la ventana
+        ancho_actual, alto_actual = self.screen.get_size()
+        
         # Fondo oscuro
-        overlay = pygame.Surface((ANCHO, ALTO), pygame.SRCALPHA)
+        overlay = pygame.Surface((ancho_actual, alto_actual), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, 180))
         self.screen.blit(overlay, (0, 0))
         
-        # Ventana modal más grande
-        modal_ancho, modal_alto = 1300, 800
-        modal_x = (ANCHO - modal_ancho) // 2
-        modal_y = (ALTO - modal_alto) // 2
+        # Ventana modal más grande (80% del tamaño de la ventana)
+        modal_ancho = min(1300, int(ancho_actual * 0.8))
+        modal_alto = min(800, int(alto_actual * 0.8))
+        modal_x = (ancho_actual - modal_ancho) // 2
+        modal_y = (alto_actual - modal_alto) // 2
         modal_rect = pygame.Rect(modal_x, modal_y, modal_ancho, modal_alto)
         
         pygame.draw.rect(self.screen, COLOR_PANEL, modal_rect)
