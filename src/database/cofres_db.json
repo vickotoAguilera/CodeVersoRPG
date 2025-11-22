@@ -213,17 +213,19 @@
       "sprite_cerrado": "cofre_madera_1.png",
       "sprite_abierto": "cofre_madera_3.png",
       "requiere_llave": null,
-      "oro": 50,
+      "oro": 0,
       "items_contenido": {
-        "ETER_BASICO": 10,
-        "POCION_BASICA": 5
+        "ETER_INTERMEDIO": 1,
+        "POCION_INTERMEDIA": 1,
+        "ETER_BASICO": 1
       },
       "equipo_contenido": {
-        "MANDOBLE_HIERRO": 3
+        "MANDOBLE_HIERRO": 1,
+        "TUNICA_TELA": 1,
+        "ESPADA_COBRE": 1,
+        "ESCUDO_MADERA": 1
       },
-      "especiales_contenido": {
-        "CRISTAL_RESURRECION": 5
-      },
+      "especiales_contenido": {},
       "puede_reabrir": true,
       "ultima_apertura": 0,
       "descripcion": "Cofre de madera en la pradera"

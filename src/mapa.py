@@ -416,11 +416,17 @@ class Mapa:
                 # Buscar datos del cofre en la base de datos
                 cofre_info = self.cofres_db.get(id_cofre)
                 if cofre_info:
+                    # Combinar todos los items (consumibles, equipo y especiales)
+                    todos_items = {}
+                    todos_items.update(cofre_info.get("items_contenido", {}))
+                    todos_items.update(cofre_info.get("equipo_contenido", {}))
+                    todos_items.update(cofre_info.get("especiales_contenido", {}))
+                    
                     nuevo_cofre = Cofre(
                         sx(x), sy(y),
                         id_cofre,
                         requiere_llave=cofre_info.get("requiere_llave"),
-                        items_contenido=cofre_info.get("items_contenido", {}),
+                        items_contenido=todos_items,
                         ancho=ancho_deseado if ancho_deseado else 64,
                         alto=alto_deseado if alto_deseado else 64,
                         sprite_cerrado=cofre_info.get("sprite_cerrado"),
