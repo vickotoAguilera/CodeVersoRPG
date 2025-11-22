@@ -8,7 +8,7 @@ class Cofre:
     Un cofre puede estar: ABIERTO_CON_ITEMS, CERRADO, o VACIO
     """
     
-    def __init__(self, x, y, id_cofre, requiere_llave=None, items_contenido=None, escala=1.0, sprite_cerrado=None, sprite_abierto=None):
+    def __init__(self, x, y, id_cofre, requiere_llave=None, items_contenido=None, ancho=64, alto=64, sprite_cerrado=None, sprite_abierto=None):
         """
         Constructor del cofre.
         
@@ -17,14 +17,15 @@ class Cofre:
             id_cofre: ID único del cofre (para guardado)
             requiere_llave: ID de la llave necesaria (None si no requiere)
             items_contenido: Diccionario de items {"item_id": cantidad}
-            escala: Escala del sprite (1.0 = tamaño original)
+            ancho, alto: Tamaño exacto en pixeles del cofre
             sprite_cerrado: Nombre del archivo sprite cerrado (ej: "cofre_madera_1.png")
             sprite_abierto: Nombre del archivo sprite abierto (ej: "cofre_madera_3.png")
         """
         self.id_cofre = id_cofre
         self.requiere_llave = requiere_llave
         self.items_contenido = items_contenido if items_contenido else {}
-        self.escala = escala
+        self.ancho_deseado = ancho
+        self.alto_deseado = alto
         self.sprite_cerrado_path = sprite_cerrado
         self.sprite_abierto_path = sprite_abierto
         
@@ -54,24 +55,19 @@ class Cofre:
                 sprite_cerrado = pygame.image.load(ruta_cerrado).convert_alpha()
                 sprite_abierto = pygame.image.load(ruta_abierto).convert_alpha()
                 
-                # Escalar si es necesario
-                if self.escala != 1.0:
-                    ancho_cerrado, alto_cerrado = sprite_cerrado.get_size()
-                    ancho_abierto, alto_abierto = sprite_abierto.get_size()
-                    
-                    self.sprite_cerrado = pygame.transform.scale(
-                        sprite_cerrado, 
-                        (int(ancho_cerrado * self.escala), int(alto_cerrado * self.escala))
-                    )
-                    self.sprite_abierto = pygame.transform.scale(
-                        sprite_abierto,
-                        (int(ancho_abierto * self.escala), int(alto_abierto * self.escala))
-                    )
-                    self.sprite_vacio = self.sprite_abierto  # Usar mismo sprite para vacío
-                else:
-                    self.sprite_cerrado = sprite_cerrado
-                    self.sprite_abierto = sprite_abierto
-                    self.sprite_vacio = sprite_abierto  # Usar mismo sprite para vacío
+                # Redimensionar al tamaño deseado
+                sprite_cerrado = pygame.transform.scale(
+                    sprite_cerrado,
+                    (self.ancho_deseado, self.alto_deseado)
+                )
+                sprite_abierto = pygame.transform.scale(
+                    sprite_abierto,
+                    (self.ancho_deseado, self.alto_deseado)
+                )
+                
+                self.sprite_cerrado = sprite_cerrado
+                self.sprite_abierto = sprite_abierto
+                self.sprite_vacio = sprite_abierto  # Usar mismo sprite para vacio
                 
                 print(f"[OK] Sprites del cofre '{self.id_cofre}' cargados: {self.sprite_cerrado_path}, {self.sprite_abierto_path}")
                 return

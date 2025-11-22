@@ -50,20 +50,48 @@
       "id": "C1",
       "nombre": "Cofre_Madera_C1",
       "tipo": "madera",
-      "x": 689,
-      "y": 467,
-      "ancho": 35,
+      "x": 685,
+      "y": 472,
+      "ancho": 36,
       "alto": 33,
       "sprite_cerrado": null,
       "sprite_abierto_items": null,
       "sprite_abierto_vacio": null,
       "oro": 300,
       "items_contenido": {
-        "POCION_INTERMEDIA": 1,
+        "ETER_BASICO": 1,
         "POCION_BASICA": 1,
-        "ETER_BASICO": 1
+        "POCION_INTERMEDIA": 1
       },
       "equipo_contenido": {},
+      "especiales_contenido": {},
+      "requiere_llave": null,
+      "puede_reabrir": true,
+      "tiempo_reapertura": 60
+    },
+    {
+      "id": "C3",
+      "nombre": "Cofre_Madera_C3",
+      "tipo": "madera",
+      "x": 816,
+      "y": 496,
+      "ancho": 27,
+      "alto": 35,
+      "sprite_cerrado": null,
+      "sprite_abierto_items": null,
+      "sprite_abierto_vacio": null,
+      "oro": 0,
+      "items_contenido": {
+        "ETER_INTERMEDIO": 1,
+        "POCION_INTERMEDIA": 1,
+        "ETER_BASICO": 1
+      },
+      "equipo_contenido": {
+        "MANDOBLE_HIERRO": 1,
+        "TUNICA_TELA": 1,
+        "ESPADA_COBRE": 1,
+        "ESCUDO_MADERA": 1
+      },
       "especiales_contenido": {},
       "requiere_llave": null,
       "puede_reabrir": true,

@@ -392,7 +392,18 @@ class Mapa:
                     except Exception:
                         x = None; y = None
 
-                escala = cofre_data.get("escala", 0.5)  # Escala por defecto 0.5
+                # Obtener tamano deseado del JSON (si existe)
+                ancho_deseado = cofre_data.get("ancho") or cofre_data.get("w")
+                alto_deseado = cofre_data.get("alto") or cofre_data.get("h")
+                
+                # Calcular escala basada en el tamano deseado
+                # Si no hay tamano especificado, usar escala por defecto
+                if ancho_deseado and alto_deseado:
+                    # Asumir que el sprite original es ~64x64 (tamano tipico)
+                    # La escala sera el promedio de ancho/64 y alto/64
+                    escala = (ancho_deseado / 64.0 + alto_deseado / 64.0) / 2.0
+                else:
+                    escala = cofre_data.get("escala", 0.5)  # Escala por defecto 0.5
 
                 # Si no tenemos id o posición suficiente, avisar y saltar
                 if not id_cofre:
@@ -410,7 +421,8 @@ class Mapa:
                         id_cofre,
                         requiere_llave=cofre_info.get("requiere_llave"),
                         items_contenido=cofre_info.get("items_contenido", {}),
-                        escala=escala,
+                        ancho=ancho_deseado if ancho_deseado else 64,
+                        alto=alto_deseado if alto_deseado else 64,
                         sprite_cerrado=cofre_info.get("sprite_cerrado"),
                         sprite_abierto=cofre_info.get("sprite_abierto")
                     )
