@@ -269,6 +269,23 @@
       "puede_reabrir": true,
       "ultima_apertura": 0,
       "descripcion": "Cofre de madera en la pradera"
+    },
+    "C1": {
+      "nombre": "Cofre_C1",
+      "tipo": "madera",
+      "requiere_llave": null,
+      "oro": 50,
+      "items_contenido": {
+        "POCION_BASICA": 3,
+        "ETER_BASICO": 1
+      },
+      "equipo_contenido": {},
+      "especiales_contenido": {},
+      "puede_reabrir": true,
+      "ultima_apertura": 0,
+      "descripcion": "Cofre generado automaticamente para C1",
+      "sprite_cerrado": "cofre_madera_1.png",
+      "sprite_abierto": "cofre_madera_3.png"
     }
   }
 }

@@ -24,19 +24,11 @@
     "ruta_json": "src\\database\\mapas\\ciudades_y_pueblos\\mapa_herrero.json"
   },
   {
-    "id": "mapa_pueblo_final",
-    "nombre": "mapa_pueblo_final",
-    "categoria": "ciudades_y_pueblos",
-    "imagen": null,
-    "imagen_ruta": null,
-    "ruta_json": "src\\database\\mapas\\ciudades_y_pueblos\\mapa_pueblo_final.json"
-  },
-  {
     "id": "mapa_pradera",
     "nombre": "mapa_pradera",
     "categoria": "mundo",
-    "imagen": null,
-    "imagen_ruta": null,
+    "imagen": "mapa_pradera.jpg",
+    "imagen_ruta": "assets\\maps\\mundo\\mapa_pradera.jpg",
     "ruta_json": "src\\database\\mapas\\mundo\\mapa_pradera.json"
   }
 ]

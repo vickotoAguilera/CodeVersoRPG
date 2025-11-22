@@ -748,11 +748,8 @@ class EditorUnificado:
         # Guardar muros
         self._guardar_muros(nombre, elementos_por_tipo['muro'])
         
-        # Guardar portales (con validación)
-        ok_portales = self._guardar_portales(nombre, elementos_por_tipo['portal'])
-        if not ok_portales:
-            print('[X] Guardado cancelado por validación de portales')
-            return
+        # Guardar portales
+        self._guardar_portales(nombre, elementos_por_tipo['portal'])
         
         # Guardar spawns
         self._guardar_spawns(nombre, elementos_por_tipo['spawn'])
@@ -826,12 +823,13 @@ class EditorUnificado:
             
             # Actualizar solo los portales
             data['portales'] = []
-            # Validación: verificar que ningún portal tenga 'mapa_destino' vacío (cadena vacía)
+            # Validación: advertir sobre portales con 'mapa_destino' vacío pero NO bloquear guardado
             for portal in portales:
                 md = portal.datos.get('mapa_destino') if isinstance(portal.datos, dict) else None
                 if md is not None and isinstance(md, str) and md.strip() == '':
-                    print(f"[!] Portal inválido: {portal.datos} -> mapa_destino vacío")
-                    return False
+                    print(f"[!] ADVERTENCIA: Portal con mapa_destino vacío: {portal.id} - Se guardará de todas formas")
+                    # Opcional: establecer a None en lugar de cadena vacía
+                    portal.datos['mapa_destino'] = None
 
             for portal in portales:
                 # Si el portal es poligonal, actualizar 'puntos' si es necesario

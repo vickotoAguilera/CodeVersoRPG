@@ -1,10 +1,12 @@
 {
-  "mapa_base": "mapa_pradera",
-  "categoria": "mundo",
-  "imagen": "mapa_pradera.png",
-  "ultima_modificacion": "2025-11-21T20:25:20.178321",
-  "version_editor": "1.0",
-  "editado_por": "Script Auto-Generador",
+  "metadata": {
+    "mapa_base": "mapa_pradera",
+    "categoria": "mundo",
+    "imagen": "mapa_pradera.jpg",
+    "ultima_modificacion": "2025-11-22 12:17:05",
+    "version_editor": "1.0",
+    "editado_por": "Editor Unificado"
+  },
   "muros": [],
   "portales": [
     {
@@ -17,7 +19,13 @@
       "h": 44,
       "mapa_destino": "mapa_pueblo_final",
       "spawn_destino_id": "S2",
-      "categoria_destino": "mundo"
+      "categoria_destino": "mundo",
+      "caja": {
+        "x": 556,
+        "y": 606,
+        "w": 35,
+        "h": 44
+      }
     }
   ],
   "spawns": [
@@ -27,7 +35,9 @@
       "x": 712,
       "y": 615,
       "direccion": "abajo",
-      "tam": 12
+      "tam": 12,
+      "w": 12,
+      "h": 12
     },
     {
       "id": "",
@@ -35,7 +45,9 @@
       "x": 1290,
       "y": 790,
       "direccion": "abajo",
-      "tam": 12
+      "tam": 12,
+      "w": 12,
+      "h": 12
     },
     {
       "id": "S1",
@@ -43,87 +55,36 @@
       "x": 710,
       "y": 627,
       "direccion": "abajo",
-      "tam": 12
+      "tam": 12,
+      "w": 12,
+      "h": 12
     }
   ],
   "cofres": [
     {
-      "id": "C3",
-      "nombre": "Cofre_Madera_C3",
+      "id": "C1",
+      "nombre": "Cofre_Madera_C1",
       "tipo": "madera",
-      "x": 720,
-      "y": 124,
-      "ancho": 60,
-      "alto": 59,
-      "sprite_cerrado": null,
-      "sprite_abierto_items": null,
-      "sprite_abierto_vacio": null,
-      "oro": 50,
-      "items_contenido": {
-        "ETER_BASICO": 10,
-        "POCION_BASICA": 5
-      },
-      "equipo_contenido": {
-        "MANDOBLE_HIERRO": 3
-      },
-      "especiales_contenido": {
-        "CRISTAL_RESURRECION": 5
-      },
-      "requiere_llave": null,
-      "puede_reabrir": true,
-      "tiempo_reapertura": 60
-    },
-    {
-      "id": "C5",
-      "nombre": "Cofre_Madera_C5",
-      "tipo": "madera",
-      "x": 609,
-      "y": 132,
-      "ancho": 60,
-      "alto": 59,
+      "x": 689,
+      "y": 467,
+      "ancho": 35,
+      "alto": 33,
       "sprite_cerrado": null,
       "sprite_abierto_items": null,
       "sprite_abierto_vacio": null,
       "oro": 300,
       "items_contenido": {
-        "ETER_BASICO": 10,
-        "POCION_BASICA": 5
+        "POCION_INTERMEDIA": 1,
+        "POCION_BASICA": 1,
+        "ETER_BASICO": 1
       },
-      "equipo_contenido": {
-        "MANDOBLE_HIERRO": 3
-      },
-      "especiales_contenido": {
-        "CRISTAL_RESURRECION": 5
-      },
+      "equipo_contenido": {},
+      "especiales_contenido": {},
       "requiere_llave": null,
       "puede_reabrir": true,
-      "tiempo_reapertura": 60
-    },
-    {
-      "id": "C6",
-      "nombre": "Cofre_Madera_C6",
-      "tipo": "madera",
-      "x": 831,
-      "y": 216,
-      "ancho": 60,
-      "alto": 50,
-      "sprite_cerrado": null,
-      "sprite_abierto_items": null,
-      "sprite_abierto_vacio": null,
-      "oro": 18,
-      "items_contenido": {
-        "ETER_BASICO": 10,
-        "POCION_BASICA": 5
-      },
-      "equipo_contenido": {
-        "MANDOBLE_HIERRO": 3
-      },
-      "especiales_contenido": {
-        "CRISTAL_RESURRECION": 5
-      },
-      "requiere_llave": null,
-      "puede_reabrir": true,
-      "tiempo_reapertura": 60
+      "tiempo_reapertura": 60,
+      "w": 35,
+      "h": 33
     }
   ],
   "npcs": [],

@@ -570,8 +570,10 @@ class EditorCofres:
                         self.running = False
                 
                 elif event.key == pygame.K_g:
-                    if self.mapa_actual:
-                        self.guardar_mapa()
+                    # Ctrl+G: Guardar
+                    if pygame.key.get_mods() & pygame.KMOD_CTRL:
+                        if self.mapa_actual:
+                            self.guardar_mapa()
                 
                 elif event.key == pygame.K_h:
                     self.mostrar_ayuda = not self.mostrar_ayuda

@@ -410,7 +410,9 @@ class Mapa:
                         id_cofre,
                         requiere_llave=cofre_info.get("requiere_llave"),
                         items_contenido=cofre_info.get("items_contenido", {}),
-                        escala=escala
+                        escala=escala,
+                        sprite_cerrado=cofre_info.get("sprite_cerrado"),
+                        sprite_abierto=cofre_info.get("sprite_abierto")
                     )
                     self.cofres.append(nuevo_cofre)
                     
