@@ -8,7 +8,7 @@ from src.cofre import Cofre
 class Mapa:
     # --- 1. EL CONSTRUCTOR (¡MODIFICADO!) ---
     # ¡Ahora pide una "categoria" para saber en qué carpeta buscar!
-    def __init__(self, archivo_mapa, categoria_mapa, ancho_pantalla, alto_pantalla):
+    def __init__(self, archivo_mapa, categoria_mapa, ancho_pantalla, alto_pantalla, estado_cofres=None, tiempo_juego=0.0):
         print(f"¡Creando el Mapa! Cargando '{categoria_mapa}/{archivo_mapa}'...")
         
         self.ANCHO_PANTALLA = ancho_pantalla
@@ -16,6 +16,9 @@ class Mapa:
         self.nombre_archivo = archivo_mapa 
         self.categoria = categoria_mapa # ¡NUEVO! Guardamos la categoría
         
+        # NUEVO: Sistema de persistencia de cofres con recuperación
+        self.estado_cofres_guardado = estado_cofres if estado_cofres is not None else {}
+        self.tiempo_juego_actual = tiempo_juego
         # Lista de mapas que son "interiores" (centralizada en config)
         self.mapas_interiores = MAPAS_INTERIORES
         
@@ -410,6 +413,28 @@ class Mapa:
                         escala=escala
                     )
                     self.cofres.append(nuevo_cofre)
+                    
+                    # NUEVO: Aplicar estado guardado si existe, verificando recuperación
+                    if self.nombre_archivo in self.estado_cofres_guardado:
+                        estado_cofre = self.estado_cofres_guardado[self.nombre_archivo].get(id_cofre)
+                        if estado_cofre:
+                            tiempo_apertura = estado_cofre.get("tiempo_apertura", 0.0)
+                            tiempo_transcurrido = self.tiempo_juego_actual - tiempo_apertura
+                            
+                            # Importar constante de recuperación desde main
+                            TIEMPO_RECUPERACION = 10  # TESTING: 10 segundos (cambiar a 3600 para 1 hora real)
+                            
+                            if tiempo_transcurrido >= TIEMPO_RECUPERACION:
+                                # Cofre recuperado: NO aplicar estado guardado
+                                print(f"[Cofre] '{id_cofre}' RECUPERADO (pasaron {tiempo_transcurrido:.1f}s)")
+                                # Eliminar del estado guardado
+                                del self.estado_cofres_guardado[self.nombre_archivo][id_cofre]
+                            else:
+                                # Cofre aún no se recupera: aplicar estado guardado
+                                nuevo_cofre.cargar_desde_guardado(estado_cofre)
+                                nuevo_cofre.actualizar_sprite()
+                                tiempo_restante = TIEMPO_RECUPERACION - tiempo_transcurrido
+                                print(f"[Cofre] '{id_cofre}' cargado (recupera en {tiempo_restante:.1f}s)")
                 else:
                     print(f"¡ADVERTENCIA! Cofre '{id_cofre}' no encontrado en cofres_db.json")
         

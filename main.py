@@ -168,6 +168,11 @@ mensaje_cofre_texto = ""
 mensaje_cofre_inicio = 0
 DURACION_MENSAJE_COFRE = 3000  # 3 segundos
 
+# Sistema de persistencia de cofres con recuperación temporal
+# Formato: {"mapa_nombre": {"id_cofre": {"abierto": bool, "vacio": bool, "tiempo_apertura": float}}}
+cofres_estado_global = {}
+TIEMPO_RECUPERACION_COFRE = 10  # TESTING: 10 segundos (cambiar a 3600 para 1 hora real)
+
 
 # 4. Bucle principal del juego
 while True:
@@ -251,7 +256,7 @@ while True:
                     
                     if accion_titulo == "juego_nuevo":
                         print("¡Iniciando Nuevo Juego!")
-                        mi_mapa = Mapa("mapa_pradera.jpg", "mundo", ANCHO, ALTO) 
+                        mi_mapa = Mapa("mapa_pradera.jpg", "mundo", ANCHO, ALTO, cofres_estado_global, tiempo_juego_segundos) 
                         grupo_heroes = [] 
                         
                         try:
@@ -339,7 +344,9 @@ while True:
                                 mi_mapa = Mapa(
                                     datos_cargados["mapa"]["nombre_archivo"],
                                     datos_cargados["mapa"]["categoria"],
-                                    ANCHO, ALTO
+                                    ANCHO, ALTO,
+                                    cofres_estado_global,
+                                    tiempo_juego_segundos
                                 )
                                 
                                 grupo_heroes = [] 
@@ -410,6 +417,11 @@ while True:
                                 tiempo_guardado_ms = tiempo_guardado_seg * 1000
                                 tiempo_inicio_partida_ticks = tiempo_actual_ticks - tiempo_guardado_ms
                                 tiempo_ultimo_autoguardado = tiempo_actual_ticks
+
+                                # NUEVO: Restaurar estado de cofres
+                                cofres_estado_global.clear()
+                                cofres_estado_global.update(datos_cargados.get("cofres", {}))
+                                print(f"[Cofres] Estado restaurado: {len(cofres_estado_global)} mapas con cofres abiertos")
 
                                 estado_juego = "mapa"
                                 mi_pantalla_slots = None
@@ -528,7 +540,8 @@ while True:
                                 },
                                 "juego": {
                                     "tiempo_juego_segundos": tiempo_juego_segundos
-                                }
+                                },
+                                "cofres": cofres_estado_global  # NUEVO: Estado de cofres
                             }
                             
                             exito = GestorGuardado.guardar_partida(slot_id, datos_partida)
@@ -587,7 +600,19 @@ while True:
                         # Interactuar con el cofre
                         resultado = cofre_cercano.interactuar(grupo_heroes, ITEMS_DB)
                         
-                        # Construir mensaje para mostrar
+                        # NUEVO: Si se abrió exitosamente, guardar estado CON TIMESTAMP
+                        if resultado["exito"]:
+                            if mi_mapa.nombre_archivo not in cofres_estado_global:
+                                cofres_estado_global[mi_mapa.nombre_archivo] = {}
+                            
+                            cofres_estado_global[mi_mapa.nombre_archivo][cofre_cercano.id_cofre] = {
+                                "abierto": cofre_cercano.abierto,
+                                "vacio": cofre_cercano.vacio,
+                                "tiempo_apertura": tiempo_juego_segundos
+                            }
+                            print(f"[Cofre] Estado guardado: {cofre_cercano.id_cofre} abierto en t={tiempo_juego_segundos:.1f}s")
+                        
+# Construir mensaje para mostrar
                         if resultado["exito"]:
                             items_texto = ""
                             for item_id, cantidad in resultado["items_obtenidos"].items():
@@ -668,7 +693,9 @@ while True:
                     },
                     "juego": {
                         "tiempo_juego_segundos": tiempo_juego_segundos
-                    }
+                    ,
+                    "cofres": cofres_estado_global  # NUEVO: Estado de cofres
+                }
                 }
                 
                 GestorGuardado.guardar_partida(SLOT_AUTOGUARDADO, datos_partida)
@@ -690,7 +717,7 @@ while True:
                 pos_nueva = portal_tocado["pos_destino"]
                 # Resolver nombre de archivo y categoría reales antes de crear Mapa
                 archivo_img, categoria_real = resolver_mapa(nombre_mapa_nuevo, categoria_nueva)
-                mi_mapa = Mapa(archivo_img, categoria_real, ANCHO, ALTO)
+                mi_mapa = Mapa(archivo_img, categoria_real, ANCHO, ALTO, cofres_estado_global, tiempo_juego_segundos)
                 # Si el portal trae una posición explícita, usarla.
                 if pos_nueva:
                     heroe_lider.teletransportar(pos_nueva[0], pos_nueva[1])
