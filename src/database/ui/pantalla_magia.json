@@ -1,0 +1,48 @@
+{
+  "ventana": {
+    "nombre": "pantalla_magia",
+    "x": 30,
+    "y": 30,
+    "ancho": 1220,
+    "alto": 660,
+    "titulo": "Magias Disponibles",
+    "color_acento": [
+      150,
+      80,
+      200
+    ],
+    "alpha": 230,
+    "visible": true
+  },
+  "textboxes": [
+    {
+      "nombre": "descripcion",
+      "x": 30,
+      "y": 30,
+      "ancho": 1220,
+      "alto": 100,
+      "tipo": "texto",
+      "contenido": [
+        "Descripción de la magia seleccionada"
+      ],
+      "fuente_size": 26,
+      "color_texto": [
+        255,
+        255,
+        255
+      ],
+      "alineacion": "left",
+      "scroll": {
+        "enabled": false,
+        "items_visibles": 3,
+        "color_scrollbar": [
+          100,
+          100,
+          255
+        ],
+        "offset_y": 0,
+        "offset_x": 0
+      }
+    }
+  ]
+}

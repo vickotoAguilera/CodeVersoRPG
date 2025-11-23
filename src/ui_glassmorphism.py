@@ -19,6 +19,7 @@ Uso:
 """
 
 import pygame
+
 from typing import Tuple, Optional
 
 # Colores predefinidos para glassmorphism

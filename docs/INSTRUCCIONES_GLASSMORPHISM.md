@@ -104,3 +104,17 @@ Revertir con:
 ```bash
 git restore src/pantalla_magia.py
 ```
+
+---
+
+## 📋 Aplicar a Otras Ventanas
+
+Una vez que funcione en PantallaMagia, puedes aplicar el mismo patrón a:
+
+- **PantallaItems** (`src/pantalla_items.py`)
+- **PantallaVictoria** (`src/pantalla_victoria.py`)
+- **PantallaListaHabilidades** (`src/pantalla_lista_habilidades.py`)
+
+El proceso es el mismo:
+1. Agregar el import
+2. Reemplazar `pygame.draw.rect()` por `dibujar_ventana_glass()`
