@@ -1,0 +1,78 @@
+# INSTRUCCIONES: Generar Archivos Unificados
+
+## Problema Actual
+El juego NO muestra los cambios que hiciste en los editores porque:
+- Los editores guardaron en archivos PARCIALES (mapa_pueblo_final.json)
+- El juego busca archivos UNIFICADOS primero (mapa_pueblo_final_unificado.json)
+- Como NO existen archivos unificados, usa los parciales ANTIGUOS
+
+## Solución: Generar Archivos Unificados
+
+### Paso 1: Abrir Editor Unificado
+```
+ejecutar_editor_unificado.bat
+```
+
+### Paso 2: Para CADA mapa que modificaste:
+
+#### A) Mapa Pradera
+1. Selecciona "mapa_pradera" en el selector
+2. Verifica que se ven:
+   - El cofre (C1) en (408, 212)
+   - Los 2 spawns
+   - El portal
+3. Presiona `Ctrl+G` para guardar
+4. Deberías ver: `[OK] GUARDADO + UNIFICADO`
+5. Se creará: `src/database/mapas_unificados/mapa_pradera_unificado.json`
+
+#### B) Mapa Pueblo Final
+1. Selecciona "mapa_pueblo_final" en el selector
+2. Verifica que se ven todos los elementos que creaste
+3. Presiona `Ctrl+G` para guardar
+4. Deberías ver: `[OK] GUARDADO + UNIFICADO`
+5. Se creará: `src/database/mapas_unificados/mapa_pueblo_final_unificado.json`
+
+#### C) Cualquier otro mapa que hayas modificado
+Repite el proceso para cada mapa.
+
+### Paso 3: Verificar Archivos Generados
+Abre la carpeta:
+```
+src/database/mapas_unificados/
+```
+
+Deberías ver archivos como:
+- mapa_pradera_unificado.json
+- mapa_pueblo_final_unificado.json
+- etc.
+
+### Paso 4: Probar el Juego
+```
+python main.py
+```
+
+Ahora el juego debería:
+1. Cargar los archivos unificados (verás mensaje `[UNIFICADO] Cargando desde...`)
+2. Mostrar el cofre en la pradera
+3. Aparecer en la posición correcta cuando entras al pueblo
+
+## Notas Importantes
+
+- **SIEMPRE** que modifiques un mapa en un editor especializado (portales, cofres, etc.)
+- **DEBES** abrir el editor unificado y guardar (`Ctrl+G`) ese mapa
+- Esto genera/actualiza el archivo unificado que el juego usa
+
+## Flujo de Trabajo Correcto
+
+1. Editor Especializado (portales, cofres, etc.) → Modifica elementos
+2. Editor Unificado → Cargar mapa + Ctrl+G → Genera archivo unificado
+3. Juego (main.py) → Carga archivo unificado → Ve los cambios
+
+---
+
+## ¿Por qué este sistema?
+
+El editor unificado actúa como "máquina de composición final":
+- Lee TODOS los archivos parciales (muros, portales, spawns, cofres)
+- Los combina en UN SOLO archivo unificado
+- El juego solo lee ese archivo unificado (más rápido, más simple)

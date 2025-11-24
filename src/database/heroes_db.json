@@ -1,0 +1,102 @@
+{
+    "HEROE_1": {
+        "nombre_clase": "Héroe 1",
+        "hp_max": 100,
+        "mp_max": 100,
+        "fuerza": 10,
+        "defensa": 5,
+        "inteligencia": 8,
+        "espiritu": 6,
+        "nivel": 1,
+        "oro_inicial": 0,
+        "experiencia_actual": 0,
+        "experiencia_siguiente_nivel": 100,
+        "velocidad_base": 7,
+        "suerte_base": 5,
+        "magias_iniciales": [
+            "CURA_BASICA"
+        ],
+        "items_iniciales": {
+            "POCION_BASICA": 5,
+            "ESPADA_COBRE": 1,
+            "TUNICA_TELA": 1,
+            "CASCO_CUERO": 1,
+            "MANDOBLE_HIERRO": 1,
+            "ANILLO_AGILIDAD": 1,
+            "EXPANSOR_RANURAS": 2
+        },
+        "items_especiales": {},
+        "clase": "Guerrero",
+        "ranuras_habilidad_max": 4,
+        "habilidades_activas": [ 
+            "ID_CORTE_CRUZADO",
+            "ID_SANGRADO",
+            "ID_RECUPERACION",
+            "ID_GUARDIA"
+        ],
+        "inventario_habilidades": [
+            "ID_CORTE_CRUZADO",
+            "ID_GUARDIA",
+            "ID_SANGRADO",
+            "ID_GOLPE_FEROZ",
+            "ID_TIRO_PENETRANTE",
+            "ID_RECUPERACION",
+            "ID_BERSERKER",
+            "ID_VENENO",
+            "ID_REVITALIZAR",
+            "ID_ETER"
+        ]
+    },
+    "HEROE_2": {
+        "nombre_clase": "Héroe 2",
+        "hp_max": 80,
+        "mp_max": 100,
+        "fuerza": 12,
+        "defensa": 5,
+        "inteligencia": 8,
+        "espiritu": 6,
+        "nivel": 1,
+        "oro_inicial": 0,
+        "experiencia_actual": 0,
+        "experiencia_siguiente_nivel": 100,
+        "velocidad_base": 5,
+        "suerte_base": 7,
+        "magias_iniciales": [
+            "PIRO_BASICO"
+        ],
+        "items_iniciales": {
+            "POCION_BASICA": 3,
+            "ETER_BASICO": 2,
+            "ESCUDO_MADERA": 1,
+            "BOTAS_CUERO": 1,
+            "EXPANSOR_RANURAS": 2
+        },
+        "items_especiales": {},
+        "clase": "Mago",
+        "ranuras_habilidad_max": 4,
+        "habilidades_activas": [
+            "ID_PIRO",
+            "ID_CURA",
+            "ID_QUEMADURA",
+            "ID_REVITALIZAR"
+        ],
+        "inventario_habilidades": [
+            "ID_PIRO",
+            "ID_CURA",
+            "ID_PIRO_PLUS",
+            "ID_TERREMOTO",
+            "ID_RAYO",
+            "ID_HIELO",
+            "ID_VIENTO",
+            "ID_ESCUDO_MAGICO",
+            "ID_CURA_PLUS",
+            "ID_CURAGA",
+            "ID_METEORO",
+            "ID_QUEMADURA",
+            "ID_VENENO",
+            "ID_REVITALIZAR",
+            "ID_ETER",
+            "ID_LLAMAS_INFERNALES"
+        ]
+    }
+}

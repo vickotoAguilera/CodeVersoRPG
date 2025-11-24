@@ -1,0 +1,80 @@
+{
+  "ventana": {
+    "nombre": "pantalla_items",
+    "x": 30,
+    "y": 30,
+    "ancho": 1220,
+    "alto": 660,
+    "titulo": "Items Disponibles",
+    "color_acento": [
+      100,
+      200,
+      100
+    ],
+    "alpha": 230,
+    "visible": true
+  },
+  "textboxes": [
+    {
+      "nombre": "descripcion",
+      "x": 30,
+      "y": 30,
+      "ancho": 1220,
+      "alto": 100,
+      "tipo": "texto",
+      "contenido": [
+        "Descripcion del item seleccionado"
+      ],
+      "fuente_size": 26,
+      "color_texto": [
+        255,
+        255,
+        255
+      ],
+      "alineacion": "left",
+      "scroll": {
+        "enabled": false,
+        "items_visibles": 3,
+        "color_scrollbar": [
+          100,
+          200,
+          100
+        ],
+        "offset_y": 0,
+        "offset_x": 0
+      }
+    },
+    {
+      "nombre": "lista_items",
+      "x": 30,
+      "y": 145,
+      "ancho": 1220,
+      "alto": 545,
+      "tipo": "lista",
+      "contenido": [
+        "Pocion (x5)",
+        "Eter (x3)",
+        "Antidoto (x2)",
+        "Volver"
+      ],
+      "fuente_size": 30,
+      "color_texto": [
+        255,
+        255,
+        255
+      ],
+      "alineacion": "left",
+      "scroll": {
+        "enabled": true,
+        "items_visibles": 10,
+        "color_scrollbar": [
+          100,
+          200,
+          100
+        ],
+        "offset_y": 0,
+        "offset_x": 0
+      }
+    }
+  ]
+}

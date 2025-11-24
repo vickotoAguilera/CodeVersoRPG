@@ -1,0 +1,44 @@
+{
+  "portales": [
+    {
+      "id": "portal_mapa_pueblo_final",
+      "tipo": "portal_enlazado",
+      "forma": "rect",
+      "x": 455,
+      "y": 914,
+      "w": 73,
+      "h": 38,
+      "mapa_destino": "mapa_pradera",
+      "spawn_destino_id": "S_mapa_pradera_mapa_pueblo_final_1"
+    },
+    {
+      "id": "portal_mapa_pueblo_final_1",
+      "tipo": "portal_enlazado",
+      "forma": "rect",
+      "x": 303,
+      "y": 831,
+      "w": 38,
+      "h": 50,
+      "mapa_destino": "mapa_herrero",
+      "spawn_destino_id": "S_mapa_herrero_mapa_pueblo_final_1"
+    }
+  ],
+  "spawns": [
+    {
+      "id": "S_mapa_pueblo_final_mapa_pradera_1",
+      "x": 491,
+      "y": 883,
+      "direccion": "abajo",
+      "tam": 12,
+      "linked_portal_id": "portal_mapa_pueblo_final"
+    },
+    {
+      "id": "S_mapa_pueblo_final_mapa_herrero_1",
+      "x": 372,
+      "y": 803,
+      "direccion": "abajo",
+      "tam": 12,
+      "linked_portal_id": "portal_mapa_pueblo_final_1"
+    }
+  ]
+}

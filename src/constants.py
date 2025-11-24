@@ -1,0 +1,207 @@
+"""
+Constantes del juego RPG.
+Centraliza todos los valores numéricos y configuraciones.
+"""
+
+# === CONFIGURACIÓN DE PANTALLA ===
+ANCHO_PANTALLA = 800
+ALTO_PANTALLA = 600
+FPS = 60
+TITULO_VENTANA = "Code Verso RPG"
+
+# === CONFIGURACIÓN DE INPUT ===
+COOLDOWN_INPUT_MS = 200  # Milisegundos entre inputs
+
+# === CONFIGURACIÓN DE BATALLA ===
+PASOS_MIN_BATALLA = 50
+PASOS_MAX_BATALLA = 200
+DISTANCIA_EMBESTIDA = 30
+DURACION_TEXTO_FLOTANTE_FRAMES = 60  # 1 segundo a 60 FPS
+VELOCIDAD_TEXTO_FLOTANTE = -0.5
+
+# === CONFIGURACIÓN DE ANIMACIÓN ===
+VELOCIDAD_ANIM_HEROE_MS = 200  # Milisegundos por frame
+VELOCIDAD_ANIM_VICTORIA_MS = 400
+
+# === CONFIGURACIÓN DE GUARDADO ===
+INTERVALO_AUTOGUARDADO_MS = 10 * 60 * 1000  # 10 minutos
+SLOT_AUTOGUARDADO = 3
+DURACION_AVISO_AUTOGUARDADO_MS = 3000  # 3 segundos
+MAX_SLOTS_GUARDADO = 3
+
+# === CONFIGURACIÓN DE GRUPO ===
+MAX_HEROES_GRUPO = 4
+MAX_MONSTRUOS_BATALLA = 4
+
+# === CONFIGURACIÓN DE INVENTARIO ===
+MAX_ITEMS_STACK = 99
+
+# === CONFIGURACIÓN DE EQUIPO ===
+RANURAS_EQUIPO = [
+    "cabeza",
+    "pecho",
+    "piernas",
+    "pies",
+    "manos",
+    "espalda",
+    "mano_principal",
+    "mano_secundaria",
+    "accesorio1",
+    "accesorio2",
+    "accesorio3"
+]
+
+# === CONFIGURACIÓN DE HABILIDADES ===
+MAX_RANURAS_HABILIDAD = 4
+
+# === COLORES (RGB) ===
+COLOR_NEGRO = (0, 0, 0)
+COLOR_BLANCO = (255, 255, 255)
+COLOR_ROJO = (255, 0, 0)
+COLOR_VERDE = (0, 255, 0)
+COLOR_AZUL = (0, 0, 255)
+COLOR_AMARILLO = (255, 255, 0)
+COLOR_GRIS = (128, 128, 128)
+COLOR_GRIS_CLARO = (200, 200, 200)
+COLOR_GRIS_OSCURO = (50, 50, 50)
+
+# Colores de UI
+COLOR_FONDO_VELO = (0, 0, 0, 180)
+COLOR_CAJA_UI = (0, 0, 139)  # Azul oscuro
+COLOR_BORDE_UI = (255, 255, 255)
+COLOR_TEXTO_NORMAL = (255, 255, 255)
+COLOR_TEXTO_SELECCIONADO = (255, 255, 0)
+COLOR_TEXTO_DESHABILITADO = (150, 150, 150)
+COLOR_TEXTO_CANTIDAD = (200, 200, 200)
+
+# Colores de daño/curación
+COLOR_DAÑO_FISICO = (255, 100, 100)
+COLOR_DAÑO_MAGICO = (150, 150, 255)
+COLOR_CURACION = (100, 255, 100)
+COLOR_MP = (100, 150, 255)
+COLOR_CRITICO = (255, 255, 0)
+COLOR_FALLO = (128, 128, 128)
+
+# === CONFIGURACIÓN DE UI ===
+UI_BORDER_RADIUS = 12
+UI_PADDING = 20
+UI_MARGIN = 10
+
+# === TAMAÑOS DE FUENTE ===
+FUENTE_TITULO = 80
+FUENTE_SUBTITULO = 50
+FUENTE_GRANDE = 40
+FUENTE_MEDIANA = 35
+FUENTE_NORMAL = 30
+FUENTE_PEQUEÑA = 28
+FUENTE_MUY_PEQUEÑA = 20
+FUENTE_MINI = 15
+
+# === CONFIGURACIÓN DE SPRITES ===
+ESCALA_CURSOR = 2.0
+TAMAÑO_CURSOR = (17 * int(ESCALA_CURSOR), 16 * int(ESCALA_CURSOR))
+
+# === VALORES DE COMBATE ===
+BONUS_CRITICO = 1.5  # Multiplicador de daño crítico
+PROBABILIDAD_CRITICO_BASE = 0.05  # 5% base
+PROBABILIDAD_FALLO_BASE = 0.05  # 5% base
+
+# === FACTORES DE STATS ===
+FACTOR_HP_POR_NIVEL = 10
+FACTOR_MP_POR_NIVEL = 5
+FACTOR_STAT_POR_NIVEL = 2
+
+# === EXPERIENCIA ===
+FACTOR_XP_SIGUIENTE_NIVEL = 1.5
+XP_BASE_NIVEL_1 = 100
+
+# === ZONAS ===
+ZONAS_SEGURAS = ["segura", "pueblo", "interior"]
+ZONAS_PELIGROSAS = ["pradera", "bosque", "cueva", "montaña"]
+
+# === MENSAJES ===
+MENSAJE_CARGANDO = "Cargando..."
+MENSAJE_GUARDANDO = "Guardando..."
+MENSAJE_ERROR_CARGA = "Error al cargar"
+MENSAJE_ERROR_GUARDADO = "Error al guardar"
+MENSAJE_VICTORIA = "¡Victoria!"
+MENSAJE_DERROTA = "Derrota..."
+MENSAJE_HUIDA = "Huida exitosa"
+MENSAJE_HUIDA_FALLIDA = "¡No pudiste huir!"
+MENSAJE_SUBIDA_NIVEL = "¡Nivel subido!"
+MENSAJE_OBJETO_USADO = "Objeto usado"
+MENSAJE_SIN_MP = "MP insuficiente"
+MENSAJE_SIN_OBJETOS = "No tienes ese objeto"
+
+# === TECLAS (pygame.K_*) ===
+# Estas constantes se usan para referencia, no son valores de pygame directamente
+TECLA_ARRIBA = "UP"
+TECLA_ABAJO = "DOWN"
+TECLA_IZQUIERDA = "LEFT"
+TECLA_DERECHA = "RIGHT"
+TECLA_CONFIRMAR = "RETURN"
+TECLA_CANCELAR = "ESCAPE"
+TECLA_MENU = "ESCAPE"
+TECLA_DETALLES = "d"
+
+# === DIRECCIONES ===
+DIRECCIONES = ["arriba", "abajo", "izquierda", "derecha"]
+DIRECCION_ARRIBA = "arriba"
+DIRECCION_ABAJO = "abajo"
+DIRECCION_IZQUIERDA = "izquierda"
+DIRECCION_DERECHA = "derecha"
+
+# === TIPOS DE ITEMS ===
+TIPO_CONSUMIBLE = "Consumible"
+TIPO_EQUIPAMIENTO = "Equipamiento"
+TIPO_CLAVE = "Clave"
+
+# === TIPOS DE MAGIA ===
+TIPO_MAGIA_CURACION = "Curacion"
+TIPO_MAGIA_ATAQUE = "Ataque"
+TIPO_MAGIA_BUFF = "Buff"
+TIPO_MAGIA_DEBUFF = "Debuff"
+
+# === EFECTOS ===
+EFECTO_RESTAURA_HP = "RESTAURA_HP"
+EFECTO_RESTAURA_MP = "RESTAURA_MP"
+EFECTO_DAÑO = "DAÑO"
+EFECTO_BUFF_DEFENSA = "BUFF_DEFENSA"
+EFECTO_IGNORA_DEFENSA = "IGNORA_DEFENSA"
+
+# === TARGETS ===
+TARGET_ALIADO = "Aliado"
+TARGET_ENEMIGO = "Enemigo"
+TARGET_TODOS_ALIADOS = "Todos Aliados"
+TARGET_TODOS_ENEMIGOS = "Todos Enemigos"
+TARGET_USUARIO = "Usuario"
+
+# === ESTADOS DE JUEGO ===
+ESTADO_TITULO = "titulo"
+ESTADO_MAPA = "mapa"
+ESTADO_BATALLA = "batalla"
+ESTADO_MENU_PAUSA = "menu_pausa"
+ESTADO_SLOTS_GUARDAR = "slots_guardar"
+ESTADO_SLOTS_CARGAR = "slots_cargar"
+ESTADO_PANTALLA_ESTADO = "pantalla_estado"
+ESTADO_PANTALLA_EQUIPO = "pantalla_equipo"
+ESTADO_PANTALLA_INVENTARIO = "pantalla_inventario"
+
+# === ARCHIVOS DE BASE DE DATOS ===
+ARCHIVO_HEROES_DB = "heroes_db.json"
+ARCHIVO_EQUIPO_DB = "equipo_db.json"
+ARCHIVO_ITEMS_DB = "items_db.json"
+ARCHIVO_HABILIDADES_DB = "habilidades_db.json"
+ARCHIVO_MAGIA_DB = "magia_db.json"
+ARCHIVO_MONSTRUOS_DB = "monstruos_db.json"
+ARCHIVO_GRUPO_INICIAL = "grupo_inicial.json"
+
+# === LOGGING ===
+LOG_FORMATO = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+LOG_FECHA_FORMATO = "%Y-%m-%d %H:%M:%S"
+LOG_MAX_BYTES = 10 * 1024 * 1024  # 10 MB
+LOG_BACKUP_COUNT = 5
+
+# === VERSIÓN ===
+VERSION_JUEGO = "1.0.0"
+VERSION_SAVE = "1.0"

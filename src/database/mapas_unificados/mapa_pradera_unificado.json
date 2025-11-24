@@ -1,0 +1,122 @@
+{
+  "metadata": {
+    "mapa_base": "mapa_pradera",
+    "categoria": "mundo",
+    "imagen": "mapa_pradera.jpg",
+    "ultima_modificacion": "2025-11-22 13:24:21",
+    "version_editor": "1.0",
+    "editado_por": "Editor Unificado"
+  },
+  "muros": [],
+  "portales": [
+    {
+      "id": "Pmapa_pradera_mapa_pueblo_final",
+      "tipo": "portal_enlazado",
+      "forma": "rect",
+      "x": 556,
+      "y": 606,
+      "w": 35,
+      "h": 44,
+      "mapa_destino": "mapa_pueblo_final",
+      "spawn_destino_id": "S2",
+      "categoria_destino": "mundo",
+      "caja": {
+        "x": 556,
+        "y": 606,
+        "w": 35,
+        "h": 44
+      }
+    }
+  ],
+  "spawns": [
+    {
+      "id": "",
+      "tipo": "spawn",
+      "x": 712,
+      "y": 615,
+      "direccion": "abajo",
+      "tam": 12,
+      "w": 12,
+      "h": 12
+    },
+    {
+      "id": "",
+      "tipo": "spawn",
+      "x": 1290,
+      "y": 790,
+      "direccion": "abajo",
+      "tam": 12,
+      "w": 12,
+      "h": 12
+    },
+    {
+      "id": "S1",
+      "tipo": "spawn",
+      "x": 710,
+      "y": 627,
+      "direccion": "abajo",
+      "tam": 12,
+      "w": 12,
+      "h": 12
+    }
+  ],
+  "cofres": [
+    {
+      "id": "C1",
+      "nombre": "Cofre_Madera_C1",
+      "tipo": "madera",
+      "x": 685,
+      "y": 472,
+      "ancho": 36,
+      "alto": 33,
+      "sprite_cerrado": null,
+      "sprite_abierto_items": null,
+      "sprite_abierto_vacio": null,
+      "oro": 300,
+      "items_contenido": {
+        "ETER_BASICO": 1,
+        "POCION_BASICA": 1,
+        "POCION_INTERMEDIA": 1
+      },
+      "equipo_contenido": {},
+      "especiales_contenido": {},
+      "requiere_llave": null,
+      "puede_reabrir": true,
+      "tiempo_reapertura": 60,
+      "w": 36,
+      "h": 33
+    },
+    {
+      "id": "C3",
+      "nombre": "Cofre_Madera_C3",
+      "tipo": "madera",
+      "x": 816,
+      "y": 496,
+      "ancho": 27,
+      "alto": 35,
+      "sprite_cerrado": null,
+      "sprite_abierto_items": null,
+      "sprite_abierto_vacio": null,
+      "oro": 0,
+      "items_contenido": {
+        "ETER_INTERMEDIO": 1,
+        "POCION_INTERMEDIA": 1,
+        "ETER_BASICO": 1
+      },
+      "equipo_contenido": {
+        "MANDOBLE_HIERRO": 1,
+        "TUNICA_TELA": 1,
+        "ESPADA_COBRE": 1,
+        "ESCUDO_MADERA": 1
+      },
+      "especiales_contenido": {},
+      "requiere_llave": null,
+      "puede_reabrir": true,
+      "tiempo_reapertura": 60,
+      "w": 27,
+      "h": 35
+    }
+  ],
+  "npcs": [],
+  "eventos": []
+}

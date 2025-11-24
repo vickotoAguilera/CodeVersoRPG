@@ -1,0 +1,20 @@
+{
+    "miembros": [
+        {
+            "nombre_en_juego": "Cloud",
+            "id_clase_db": "HEROE_1",
+            "id_coords_db": "COORDS_CLOUD",
+            "items_iniciales": {
+                "POCION_BASICA": 2
+            },
+            "items_especiales": {
+                "LLAVE_BRONCE": 1
+            }
+        },
+        {
+            "nombre_en_juego": "Terra",
+            "id_clase_db": "HEROE_2",
+            "id_coords_db": "COORDS_TERRA"
+        }
+    ]
+}

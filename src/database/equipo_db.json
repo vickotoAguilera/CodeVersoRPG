@@ -1,0 +1,112 @@
+{
+    "ESPADA_COBRE": {
+        "id_equipo": "ESPADA_COBRE",
+        "nombre": "Espada de Cobre",
+        "tipo": "Arma (1 Mano)",
+        "ranuras_que_ocupa": ["mano_principal"],
+        "stats": {
+            "fuerza": 2, "defensa": 0, "inteligencia": 0, "espiritu": 0, "velocidad": 0, "suerte": 0, "hp_max": 0, "mp_max": 0
+        },
+        "descripcion": "Una espada básica de cobre. Mejor que nada."
+    },
+    "MANDOBLE_HIERRO": {
+        "id_equipo": "MANDOBLE_HIERRO",
+        "nombre": "Mandoble de Hierro",
+        "tipo": "Arma (2 Manos)",
+        "ranuras_que_ocupa": ["mano_principal", "mano_secundaria"],
+        "stats": {
+            "fuerza": 5, "defensa": 0, "inteligencia": 0, "espiritu": 0, "velocidad": -1, "suerte": 0, "hp_max": 0, "mp_max": 0
+        },
+        "descripcion": "Una espada pesada de dos manos. Lenta pero potente."
+    },
+    "ESCUDO_MADERA": {
+        "id_equipo": "ESCUDO_MADERA",
+        "nombre": "Escudo de Madera",
+        "tipo": "Escudo",
+        "ranuras_que_ocupa": ["mano_secundaria"],
+        "stats": {
+            "fuerza": 0, "defensa": 2, "inteligencia": 0, "espiritu": 0, "velocidad": 0, "suerte": 0, "hp_max": 0, "mp_max": 0
+        },
+        "descripcion": "Un escudo simple de madera. Ofrece algo de protección."
+    },
+    "TUNICA_TELA": {
+        "id_equipo": "TUNICA_TELA",
+        "nombre": "Túnica de Tela",
+        "tipo": "Pecho",
+        "ranuras_que_ocupa": ["pecho"],
+        "stats": {
+            "fuerza": 0, "defensa": 1, "inteligencia": 0, "espiritu": 1, "velocidad": 0, "suerte": 0, "hp_max": 0, "mp_max": 0
+        },
+        "descripcion": "Ropa simple de viajero."
+    },
+    "CASCO_CUERO": {
+        "id_equipo": "CASCO_CUERO",
+        "nombre": "Casco de Cuero",
+        "tipo": "Cabeza",
+        "ranuras_que_ocupa": ["cabeza"],
+        "stats": {
+            "fuerza": 0, "defensa": 1, "inteligencia": 0, "espiritu": 0, "velocidad": 0, "suerte": 0, "hp_max": 0, "mp_max": 0
+        },
+        "descripcion": "Un casco básico de cuero curtido."
+    },
+    "GUANTES_CUERO": {
+        "id_equipo": "GUANTES_CUERO",
+        "nombre": "Guantes de Cuero",
+        "tipo": "Manos",
+        "ranuras_que_ocupa": ["manos"],
+        "stats": {
+            "fuerza": 0, "defensa": 1, "inteligencia": 0, "espiritu": 0, "velocidad": 0, "suerte": 0, "hp_max": 0, "mp_max": 0
+        },
+        "descripcion": "Guantes de trabajo simples."
+    },
+    "PANTALON_TELA": {
+        "id_equipo": "PANTALON_TELA",
+        "nombre": "Pantalón de Tela",
+        "tipo": "Piernas",
+        "ranuras_que_ocupa": ["piernas"],
+        "stats": {
+            "fuerza": 0, "defensa": 1, "inteligencia": 0, "espiritu": 0, "velocidad": 0, "suerte": 0, "hp_max": 0, "mp_max": 0
+        },
+        "descripcion": "Pantalones resistentes."
+    },
+    "BOTAS_CUERO": {
+        "id_equipo": "BOTAS_CUERO",
+        "nombre": "Botas de Cuero",
+        "tipo": "Pies",
+        "ranuras_que_ocupa": ["pies"],
+        "stats": {
+            "fuerza": 0, "defensa": 0, "inteligencia": 0, "espiritu": 0, "velocidad": 1, "suerte": 0, "hp_max": 0, "mp_max": 0
+        },
+        "descripcion": "Botas de viaje ligeras."
+    },
+    "CAPA_VIAJERO": {
+        "id_equipo": "CAPA_VIAJERO",
+        "nombre": "Capa de Viajero",
+        "tipo": "Espalda",
+        "ranuras_que_ocupa": ["espalda"],
+        "stats": {
+            "fuerza": 0, "defensa": 0, "inteligencia": 0, "espiritu": 1, "velocidad": 0, "suerte": 0, "hp_max": 0, "mp_max": 0
+        },
+        "descripcion": "Una capa simple para protegerse del viento."
+    },
+    "ANILLO_AGILIDAD": {
+        "id_equipo": "ANILLO_AGILIDAD",
+        "nombre": "Anillo de Agilidad",
+        "tipo": "Accesorio",
+        "ranuras_que_ocupa": ["accesorio1", "accesorio2", "accesorio3"],
+        "stats": {
+            "fuerza": 0, "defensa": 0, "inteligencia": 0, "espiritu": 0, "velocidad": 2, "suerte": 1, "hp_max": 0, "mp_max": 0
+        },
+        "descripcion": "Un anillo mágico que aumenta la velocidad."
+    },
+    "COLLAR_SALUD": {
+        "id_equipo": "COLLAR_SALUD",
+        "nombre": "Collar de Salud",
+        "tipo": "Accesorio",
+        "ranuras_que_ocupa": ["accesorio1", "accesorio2", "accesorio3"],
+        "stats": {
+            "fuerza": 0, "defensa": 0, "inteligencia": 0, "espiritu": 0, "velocidad": 0, "suerte": 0, "hp_max": 10, "mp_max": 0
+        },
+        "descripcion": "Un collar que otorga un poco de vitalidad."
+    }
+}

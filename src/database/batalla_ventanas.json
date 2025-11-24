@@ -1,0 +1,34 @@
+{
+  "ventana_acciones": {
+    "x": 252,
+    "y": 522,
+    "ancho": 936,
+    "alto": 147,
+    "alpha": 230,
+    "visible": true
+  },
+  "ventana_magia": {
+    "x": 300,
+    "y": 150,
+    "ancho": 400,
+    "alto": 300,
+    "alpha": 230,
+    "visible": false
+  },
+  "ventana_items": {
+    "x": 750,
+    "y": 150,
+    "ancho": 400,
+    "alto": 300,
+    "alpha": 230,
+    "visible": false
+  },
+  "ventana_victoria": {
+    "x": 400,
+    "y": 100,
+    "ancho": 600,
+    "alto": 400,
+    "alpha": 230,
+    "visible": false
+  }
+}

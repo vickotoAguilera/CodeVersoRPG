@@ -1,0 +1,246 @@
+{
+    "ID_CORTE_CRUZADO": {
+        "id_habilidad": "ID_CORTE_CRUZADO",
+        "nombre": "Corte Cruzado",
+        "tipo": "Habilidad Fisica",
+        "descripcion": "Un ataque de espada que golpea con fuerza media.",
+        "costo_mp": 5,
+        "poder": 25,
+        "alcance": "Un Enemigo",
+        "efecto": null
+    },
+    "ID_TIRO_PENETRANTE": {
+        "id_habilidad": "ID_TIRO_PENETRANTE",
+        "nombre": "Tiro Penetrante",
+        "tipo": "Habilidad Fisica",
+        "descripcion": "Un ataque a distancia que ignora parte de la defensa.",
+        "costo_mp": 8,
+        "poder": 20,
+        "alcance": "Un Enemigo",
+        "efecto": "IGNORA_DEFENSA"
+    },
+    "ID_GUARDIA": {
+        "id_habilidad": "ID_GUARDIA",
+        "nombre": "Guardia",
+        "tipo": "Habilidad Defensa",
+        "descripcion": "Reduce el daño recibido en el próximo turno.",
+        "costo_mp": 4,
+        "poder": 0,
+        "alcance": "Usuario",
+        "efecto": "BUFF_DEFENSA"
+    },
+    "ID_SANGRADO": {
+        "id_habilidad": "ID_SANGRADO",
+        "nombre": "Sangrado (DoT)",
+        "tipo": "Habilidad Fisica",
+        "descripcion": "Ataque débil que causa daño de sangrado (8 por turno) durante 3 turnos.",
+        "costo_mp": 6,
+        "poder": 5,
+        "alcance": "Un Enemigo",
+        "efecto": "DOT_SANGRADO",
+        "dot_duracion": 3,
+        "dot_dano": 8
+    },
+    "ID_RECUPERACION": {
+        "id_habilidad": "ID_RECUPERACION",
+        "nombre": "Recuperación (HoT)",
+        "tipo": "Habilidad Defensa",
+        "descripcion": "Cura 15 HP por turno durante 3 turnos.",
+        "costo_mp": 8,
+        "poder": 10,
+        "alcance": "Usuario",
+        "efecto": "HOT_RECUPERACION",
+        "hot_duracion": 3,
+        "hot_curacion": 15
+    },
+    "ID_PIRO": {
+        "id_habilidad": "ID_PIRO",
+        "nombre": "Piro",
+        "tipo": "Magia Negra",
+        "descripcion": "Daña a un enemigo con fuego.",
+        "costo_mp": 5,
+        "poder": 25,
+        "alcance": "Un Enemigo",
+        "efecto": "ELEMENTO_FUEGO"
+    },
+    "ID_CURA": {
+        "id_habilidad": "ID_CURA",
+        "nombre": "Cura",
+        "tipo": "Magia Blanca",
+        "descripcion": "Restaura HP a un aliado.",
+        "costo_mp": 4,
+        "poder": 50,
+        "alcance": "Un Aliado",
+        "efecto": null
+    },
+    "ID_PIRO_PLUS": {
+        "id_habilidad": "ID_PIRO_PLUS",
+        "nombre": "Piro+",
+        "tipo": "Magia Negra",
+        "descripcion": "Daña a TODOS los enemigos con fuego.",
+        "costo_mp": 12,
+        "poder": 20,
+        "alcance": "Todos Enemigos",
+        "efecto": "ELEMENTO_FUEGO"
+    },
+    "ID_GOLPE_FEROZ": {
+        "id_habilidad": "ID_GOLPE_FEROZ",
+        "nombre": "Golpe Feroz",
+        "tipo": "Habilidad Fisica",
+        "descripcion": "Un golpe devastador que causa gran daño.",
+        "costo_mp": 15,
+        "poder": 40,
+        "alcance": "Un Enemigo",
+        "efecto": null
+    },
+    "ID_TERREMOTO": {
+        "id_habilidad": "ID_TERREMOTO",
+        "nombre": "Terremoto",
+        "tipo": "Magia Negra",
+        "descripcion": "Causa daño de tierra a todos los enemigos.",
+        "costo_mp": 18,
+        "poder": 25,
+        "alcance": "Todos Enemigos",
+        "efecto": "ELEMENTO_TIERRA"
+    },
+    "ID_RAYO": {
+        "id_habilidad": "ID_RAYO",
+        "nombre": "Rayo",
+        "tipo": "Magia Negra",
+        "descripcion": "Electrocuta a un enemigo con una descarga eléctrica.",
+        "costo_mp": 8,
+        "poder": 30,
+        "alcance": "Un Enemigo",
+        "efecto": "ELEMENTO_RAYO"
+    },
+    "ID_ESCUDO_MAGICO": {
+        "id_habilidad": "ID_ESCUDO_MAGICO",
+        "nombre": "Escudo Mágico",
+        "tipo": "Magia Blanca",
+        "descripcion": "Aumenta la defensa mágica del usuario temporalmente.",
+        "costo_mp": 10,
+        "poder": 0,
+        "alcance": "Usuario",
+        "efecto": "BUFF_DEF_MAGICA"
+    },
+    "ID_HIELO": {
+        "id_habilidad": "ID_HIELO",
+        "nombre": "Hielo",
+        "tipo": "Magia Negra",
+        "descripcion": "Congela a un enemigo causando daño de hielo.",
+        "costo_mp": 7,
+        "poder": 28,
+        "alcance": "Un Enemigo",
+        "efecto": "ELEMENTO_HIELO"
+    },
+    "ID_CURA_PLUS": {
+        "id_habilidad": "ID_CURA_PLUS",
+        "nombre": "Cura+",
+        "tipo": "Magia Blanca",
+        "descripcion": "Restaura una cantidad considerable de HP a un aliado.",
+        "costo_mp": 12,
+        "poder": 100,
+        "alcance": "Un Aliado",
+        "efecto": null
+    },
+    "ID_VIENTO": {
+        "id_habilidad": "ID_VIENTO",
+        "nombre": "Viento",
+        "tipo": "Magia Negra",
+        "descripcion": "Ataca con una ráfaga de viento a un enemigo.",
+        "costo_mp": 6,
+        "poder": 22,
+        "alcance": "Un Enemigo",
+        "efecto": "ELEMENTO_VIENTO"
+    },
+    "ID_BERSERKER": {
+        "id_habilidad": "ID_BERSERKER",
+        "nombre": "Modo Berserker",
+        "tipo": "Habilidad Fisica",
+        "descripcion": "Aumenta el ataque del usuario pero reduce su defensa.",
+        "costo_mp": 20,
+        "poder": 0,
+        "alcance": "Usuario",
+        "efecto": "BUFF_ATK_DEBUFF_DEF"
+    },
+    "ID_CURAGA": {
+        "id_habilidad": "ID_CURAGA",
+        "nombre": "Curaga",
+        "tipo": "Magia Blanca",
+        "descripcion": "Restaura HP a todos los aliados.",
+        "costo_mp": 25,
+        "poder": 60,
+        "alcance": "Todos Aliados",
+        "efecto": null
+    },
+    "ID_METEORO": {
+        "id_habilidad": "ID_METEORO",
+        "nombre": "Meteoro",
+        "tipo": "Magia Negra",
+        "descripcion": "Invoca meteoritos que caen sobre todos los enemigos.",
+        "costo_mp": 30,
+        "poder": 35,
+        "alcance": "Todos Enemigos",
+        "efecto": "ELEMENTO_NEUTRO"
+    },
+    "ID_QUEMADURA": {
+        "id_habilidad": "ID_QUEMADURA",
+        "nombre": "Quemadura (DOT)",
+        "tipo": "Magia Negra",
+        "descripcion": "Inflinge fuego que quema al enemigo durante 3 turnos causando 15 de daño por turno.",
+        "costo_mp": 10,
+        "poder": 10,
+        "alcance": "Un Enemigo",
+        "efecto": "DOT_QUEMADURA",
+        "dot_duracion": 3,
+        "dot_dano": 15
+    },
+    "ID_VENENO": {
+        "id_habilidad": "ID_VENENO",
+        "nombre": "Veneno (DOT)",
+        "tipo": "Habilidad Fisica",
+        "descripcion": "Envenena al enemigo causando 12 de daño por turno durante 4 turnos.",
+        "costo_mp": 8,
+        "poder": 5,
+        "alcance": "Un Enemigo",
+        "efecto": "DOT_VENENO",
+        "dot_duracion": 4,
+        "dot_dano": 12
+    },
+    "ID_REVITALIZAR": {
+        "id_habilidad": "ID_REVITALIZAR",
+        "nombre": "Revitalizar (HOT)",
+        "tipo": "Magia Blanca",
+        "descripcion": "Regenera 20 HP por turno durante 3 turnos.",
+        "costo_mp": 10,
+        "poder": 0,
+        "alcance": "Un Aliado",
+        "efecto": "HOT_REGENERACION",
+        "hot_duracion": 3,
+        "hot_curacion": 20
+    },
+    "ID_ETER": {
+        "id_habilidad": "ID_ETER",
+        "nombre": "Éter (HOT MP)",
+        "tipo": "Magia Blanca",
+        "descripcion": "Regenera 10 MP por turno durante 3 turnos.",
+        "costo_mp": 5,
+        "poder": 0,
+        "alcance": "Un Aliado",
+        "efecto": "HOT_ETER",
+        "hot_duracion": 3,
+        "hot_mp": 10
+    },
+    "ID_LLAMAS_INFERNALES": {
+        "id_habilidad": "ID_LLAMAS_INFERNALES",
+        "nombre": "Llamas Infernales (AoE DOT)",
+        "tipo": "Magia Negra",
+        "descripcion": "Quema a todos los enemigos causando 10 de daño por turno durante 3 turnos.",
+        "costo_mp": 20,
+        "poder": 15,
+        "alcance": "Todos Enemigos",
+        "efecto": "DOT_QUEMADURA_AOE",
+        "dot_duracion": 3,
+        "dot_dano": 10
+    }
+}
