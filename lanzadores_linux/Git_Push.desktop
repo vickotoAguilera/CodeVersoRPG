@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Git Push
+Comment=Subir cambios a GitHub (con mensaje personalizado)
+Exec=gnome-terminal -- bash -c "cd /home/vickoto/Documentos/CodeVersoRPG-main && ./ejecutables_linux/git_push.sh"
+Icon=emblem-shared
+Terminal=false
+Categories=Development;

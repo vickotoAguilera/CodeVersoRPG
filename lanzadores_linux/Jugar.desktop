@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Jugar CodeVersoRPG
+Comment=Iniciar el juego
+Exec=gnome-terminal -- bash -c "cd /home/vickoto/Documentos/CodeVersoRPG-main && ./ejecutables_linux/jugar.sh"
+Icon=applications-games
+Terminal=false
+Categories=Game;

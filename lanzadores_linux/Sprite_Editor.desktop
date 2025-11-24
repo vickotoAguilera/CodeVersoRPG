@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Sprite Editor
+Comment=Editor de sprites de CodeVersoRPG
+Exec=gnome-terminal -- bash -c "cd /home/vickoto/Documentos/CodeVersoRPG-main && ./ejecutables_linux/ejecutar_sprite_editor.sh"
+Icon=applications-graphics
+Terminal=false
+Categories=Development;Graphics;

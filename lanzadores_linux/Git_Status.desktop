@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Git Status
+Comment=Ver estado del repositorio Git
+Exec=gnome-terminal -- bash -c "cd /home/vickoto/Documentos/CodeVersoRPG-main && ./ejecutables_linux/git_status.sh"
+Icon=utilities-terminal
+Terminal=false
+Categories=Development;

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Editor Unificado
+Comment=Editor unificado de CodeVersoRPG
+Exec=gnome-terminal -- bash -c "cd /home/vickoto/Documentos/CodeVersoRPG-main && ./ejecutables_linux/ejecutar_editor_unificado.sh"
+Icon=applications-graphics
+Terminal=false
+Categories=Development;Graphics;

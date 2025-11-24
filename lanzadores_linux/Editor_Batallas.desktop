@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Editor de Batallas
+Comment=Editor de batallas de CodeVersoRPG
+Exec=gnome-terminal -- bash -c "cd /home/vickoto/Documentos/CodeVersoRPG-main && ./ejecutables_linux/ejecutar_editor_batalla.sh"
+Icon=applications-games
+Terminal=false
+Categories=Development;Graphics;

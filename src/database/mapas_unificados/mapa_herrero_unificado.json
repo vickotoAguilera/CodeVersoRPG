@@ -1,10 +1,12 @@
 {
-  "mapa_base": "mapa_herrero",
-  "categoria": "ciudades_y_pueblos/pueblo_inicio",
-  "imagen": "mapa_herrero.png",
-  "ultima_modificacion": "2025-11-21T20:25:20.097072",
-  "version_editor": "1.0",
-  "editado_por": "Script Auto-Generador",
+  "metadata": {
+    "mapa_base": "mapa_herrero",
+    "categoria": "ciudades_y_pueblos/pueblo_inicio",
+    "imagen": "mapa_herrero.png",
+    "ultima_modificacion": "2025-11-24 15:23:41",
+    "version_editor": "1.0",
+    "editado_por": "Editor Unificado"
+  },
   "muros": [
     {
       "tipo": "poly",
@@ -226,7 +228,9 @@
       "y": 263,
       "direccion": "abajo",
       "tam": 12,
-      "linked_portal_id": "portal_mapa_herrero"
+      "linked_portal_id": "portal_mapa_herrero",
+      "w": 12,
+      "h": 12
     }
   ],
   "cofres": [],

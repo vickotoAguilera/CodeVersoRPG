@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Editor de Cofres
+Comment=Editor de cofres de CodeVersoRPG
+Exec=gnome-terminal -- bash -c "cd /home/vickoto/Documentos/CodeVersoRPG-main && ./ejecutables_linux/ejecutar_cofres.sh"
+Icon=applications-graphics
+Terminal=false
+Categories=Development;Graphics;

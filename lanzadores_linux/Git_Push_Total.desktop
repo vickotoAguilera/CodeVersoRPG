@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Git Push Total
+Comment=Push total con merge de ramas
+Exec=gnome-terminal -- bash -c "cd /home/vickoto/Documentos/CodeVersoRPG-main && ./ejecutables_linux/git_push_total.sh"
+Icon=emblem-synchronizing
+Terminal=false
+Categories=Development;

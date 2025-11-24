@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Git Push Rápido
+Comment=Subir cambios a GitHub (mensaje automático)
+Exec=gnome-terminal -- bash -c "cd /home/vickoto/Documentos/CodeVersoRPG-main && ./ejecutables_linux/git_push_rapido.sh"
+Icon=emblem-shared
+Terminal=false
+Categories=Development;
