@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Editor UI Universal
+Comment=Editor de interfaz universal de CodeVersoRPG
+Exec=gnome-terminal -- bash -c "cd /home/vickoto/Documentos/CodeVersoRPG-main && ./ejecutables_linux/ejecutar_editor_ui_universal.sh"
+Icon=applications-graphics
+Terminal=false
+Categories=Development;Graphics;
