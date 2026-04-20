@@ -142,9 +142,14 @@ def dibujar_panel_opciones_npc(
     alto_pantalla,
     titulo_panel=None,
     hint_panel=None,
+    panel_npc_submenu_opciones_data=None,
+    modo_edicion_cantidad=False,
+    indice_edicion=None,
+    texto_edicion=None,
 ):
-    """Dibuja panel base de opciones para vendedor/herrero sobre el mapa."""
-    panel_w = 300
+    """Dibuja panel base de opciones para vendedor/herrero sobre el mapa.
+    Retorna dict con info de botones para detección de clicks."""
+    panel_w = 380
     panel_h = 56 + max(1, len(opciones)) * 34
     panel_x = ancho_pantalla - panel_w - 20
     panel_y = 20
@@ -159,17 +164,115 @@ def dibujar_panel_opciones_npc(
     titulo = fuente.render(texto_titulo, True, (230, 235, 248))
     pantalla.blit(titulo, (panel_x + 12, panel_y + 10))
 
+    botones_info = {}
+
     for i, op in enumerate(opciones):
         r = pygame.Rect(panel_x + 10, panel_y + 34 + i * 30, panel_w - 20, 26)
         activo = (i == indice_sel)
         pygame.draw.rect(pantalla, (38, 58, 95) if activo else (20, 30, 50), r, border_radius=6)
         pygame.draw.rect(pantalla, (190, 220, 255) if activo else (90, 110, 150), r, 1, border_radius=6)
-        txt = fuente.render(str(op), True, (245, 248, 252))
-        pantalla.blit(txt, (r.x + 8, r.y + 4))
+        
+        # Verificar si hay cantidad_seleccionada en los datos
+        data_opcion = panel_npc_submenu_opciones_data[i] if panel_npc_submenu_opciones_data and i < len(panel_npc_submenu_opciones_data) else None
+        cantidad = 1
+        if data_opcion and "cantidad_seleccionada" in data_opcion:
+            cantidad = int(data_opcion.get("cantidad_seleccionada", 1))
+        
+        # Si tiene cantidad, dibujar botones + y -
+        if data_opcion and "cantidad_seleccionada" in data_opcion:
+            # Botón menos [-]
+            btn_menos_w = 24
+            btn_menos_x = r.x + 8
+            btn_menos_rect = pygame.Rect(btn_menos_x, r.y + 4, btn_menos_w, 18)
+            pygame.draw.rect(pantalla, (100, 140, 200) if activo else (50, 80, 140), btn_menos_rect, border_radius=3)
+            pygame.draw.rect(pantalla, (150, 180, 255) if activo else (100, 140, 200), btn_menos_rect, 1, border_radius=3)
+            txt_menos = fuente.render("-", True, (245, 248, 252))
+            pantalla.blit(txt_menos, (btn_menos_rect.x + 8, btn_menos_rect.y + 1))
+            
+            # Número/Campo de cantidad
+            numero_x = btn_menos_rect.right + 6
+            numero_w = 40
+            numero_rect = pygame.Rect(numero_x, r.y + 4, numero_w, 18)
+            
+            # Si estamos editando esta cantidad
+            if modo_edicion_cantidad and indice_edicion == i:
+                # Campo editable
+                pygame.draw.rect(pantalla, (255, 200, 100), numero_rect, border_radius=3)
+                texto_mostrar = texto_edicion if texto_edicion is not None else str(cantidad)
+                txt_num = fuente.render(texto_mostrar, True, (20, 20, 20))
+                pantalla.blit(txt_num, (numero_rect.x + 4, numero_rect.y + 1))
+                # Cursor parpadeante
+                if (pygame.time.get_ticks() // 500) % 2:
+                    pygame.draw.line(pantalla, (20, 20, 20), (numero_rect.right - 4, numero_rect.y + 2), (numero_rect.right - 4, numero_rect.y + 16))
+            else:
+                pygame.draw.rect(pantalla, (60, 90, 150), numero_rect, border_radius=3)
+                pygame.draw.rect(pantalla, (110, 150, 200), numero_rect, 1, border_radius=3)
+                txt_num = fuente.render(f"x{cantidad}", True, (245, 248, 252))
+                pantalla.blit(txt_num, (numero_rect.x + 6, numero_rect.y + 2))
+            
+            # Botón más [+]
+            btn_mas_w = 24
+            btn_mas_x = numero_rect.right + 6
+            btn_mas_rect = pygame.Rect(btn_mas_x, r.y + 4, btn_mas_w, 18)
+            pygame.draw.rect(pantalla, (100, 140, 200) if activo else (50, 80, 140), btn_mas_rect, border_radius=3)
+            pygame.draw.rect(pantalla, (150, 180, 255) if activo else (100, 140, 200), btn_mas_rect, 1, border_radius=3)
+            txt_mas = fuente.render("+", True, (245, 248, 252))
+            pantalla.blit(txt_mas, (btn_mas_rect.x + 7, btn_mas_rect.y + 1))
+            
+            # Mostrar precio unitario y total al lado del número (formato compacto)
+            precio_unitario = int(data_opcion.get("precio", 0) or 0)
+            precio_total = precio_unitario * cantidad
+            precio_txt = fuente.render(f"U:{precio_unitario}G T:{precio_total}G", True, (255, 215, 100))
+
+            # Intentar mostrar solo nombre base para evitar texto duplicado
+            nombre_base = str(op).split(" - ")[0].split("[")[0].strip()
+            nombre_txt = fuente.render(nombre_base, True, (245, 248, 252))
+
+            # Dibujar precio y nombre a la derecha de los botones
+            precio_x = btn_mas_rect.right + 8
+            pantalla.blit(precio_txt, (precio_x, r.y + 4))
+            nombre_x = precio_x + precio_txt.get_width() + 8
+            pantalla.blit(nombre_txt, (nombre_x, r.y + 4))
+            
+            botones_info[i] = {
+                "menos": btn_menos_rect,
+                "numero": numero_rect,
+                "mas": btn_mas_rect,
+            }
+        else:
+            # Sin cantidad, solo texto normal
+            txt = fuente.render(str(op), True, (245, 248, 252))
+            pantalla.blit(txt, (r.x + 8, r.y + 4))
 
     texto_hint = hint_panel or "W/S o Flechas: mover | E/Enter: elegir | Q/ESC: salir"
     hint = fuente.render(texto_hint, True, (255, 220, 120))
     pantalla.blit(hint, (panel_x + 12, panel_y + panel_h - hint.get_height() - 8))
+    
+    return botones_info
+
+
+
+def dibujar_oro_disponible(pantalla, fuente, heroe, ancho_pantalla, alto_pantalla):
+    """Dibuja una caja small con el oro disponible del héroe durante compra/venta."""
+    if not heroe:
+        return
+    
+    oro_texto = f"Oro: {heroe.oro}G"
+    oro_surf = fuente.render(oro_texto, True, (255, 215, 0))  # Color dorado
+    
+    caja_w = oro_surf.get_width() + 20
+    caja_h = oro_surf.get_height() + 12
+    caja_x = 20
+    caja_y = 20
+    
+    # Fondo de caja
+    caja = pygame.Surface((caja_w, caja_h), pygame.SRCALPHA)
+    caja.fill((25, 25, 50, 220))
+    pantalla.blit(caja, (caja_x, caja_y))
+    pygame.draw.rect(pantalla, (255, 215, 0), pygame.Rect(caja_x, caja_y, caja_w, caja_h), 2, border_radius=6)
+    
+    # Texto de oro
+    pantalla.blit(oro_surf, (caja_x + 10, caja_y + 6))
 
 
 def resolver_mapa(nombre_mapa, categoria_guess):
@@ -178,6 +281,22 @@ def resolver_mapa(nombre_mapa, categoria_guess):
     """
     # Normalizar base
     base = os.path.splitext(nombre_mapa)[0]
+
+    # Regla de proyecto: interiores de pueblo/tiendas siempre usan fondos de
+    # assets/maps/ciudades_y_pueblos/pueblo_inicio.
+    mapas_pueblo_inicio = {
+        "mapa_herrero": "mapa_herrero.png",
+        "mapa_posada": "mapa_posada.png",
+        "mapa_pueblo_final": "mapa_pueblo_final.png",
+        "mapa_taberna": "mapa_taberna.png",
+        "mapa_tienda_items": "mapa_tienda_items.png",
+        "mapa_tienda_magia": "mapa_tienda_magia.png",
+        # Alias solicitado: mapa_pueblo_inicio usa la imagen del pueblo final.
+        "mapa_pueblo_inicio": "mapa_pueblo_final.png",
+    }
+
+    if base in mapas_pueblo_inicio:
+        return f"pueblo_inicio/{mapas_pueblo_inicio[base]}", "ciudades_y_pueblos"
 
     # 0) Si existe un índice de mapas, intentar resolver por id/nombre/imagen
     try:
@@ -277,6 +396,12 @@ panel_npc_submenu_activo = False
 panel_npc_submenu_tipo = ""
 panel_npc_submenu_opciones = []
 
+# Sistema de controles de cantidad para submenu NPC
+panel_npc_botones_cantidad = {}  # {"indice": {"menos": Rect, "mas": Rect, "numero": Rect}}
+modo_edicion_cantidad = False
+indice_edicion_cantidad = -1
+texto_cantidad_temporal = ""
+
 # Sistema de persistencia de cofres con recuperación temporal
 # Formato: {"mapa_nombre": {"id_cofre": {"abierto": bool, "vacio": bool, "tiempo_apertura": float}}}
 cofres_estado_global = {}
@@ -303,6 +428,36 @@ while True:
         
         # --- MANEJO DE CLICS DEL MOUSE ---
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:  # Clic izquierdo
+            if panel_npc_submenu_activo and panel_npc_botones_cantidad:
+                # Detectar clicks en botones + y - para cantidad
+                mx, my = event.pos
+                for indice, botones in panel_npc_botones_cantidad.items():
+                    # Clic en botón [-]
+                    if botones["menos"].collidepoint(mx, my):
+                        if indice < len(panel_npc_submenu_opciones):
+                            opcion = panel_npc_submenu_opciones[indice]
+                            cantidad_actual = int(opcion.get("cantidad_seleccionada", 1))
+                            if cantidad_actual > 1:
+                                opcion["cantidad_seleccionada"] = cantidad_actual - 1
+                        continue
+                    
+                    # Clic en botón [+]
+                    if botones["mas"].collidepoint(mx, my):
+                        if indice < len(panel_npc_submenu_opciones):
+                            opcion = panel_npc_submenu_opciones[indice]
+                            cantidad_actual = int(opcion.get("cantidad_seleccionada", 1))
+                            if cantidad_actual < 999:
+                                opcion["cantidad_seleccionada"] = cantidad_actual + 1
+                        continue
+                    
+                    # Clic en número para editar
+                    if botones["numero"].collidepoint(mx, my):
+                        if indice < len(panel_npc_submenu_opciones):
+                            modo_edicion_cantidad = True
+                            indice_edicion_cantidad = indice
+                            texto_cantidad_temporal = str(panel_npc_submenu_opciones[indice].get("cantidad_seleccionada", 1))
+                        continue
+            
             if estado_juego == "pantalla_habilidades" and mi_pantalla_habilidades:
                 accion_hab = mi_pantalla_habilidades.update_input("MOUSE_CLICK")
                 if accion_hab and accion_hab.get("accion") == "volver_menu_pausa":
@@ -312,6 +467,34 @@ while True:
                     mi_pantalla_habilidades = None
             
         if event.type == pygame.KEYDOWN:
+            
+            # --- MANEJO DE EDICION DE CANTIDAD EN SUBMENU NPC ---
+            if modo_edicion_cantidad and indice_edicion_cantidad >= 0:
+                if event.key == pygame.K_RETURN:
+                    # Confirmar cantidad
+                    try:
+                        nueva_cantidad = int(texto_cantidad_temporal) if texto_cantidad_temporal else 1
+                        nueva_cantidad = max(1, min(999, nueva_cantidad))  # Limitar 1-999
+                        if indice_edicion_cantidad < len(panel_npc_submenu_opciones):
+                            panel_npc_submenu_opciones[indice_edicion_cantidad]["cantidad_seleccionada"] = nueva_cantidad
+                    except ValueError:
+                        pass  # No es número válido
+                    modo_edicion_cantidad = False
+                    indice_edicion_cantidad = -1
+                    texto_cantidad_temporal = ""
+                elif event.key == pygame.K_BACKSPACE:
+                    # Borrar último carácter
+                    texto_cantidad_temporal = texto_cantidad_temporal[:-1]
+                elif event.key == pygame.K_ESCAPE:
+                    # Cancelar edición
+                    modo_edicion_cantidad = False
+                    indice_edicion_cantidad = -1
+                    texto_cantidad_temporal = ""
+                elif event.unicode.isdigit():
+                    # Agregar dígito (máximo 3 dígitos = 999)
+                    if len(texto_cantidad_temporal) < 3:
+                        texto_cantidad_temporal += event.unicode
+                continue
             
             # --- MANEJO DE TECLA ESCAPE (Global) ---
             if event.key == pygame.K_ESCAPE:
@@ -731,6 +914,45 @@ while True:
                     panel_npc_indice = (panel_npc_indice + step) % len(panel_npc_opciones)
                 continue
 
+            # Detectar SPACE para editar cantidad en submenu
+            if estado_juego == "mapa" and panel_npc_activo and panel_npc_submenu_activo and event.key == pygame.K_SPACE:
+                if panel_npc_submenu_opciones and panel_npc_indice < len(panel_npc_submenu_opciones):
+                    opcion = panel_npc_submenu_opciones[panel_npc_indice]
+                    if "cantidad_seleccionada" in opcion:
+                        modo_edicion_cantidad = True
+                        indice_edicion_cantidad = panel_npc_indice
+                        texto_cantidad_temporal = str(opcion.get("cantidad_seleccionada", 1))
+                continue
+
+            # Detectar + para aumentar cantidad
+            if estado_juego == "mapa" and panel_npc_activo and panel_npc_submenu_activo and event.key in (pygame.K_PLUS, pygame.K_EQUALS):
+                if panel_npc_submenu_opciones and panel_npc_indice < len(panel_npc_submenu_opciones):
+                    opcion = panel_npc_submenu_opciones[panel_npc_indice]
+                    if "cantidad_seleccionada" in opcion:
+                        max_cantidad = 999  # Límite máximo
+                        if "cantidad_disponible" in opcion:
+                            max_cantidad = int(opcion.get("cantidad_disponible", 999))
+                        opcion["cantidad_seleccionada"] = min(max_cantidad, int(opcion.get("cantidad_seleccionada", 1)) + 1)
+                        # Actualizar texto
+                        nombre_base = str(opcion.get("texto", "")).split("[")[0].strip()
+                        cantidad = int(opcion.get("cantidad_seleccionada", 1))
+                        opcion["texto"] = f"{nombre_base} [x{cantidad}]"
+                        panel_npc_opciones[panel_npc_indice] = str(opcion.get("texto", "-"))
+                continue
+
+            # Detectar - para disminuir cantidad
+            if estado_juego == "mapa" and panel_npc_activo and panel_npc_submenu_activo and event.key == pygame.K_MINUS:
+                if panel_npc_submenu_opciones and panel_npc_indice < len(panel_npc_submenu_opciones):
+                    opcion = panel_npc_submenu_opciones[panel_npc_indice]
+                    if "cantidad_seleccionada" in opcion:
+                        opcion["cantidad_seleccionada"] = max(1, int(opcion.get("cantidad_seleccionada", 1)) - 1)
+                        # Actualizar texto
+                        nombre_base = str(opcion.get("texto", "")).split("[")[0].strip()
+                        cantidad = int(opcion.get("cantidad_seleccionada", 1))
+                        opcion["texto"] = f"{nombre_base} [x{cantidad}]"
+                        panel_npc_opciones[panel_npc_indice] = str(opcion.get("texto", "-"))
+                continue
+
             if estado_juego == "mapa" and panel_npc_activo and event.key == pygame.K_q:
                 if panel_npc_submenu_activo:
                     panel_npc_submenu_activo = False
@@ -757,6 +979,7 @@ while True:
 
                         if panel_npc_submenu_activo and heroe_lider and panel_npc_submenu_opciones:
                             opcion_data = panel_npc_submenu_opciones[panel_npc_indice]
+                            cantidad = int(opcion_data.get("cantidad_seleccionada", 1))
                             res = ejecutar_accion_submenu(
                                 panel_npc_modo,
                                 panel_npc_submenu_tipo,
@@ -764,6 +987,7 @@ while True:
                                 heroe_lider,
                                 ITEMS_DB,
                                 EQUIPO_DB,
+                                cantidad,
                             )
 
                             if res.get("refrescar_submenu") and heroe_lider:
@@ -778,7 +1002,7 @@ while True:
                                     panel_npc_submenu_opciones = list(rebuild.get("opciones", []))
                                     panel_npc_opciones = [str(op.get("texto", "-")) for op in panel_npc_submenu_opciones]
                                     panel_npc_titulo = str(rebuild.get("titulo", panel_npc_titulo))
-                                    panel_npc_indice = 0
+                                    # NO resetear panel_npc_indice; mantener en el mismo item
 
                             if res.get("cerrar_submenu"):
                                 panel_npc_submenu_activo = False
@@ -1153,8 +1377,12 @@ while True:
 
     # Panel vendedor/herrero sobre el mapa
     if panel_npc_activo and estado_juego == "mapa":
-        hint_panel = "W/S o Flechas: mover | E/Enter: elegir | Q/ESC: volver" if panel_npc_submenu_activo else None
-        dibujar_panel_opciones_npc(
+        if panel_npc_submenu_activo:
+            hint_panel = "W/S Flechas: mover | +/-: cantidad | ESPACIO: editar | E/Enter: comprar | Q/ESC: salir"
+        else:
+            hint_panel = None
+        
+        panel_npc_botones_cantidad = dibujar_panel_opciones_npc(
             PANTALLA,
             mi_fuente_debug,
             panel_npc_modo,
@@ -1164,8 +1392,16 @@ while True:
             ALTO,
             titulo_panel=panel_npc_titulo or None,
             hint_panel=hint_panel,
+            panel_npc_submenu_opciones_data=panel_npc_submenu_opciones if panel_npc_submenu_activo else None,
+            modo_edicion_cantidad=modo_edicion_cantidad,
+            indice_edicion=indice_edicion_cantidad,
+            texto_edicion=texto_cantidad_temporal,
         )
-
+        
+        # Mostrar oro disponible si submenu está activo
+        if panel_npc_submenu_activo and grupo_heroes:
+            heroe_lider = grupo_heroes[0]
+            dibujar_oro_disponible(PANTALLA, mi_fuente_debug, heroe_lider, ANCHO, ALTO)
 
     
     # 8. Actualizar la pantalla

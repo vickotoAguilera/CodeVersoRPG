@@ -42,6 +42,25 @@ Regla de uso obligatorio:
 - `src/mapa.py` devuelve `npc_id` y `npc_modo` desde `interactuar_objetos_interactivos()`.
 - `main.py` usa esa respuesta para abrir panel segun modo (`venta` / `herrero`) o dialogo normal.
 
+Arreglo reciente (2026-04-20):
+
+- **Portal a tienda_items reparado**: JSONs de mapas especiales movidos de `ciudades_y_pueblos/pueblo_inicio/` a `ciudades_y_pueblos/`.
+- Todos los mapas afectados: tienda_items, tienda_magia, herrero, posada, pueblo_final, taberna.
+- Verificacion: portal bidireccional pueblo_final <-> tienda_items carga correctamente.
+- Runtime ahora encuentra portal cuando se carga el mapa.
+
+Avance reciente adicional (2026-04-20, UI comercio):
+
+- Oro inicial de heroes ajustado a 100000 para pruebas de flujo de compra/venta.
+- Se agrego visual de oro disponible durante submenu de comercio/herrero en runtime.
+- Submenu de compra/venta ahora soporta cantidad por item (`cantidad_seleccionada`).
+- Controles de cantidad habilitados con teclado `+` y `-`.
+- Controles de cantidad habilitados tambien con botones visuales clickeables `[-] [xN] [+]`.
+- Tecla `ESPACIO` habilitada para editar el numero directamente (confirmar con Enter, cancelar con ESC).
+- Se muestra precio unitario y total dinamico por fila (`U:xxG T:yyG`).
+- Transaccion aplica cantidad real en compra/venta (oro e inventario se actualizan por lote).
+- Persistencia de seleccion: despues de comprar/vender se mantiene el item seleccionado en submenu.
+
 Integracion confirmada:
 
 - `main.py`: importa `opciones_panel_por_modo`, `ejecutar_accion_panel`, `construir_submenu`, `ejecutar_accion_submenu`.
@@ -103,6 +122,15 @@ Archivos tocados en la fase actual (segun docs + integracion verificada):
 - `docs/PLAN_SIGUIENTE_SESION_OBJETOS_INTERACCION.md`
 - `docs/HOJA_RUTA_SISTEMAS_NUEVOS_NPC_BATALLA.md`
 
+Archivos tocados en el ultimo ajuste de comercio (2026-04-20):
+
+- `main.py`
+- `src/npc_comercio_herrero.py`
+- `src/database/heroes_db.json`
+- `docs/PUENTE_SESIONES_PC.md`
+- `docs/PLAN_FASE_VENDEDOR_HERRERO_V2.md`
+- `docs/HOJA_RUTA_SISTEMAS_NUEVOS_NPC_BATALLA.md`
+
 Archivos creados/modulares en esta etapa (herramientas nuevas separadas):
 
 - `gestor_portales_interaccion_v2.py`
@@ -120,32 +148,32 @@ Nota importante:
 
 ### Prioridad inmediata (hacer primero)
 
-1. Implementar logica real en `src/npc_comercio_herrero.py`:
+1. Ejecutar Plan V2 de Vendedor/Herrero (documento oficial):
 
-- Comprar: validar oro, descontar oro, agregar item. (hecho)
-- Vender: validar item, quitar item, sumar oro. (hecho)
-- Mejorar/Forjar: costos, materiales, resultado real. (hecho, primera version)
+- `docs/PLAN_FASE_VENDEDOR_HERRERO_V2.md`
+- Orden obligatorio: primero Vendedor, luego Herrero.
 
-2. Conectar UI de submenu para compra/venta/herrero en runtime:
+2. Cerrar puntos CRITICOS de flujo transaccional:
 
-- Flujo claro de confirmacion/cancelacion. (hecho, primera version)
-- Mensajes de exito/error en mapa. (hecho)
+- Integridad de compra/venta/mejora/forja (sin duplicados/perdidas).
+- Persistencia de inventario/equipo/oro al confirmar.
+- Validacion de oro/materiales/cantidad + cancelacion segura.
 
-3. Mantener coherencia de control:
+3. Mantener coherencia de control runtime:
 
 - Con panel/dialogo NPC activo, el heroe no debe moverse.
-- Cerrar/reabrir panel/dialogo sin dejar estados colgados.
+- Cerrar/reabrir panel/dialogo sin estados colgados.
 
 ### Prioridad media
 
-4. Integrar mejor persistencia de NPC editor v1 con runtime (si aplica en esta fase).
-5. Validar puertas/botones/cofres en mapa de prueba end-to-end.
-6. Dejar pruebas manuales cortas documentadas por caso.
+4. Filtros avanzados por categoria en comercio.
+5. Mejoras de mensajeria contextual.
+6. Ajuste de balance inicial de precios/costos.
 
 ### Siguiente fase
 
 7. Conectar `src/npc_eventos_batalla.py` a batalla real contra NPC.
-8. Iniciar fase de unificacion combate/magias tras cierre NPC end-to-end.
+8. Iniciar fase de unificacion combate/magias tras cierre Vendedor/Herrero.
 
 ---
 
@@ -153,9 +181,14 @@ Nota importante:
 
 1. Hacer pull.
 2. Abrir este archivo (`docs/PUENTE_SESIONES_PC.md`) antes de tocar codigo.
-3. Probar en juego interaccion con NPC vendedor/herrero.
-4. Ajustar balance de precios/recetas de forja y costos de mejora (si hace falta).
-5. Dejar en este puente:
+3. Abrir y seguir `docs/PLAN_FASE_VENDEDOR_HERRERO_V2.md`.
+4. Ejecutar primero checklist de Vendedor y luego checklist de Herrero.
+5. NPC objetivo para comenzar ya:
+
+- Vendedor: `mapa_tienda_items`, NPC id `2`, modo `venta`.
+- Herrero (despues): `mapa_herrero`, NPC id `1`, modo `herrero`.
+
+6. Dejar en este puente:
 
 - archivos tocados,
 - que quedo funcionando,
@@ -217,14 +250,19 @@ Dependencias activas del proyecto:
 Instalacion recomendada (siempre dentro de la carpeta del proyecto):
 
 1. Crear entorno virtual (si no existe):
-  - Windows PowerShell:
-    - `py -3.12 -m venv .venv`
+
+- Windows PowerShell:
+  - `py -3.12 -m venv .venv`
+
 2. Activar entorno:
-  - Windows PowerShell:
-    - `.\.venv\Scripts\Activate.ps1`
+
+- Windows PowerShell:
+  - `.\.venv\Scripts\Activate.ps1`
+
 3. Instalar dependencias:
-  - `python -m pip install --upgrade pip`
-  - `python -m pip install -r requirements.txt`
+
+- `python -m pip install --upgrade pip`
+- `python -m pip install -r requirements.txt`
 
 Verificacion minima rapida:
 
@@ -234,11 +272,35 @@ Regla de documentacion de nuevas dependencias (OBLIGATORIA):
 
 1. Si se agrega una libreria nueva, actualizar `requirements.txt` en el mismo commit.
 2. Agregar en esta seccion 8:
-  - nombre del paquete,
-  - version minima,
-  - para que se usa.
+
+- nombre del paquete,
+- version minima,
+- para que se usa.
+
 3. En el cierre de sesion, anotar en "Hecho hoy" que se agrego dependencia nueva.
 
 Nota de escaneo tecnico:
 
 - Si aparece `mapa` como "missing" en algun escaneo de imports, no es paquete de pip; es un import local y se corrige en codigo/rutas, no con instalacion de libreria.
+
+---
+
+## 9) Prioridades vigentes (resumen rapido)
+
+Critico:
+
+- Integridad transaccional y persistencia correcta.
+- Validaciones de oro/materiales/cantidad.
+
+Alto:
+
+- UI grande de Vendedor (dos columnas + carrito + total dinamico).
+- UI grande de Herrero (mejorar/forjar + comparador Antes vs Despues).
+
+Medio:
+
+- Filtros por categoria, mensajeria contextual, balance fino.
+
+Bajo:
+
+- Animaciones, sonidos extra, pulidos visuales no funcionales.

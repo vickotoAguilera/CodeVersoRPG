@@ -131,7 +131,8 @@ def construir_submenu(
                     "accion": "comprar_item",
                     "id_item": id_item,
                     "precio": precio,
-                    "texto": f"{nombre} - {precio}G",
+                    "cantidad_seleccionada": 1,
+                    "texto": f"{nombre} - {precio}G [x1]",
                 }
             )
 
@@ -141,7 +142,7 @@ def construir_submenu(
             "submenu": "comprar",
             "titulo": "Tienda - Comprar",
             "opciones": opciones,
-            "mensaje": "Selecciona item para comprar.",
+            "mensaje": f"Oro: {heroe.oro}G | [+/-] cantidad | Selecciona item para comprar.",
         }
 
     if modo == "venta" and a == "vender":
@@ -156,7 +157,9 @@ def construir_submenu(
                     "accion": "vender_item",
                     "id_item": id_item,
                     "precio": precio,
-                    "texto": f"{nombre} x{cantidad} - {precio}G",
+                    "cantidad_seleccionada": 1,
+                    "cantidad_disponible": cantidad,
+                    "texto": f"{nombre} x{cantidad} - {precio}G [x1]",
                 }
             )
 
@@ -169,7 +172,7 @@ def construir_submenu(
             "submenu": "vender",
             "titulo": "Tienda - Vender",
             "opciones": opciones,
-            "mensaje": "Selecciona item para vender.",
+            "mensaje": f"Oro: {heroe.oro}G | [+/-] cantidad | Selecciona item para vender.",
         }
 
     if modo == "herrero" and a == "mejorar":
@@ -203,7 +206,7 @@ def construir_submenu(
             "submenu": "mejorar",
             "titulo": "Herrero - Mejorar",
             "opciones": opciones,
-            "mensaje": "Selecciona equipo para mejorar.",
+            "mensaje": f"Oro: {heroe.oro}G | Selecciona equipo para mejorar.",
         }
 
     if modo == "herrero" and a == "forjar":
@@ -235,7 +238,7 @@ def construir_submenu(
             "submenu": "forjar",
             "titulo": "Herrero - Forjar",
             "opciones": opciones,
-            "mensaje": "Selecciona una receta.",
+            "mensaje": f"Oro: {heroe.oro}G | Selecciona una receta.",
         }
 
     return {"ok": False, "mensaje": "Submenu no disponible."}
@@ -274,46 +277,56 @@ def ejecutar_accion_submenu(
     heroe,
     items_db: Dict[str, dict],
     equipo_db: Dict[str, dict],
+    cantidad: int = 1,
 ) -> Dict[str, object]:
-    """Aplica accion real de un submenu (comprar, vender, mejorar, forjar)."""
+    """Aplica accion real de un submenu (comprar, vender, mejorar, forjar).
+    
+    Parámetro cantidad: se aplica a compras/ventas múltiples. Ignorado en mejoras/forjas.
+    """
     accion = str(opcion.get("accion", "")).lower()
     modo = str(modo_npc or "npc").lower()
     submenu = str(submenu_tipo or "").lower()
+    cantidad = max(1, int(cantidad))  # Asegurar mínimo 1
 
     if accion in ("volver", "sin_items", "sin_equipo", "sin_recetas"):
         return {"ok": True, "cerrar_submenu": True, "mensaje": "Volviendo al menu principal."}
 
     if modo == "venta" and submenu == "comprar" and accion == "comprar_item":
         id_item = str(opcion.get("id_item", ""))
-        precio = int(opcion.get("precio", 0) or 0)
-        if precio <= 0 or not id_item:
+        precio_unitario = int(opcion.get("precio", 0) or 0)
+        precio_total = precio_unitario * cantidad
+        
+        if precio_unitario <= 0 or not id_item:
             return {"ok": False, "mensaje": "Item invalido."}
-        if heroe.oro < precio:
-            return {"ok": False, "mensaje": f"No tienes oro suficiente ({heroe.oro}G)."}
+        if heroe.oro < precio_total:
+            return {"ok": False, "mensaje": f"No tienes oro suficiente. Necesitas {precio_total}G, tienes {heroe.oro}G."}
 
-        heroe.oro -= precio
-        heroe.agregar_item(id_item, 1)
+        heroe.oro -= precio_total
+        heroe.agregar_item(id_item, cantidad)
         nombre = items_db.get(id_item, {}).get("nombre", id_item)
+        plural = "s" if cantidad > 1 else ""
         return {
             "ok": True,
-            "mensaje": f"Compraste {nombre} por {precio}G. Oro restante: {heroe.oro}G.",
+            "mensaje": f"Compraste {nombre} x{cantidad} por {precio_total}G. Oro restante: {heroe.oro}G.",
             "refrescar_submenu": True,
         }
 
     if modo == "venta" and submenu == "vender" and accion == "vender_item":
         id_item = str(opcion.get("id_item", ""))
-        precio = int(opcion.get("precio", 0) or 0)
+        precio_unitario = int(opcion.get("precio", 0) or 0)
+        precio_total = precio_unitario * cantidad
+        
         if not id_item:
             return {"ok": False, "mensaje": "Item invalido."}
-        if not heroe.tiene_item(id_item, 1):
-            return {"ok": False, "mensaje": "Ya no tienes ese item."}
+        if not heroe.tiene_item(id_item, cantidad):
+            return {"ok": False, "mensaje": f"No tienes suficientes {id_item} (necesitas {cantidad})."}
 
-        heroe.usar_item(id_item, 1)
-        heroe.oro += precio
+        heroe.usar_item(id_item, cantidad)
+        heroe.oro += precio_total
         nombre = items_db.get(id_item, {}).get("nombre") or equipo_db.get(id_item, {}).get("nombre") or id_item
         return {
             "ok": True,
-            "mensaje": f"Vendiste {nombre} por {precio}G. Oro actual: {heroe.oro}G.",
+            "mensaje": f"Vendiste {nombre} x{cantidad} por {precio_total}G. Oro actual: {heroe.oro}G.",
             "refrescar_submenu": True,
         }
 
@@ -349,17 +362,17 @@ def ejecutar_accion_submenu(
             return {"ok": False, "mensaje": f"No tienes oro suficiente ({costo}G)."}
 
         faltantes = []
-        for id_item, cantidad in materiales.items():
-            if not heroe.tiene_item(id_item, int(cantidad)):
+        for id_item, cant_material in materiales.items():
+            if not heroe.tiene_item(id_item, int(cant_material)):
                 nombre = items_db.get(id_item, {}).get("nombre") or equipo_db.get(id_item, {}).get("nombre") or id_item
-                faltantes.append(f"{nombre} x{cantidad}")
+                faltantes.append(f"{nombre} x{cant_material}")
 
         if faltantes:
             return {"ok": False, "mensaje": f"Faltan materiales: {', '.join(faltantes)}."}
 
         heroe.oro -= costo
-        for id_item, cantidad in materiales.items():
-            heroe.usar_item(id_item, int(cantidad))
+        for id_item, cant_material in materiales.items():
+            heroe.usar_item(id_item, int(cant_material))
         heroe.agregar_item(id_resultado, 1)
 
         nombre_res = equipo_db.get(id_resultado, {}).get("nombre") or items_db.get(id_resultado, {}).get("nombre") or id_resultado

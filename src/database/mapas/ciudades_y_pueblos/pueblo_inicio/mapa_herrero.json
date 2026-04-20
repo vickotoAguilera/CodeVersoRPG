@@ -4,85 +4,19 @@
       "id": "portal_mapa_herrero_1",
       "tipo": "portal_enlazado",
       "forma": "rect",
-      "x": 295,
-      "y": 294,
-      "w": 42,
-      "h": 81,
+      "x": 296,
+      "y": 315,
+      "w": 47,
+      "h": 56,
       "mapa_destino": "mapa_pueblo_final",
-      "spawn_destino_id": "S_mapa_pueblo_final_mapa_herrero_2",
+      "spawn_destino_id": "S_mapa_pueblo_final_mapa_herrero_6",
+      "linked_portal_id": "portal_mapa_pueblo_final_2",
+      "link_group_id": "mapa_pueblo_final:portal_mapa_pueblo_final_2<->mapa_herrero:portal_mapa_herrero_1",
       "caja": {
-        "x": 295,
-        "y": 294,
-        "w": 42,
-        "h": 81
-      }
-    },
-    {
-      "id": "portal_mapa_herrero_2",
-      "tipo": "portal_enlazado",
-      "forma": "rect",
-      "x": 391,
-      "y": 131,
-      "w": 42,
-      "h": 59,
-      "mapa_destino": "mapa_pueblo_final",
-      "spawn_destino_id": "S_mapa_pueblo_final_mapa_herrero_3",
-      "caja": {
-        "x": 391,
-        "y": 131,
-        "w": 42,
-        "h": 59
-      }
-    },
-    {
-      "id": "portal_mapa_herrero_3",
-      "tipo": "portal_enlazado",
-      "forma": "rect",
-      "x": 191,
-      "y": 14,
-      "w": 90,
-      "h": 74,
-      "mapa_destino": "mapa_pueblo_final",
-      "spawn_destino_id": "S_mapa_pueblo_final_mapa_herrero_5",
-      "caja": {
-        "x": 191,
-        "y": 14,
-        "w": 90,
-        "h": 74
-      }
-    },
-    {
-      "id": "portal_mapa_herrero_4",
-      "tipo": "portal_enlazado",
-      "forma": "rect",
-      "x": 121,
-      "y": 182,
-      "w": 78,
-      "h": 86,
-      "mapa_destino": "",
-      "spawn_destino_id": "",
-      "caja": {
-        "x": 121,
-        "y": 182,
-        "w": 78,
-        "h": 86
-      }
-    },
-    {
-      "id": "portal_mapa_herrero_5",
-      "tipo": "portal_enlazado",
-      "forma": "rect",
-      "x": 286,
-      "y": 196,
-      "w": 116,
-      "h": 49,
-      "mapa_destino": "mapa_pueblo_final",
-      "spawn_destino_id": "S_mapa_pueblo_final_mapa_herrero_4",
-      "caja": {
-        "x": 286,
-        "y": 196,
-        "w": 116,
-        "h": 49
+        "x": 296,
+        "y": 315,
+        "w": 47,
+        "h": 56
       }
     }
   ],
@@ -124,6 +58,14 @@
       "tipo": "spawn",
       "x": 236,
       "y": 98,
+      "direccion": "abajo",
+      "tam": 12
+    },
+    {
+      "id": "S_mapa_herrero_mapa_pueblo_final_6",
+      "tipo": "spawn",
+      "x": 309,
+      "y": 329,
       "direccion": "abajo",
       "tam": 12
     }

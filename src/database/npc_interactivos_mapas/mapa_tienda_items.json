@@ -1,0 +1,294 @@
+{
+  "map_id": "mapa_tienda_items",
+  "background": "assets/maps/ciudades_y_pueblos/mapa_tienda_items.png",
+  "npc_items": [
+    {
+      "id": 2,
+      "tipo": "npc",
+      "modo_npc": "venta",
+      "sprite": "assets/sprites/heroes/mapa/caminando _abajo.png",
+      "rect": {
+        "x": 484,
+        "y": 287,
+        "w": 42,
+        "h": 42
+      },
+      "dialog_pool": [
+        [
+          "Bienvenido a mi tienda.",
+          "Revisa mis productos cuando quieras.",
+          "(E siguiente, Q atras)"
+        ],
+        [
+          "Hoy tengo buenas ofertas.",
+          "Si necesitas pociones, aqui las encuentras.",
+          "(E siguiente, Q atras)"
+        ],
+        [
+          "Gracias por pasar.",
+          "Vuelve cuando quieras comprar algo.",
+          "(E siguiente, Q atras)"
+        ],
+        [
+          "Bienvenido a mi tienda. (4)",
+          "Revisa mis productos cuando quieras.",
+          "(E siguiente, Q atras)"
+        ],
+        [
+          "Hoy tengo buenas ofertas. (5)",
+          "Si necesitas pociones, aqui las encuentras.",
+          "(E siguiente, Q atras)"
+        ],
+        [
+          "Gracias por pasar. (6)",
+          "Vuelve cuando quieras comprar algo.",
+          "(E siguiente, Q atras)"
+        ],
+        [
+          "Bienvenido a mi tienda. (7)",
+          "Revisa mis productos cuando quieras.",
+          "(E siguiente, Q atras)"
+        ],
+        [
+          "Hoy tengo buenas ofertas. (8)",
+          "Si necesitas pociones, aqui las encuentras.",
+          "(E siguiente, Q atras)"
+        ],
+        [
+          "Gracias por pasar. (9)",
+          "Vuelve cuando quieras comprar algo.",
+          "(E siguiente, Q atras)"
+        ],
+        [
+          "Bienvenido a mi tienda. (10)",
+          "Revisa mis productos cuando quieras.",
+          "(E siguiente, Q atras)"
+        ]
+      ],
+      "dialog_slot_names": [
+        "Dialogo 1",
+        "Dialogo 2",
+        "Dialogo 3",
+        "Dialogo 4",
+        "Dialogo 5",
+        "Dialogo 6",
+        "Dialogo 7",
+        "Dialogo 8",
+        "Dialogo 9",
+        "Dialogo 10"
+      ],
+      "dialogo_activo_idx": 0,
+      "dialogo_lineas": [
+        "Bienvenido a mi tienda.",
+        "Revisa mis productos cuando quieras.",
+        "(E siguiente, Q atras)"
+      ],
+      "ventana_dialogo": {
+        "w": 760,
+        "h": 130,
+        "x": 0,
+        "y": 0,
+        "use_default": true
+      },
+      "ventana_panel": {
+        "w": 220,
+        "h": 170,
+        "x": 0,
+        "y": 0,
+        "use_default": true
+      }
+    },
+    {
+      "id": 3,
+      "tipo": "npc",
+      "modo_npc": "npc",
+      "sprite": "assets/sprites/heroes/batalla/caminar.png",
+      "rect": {
+        "x": 223,
+        "y": 412,
+        "w": 72,
+        "h": 72
+      },
+      "dialog_pool": [
+        [
+          "Hola, viajero. Soy el aldeano 3.",
+          "Que tengas un buen dia en el pueblo.",
+          "(E siguiente, Q atras)"
+        ],
+        [
+          "El clima esta tranquilo hoy.",
+          "Es buen momento para explorar.",
+          "(E siguiente, Q atras)"
+        ],
+        [
+          "Dicen que hay monstruos fuera de la aldea.",
+          "Ten cuidado si sales de noche.",
+          "(E siguiente, Q atras)"
+        ],
+        [
+          "La plaza siempre esta llena al atardecer.",
+          "Si buscas rumores, pregunta alli.",
+          "(E siguiente, Q atras)"
+        ],
+        [
+          "He visto aventureros entrenar cerca del bosque.",
+          "Quizas encuentres buenos combates por esa zona.",
+          "(E siguiente, Q atras)"
+        ],
+        [
+          "El herrero trabaja sin descanso.",
+          "Si tu equipo esta danado, visitalo.",
+          "(E siguiente, Q atras)"
+        ],
+        [
+          "El vendedor conoce todos los precios.",
+          "Compara antes de gastar tus monedas.",
+          "(E siguiente, Q atras)"
+        ],
+        [
+          "A veces aparecen cofres en lugares raros.",
+          "Revisa cada rincon del mapa.",
+          "(E siguiente, Q atras)"
+        ],
+        [
+          "Si te pierdes, vuelve a la entrada del pueblo.",
+          "Desde ahi es mas facil orientarse.",
+          "(E siguiente, Q atras)"
+        ],
+        [
+          "Buena suerte en tu viaje.",
+          "Que tus batallas te den experiencia.",
+          "(E siguiente, Q atras)"
+        ]
+      ],
+      "dialog_slot_names": [
+        "Dialogo 1",
+        "Dialogo 2",
+        "Dialogo 3",
+        "Dialogo 4",
+        "Dialogo 5",
+        "Dialogo 6",
+        "Dialogo 7",
+        "Dialogo 8",
+        "Dialogo 9",
+        "Dialogo 10"
+      ],
+      "dialogo_activo_idx": 0,
+      "dialogo_lineas": [
+        "Hola, viajero. Soy el aldeano 3.",
+        "Que tengas un buen dia en el pueblo.",
+        "(E siguiente, Q atras)"
+      ],
+      "ventana_dialogo": {
+        "w": 760,
+        "h": 130,
+        "x": 0,
+        "y": 0,
+        "use_default": true
+      },
+      "ventana_panel": {
+        "w": 220,
+        "h": 170,
+        "x": 0,
+        "y": 0,
+        "use_default": true
+      }
+    },
+    {
+      "id": 4,
+      "tipo": "npc",
+      "modo_npc": "npc",
+      "sprite": "assets/sprites/heroes/batalla/caminar_2.png",
+      "rect": {
+        "x": 623,
+        "y": 419,
+        "w": 72,
+        "h": 72
+      },
+      "dialog_pool": [
+        [
+          "Hola, viajero. Soy el aldeano 4.",
+          "Que tengas un buen dia en el pueblo.",
+          "(E siguiente, Q atras)"
+        ],
+        [
+          "El clima esta tranquilo hoy.",
+          "Es buen momento para explorar.",
+          "(E siguiente, Q atras)"
+        ],
+        [
+          "Dicen que hay monstruos fuera de la aldea.",
+          "Ten cuidado si sales de noche.",
+          "(E siguiente, Q atras)"
+        ],
+        [
+          "La plaza siempre esta llena al atardecer.",
+          "Si buscas rumores, pregunta alli.",
+          "(E siguiente, Q atras)"
+        ],
+        [
+          "He visto aventureros entrenar cerca del bosque.",
+          "Quizas encuentres buenos combates por esa zona.",
+          "(E siguiente, Q atras)"
+        ],
+        [
+          "El herrero trabaja sin descanso.",
+          "Si tu equipo esta danado, visitalo.",
+          "(E siguiente, Q atras)"
+        ],
+        [
+          "El vendedor conoce todos los precios.",
+          "Compara antes de gastar tus monedas.",
+          "(E siguiente, Q atras)"
+        ],
+        [
+          "A veces aparecen cofres en lugares raros.",
+          "Revisa cada rincon del mapa.",
+          "(E siguiente, Q atras)"
+        ],
+        [
+          "Si te pierdes, vuelve a la entrada del pueblo.",
+          "Desde ahi es mas facil orientarse.",
+          "(E siguiente, Q atras)"
+        ],
+        [
+          "Buena suerte en tu viaje.",
+          "Que tus batallas te den experiencia.",
+          "(E siguiente, Q atras)"
+        ]
+      ],
+      "dialog_slot_names": [
+        "Dialogo 1",
+        "Dialogo 2",
+        "Dialogo 3",
+        "Dialogo 4",
+        "Dialogo 5",
+        "Dialogo 6",
+        "Dialogo 7",
+        "Dialogo 8",
+        "Dialogo 9",
+        "Dialogo 10"
+      ],
+      "dialogo_activo_idx": 0,
+      "dialogo_lineas": [
+        "Hola, viajero. Soy el aldeano 4.",
+        "Que tengas un buen dia en el pueblo.",
+        "(E siguiente, Q atras)"
+      ],
+      "ventana_dialogo": {
+        "w": 760,
+        "h": 130,
+        "x": 0,
+        "y": 0,
+        "use_default": true
+      },
+      "ventana_panel": {
+        "w": 220,
+        "h": 170,
+        "x": 0,
+        "y": 0,
+        "use_default": true
+      }
+    }
+  ]
+}

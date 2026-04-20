@@ -1,21 +1,22 @@
 {
   "portales": [
     {
-      "id": "Pmapa_pradera_mapa_pueblo_final",
+      "id": "portal_mapa_pradera_1",
       "tipo": "portal_enlazado",
       "forma": "rect",
-      "x": 556,
-      "y": 606,
-      "w": 35,
-      "h": 44,
+      "x": 551,
+      "y": 599,
+      "w": 44,
+      "h": 53,
       "mapa_destino": "mapa_pueblo_final",
-      "spawn_destino_id": "S_mapa_pueblo_final_mapa_pradera_1",
-      "categoria_destino": "mundo",
+      "spawn_destino_id": "S_mapa_pueblo_final_mapa_pradera_2",
+      "linked_portal_id": "portal_mapa_pueblo_final_1",
+      "link_group_id": "mapa_pueblo_final:portal_mapa_pueblo_final_1<->mapa_pradera:portal_mapa_pradera_1",
       "caja": {
-        "x": 556,
-        "y": 606,
-        "w": 35,
-        "h": 44
+        "x": 551,
+        "y": 599,
+        "w": 44,
+        "h": 53
       }
     }
   ],
@@ -41,6 +42,14 @@
       "tipo": "spawn",
       "x": 710,
       "y": 627,
+      "direccion": "abajo",
+      "tam": 12
+    },
+    {
+      "id": "S_mapa_pradera_mapa_pueblo_final_1",
+      "tipo": "spawn",
+      "x": 563,
+      "y": 611,
       "direccion": "abajo",
       "tam": 12
     }

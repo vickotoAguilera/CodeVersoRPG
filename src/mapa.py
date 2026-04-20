@@ -106,48 +106,54 @@ class Mapa:
         # 1. Averiguamos el nombre del archivo JSON
         nombre_base = os.path.splitext(self.nombre_archivo)[0]
         
-        # ¡NUEVO! PRIORIDAD 1: Intentar cargar desde mapas_unificados/
+        # Candidatos de datos del mapa (unificado y clasico por categoria)
         nombre_unificado = f"{nombre_base}_unificado.json"
         ruta_unificado = os.path.join(DATABASE_PATH, "mapas_unificados", nombre_unificado)
+        nombre_json = f"{nombre_base}.json"
+        ruta_json = os.path.join(DATABASE_PATH, "mapas", self.categoria, nombre_json)
         
         datos = None
         ruta_cargada = None
         
-        # Intentar cargar archivo unificado primero
-        if os.path.exists(ruta_unificado):
+        # Si existen ambos archivos, usar el mas reciente para evitar
+        # que un unificado antiguo pise cambios nuevos del editor de portales.
+        ruta_preferida = None
+        existe_unificado = os.path.exists(ruta_unificado)
+        existe_parcial = os.path.exists(ruta_json)
+
+        if existe_unificado and existe_parcial:
             try:
-                with open(ruta_unificado, 'r', encoding='utf-8') as f:
+                t_uni = os.path.getmtime(ruta_unificado)
+                t_par = os.path.getmtime(ruta_json)
+                ruta_preferida = ruta_json if t_par > t_uni else ruta_unificado
+                origen = "PARCIAL" if ruta_preferida == ruta_json else "UNIFICADO"
+                print(f"[{origen}] Ambos JSON existen; usando el mas reciente: {ruta_preferida}")
+            except Exception:
+                ruta_preferida = ruta_unificado
+                print(f"[UNIFICADO] Fallback por error de fechas: {ruta_unificado}")
+        elif existe_unificado:
+            ruta_preferida = ruta_unificado
+        elif existe_parcial:
+            ruta_preferida = ruta_json
+
+        if ruta_preferida:
+            try:
+                with open(ruta_preferida, 'r', encoding='utf-8') as f:
                     datos = json.load(f)
-                ruta_cargada = ruta_unificado
-                print(f"[UNIFICADO] Cargando desde: {ruta_unificado}")
+                ruta_cargada = ruta_preferida
+                if ruta_preferida == ruta_unificado:
+                    print(f"[UNIFICADO] Cargando desde: {ruta_unificado}")
+                else:
+                    print(f"[PARCIAL] Cargando desde: {ruta_json}")
             except json.JSONDecodeError as e:
-                print(f"[ERROR] Archivo unificado mal formado: {ruta_unificado}")
+                print(f"[ERROR] JSON mal formado: {ruta_preferida}")
                 print(f"  Error: {e}")
                 datos = None
             except Exception as e:
-                print(f"[ERROR] No se pudo leer archivo unificado: {e}")
+                print(f"[ERROR] No se pudo leer archivo de mapa: {e}")
                 datos = None
         
-        # PRIORIDAD 2: Si no hay archivo unificado, buscar en mapas/{categoria}/
-        if datos is None:
-            nombre_json = f"{nombre_base}.json"
-            ruta_json = os.path.join(DATABASE_PATH, "mapas", self.categoria, nombre_json)
-            
-            if os.path.exists(ruta_json):
-                try:
-                    with open(ruta_json, 'r', encoding='utf-8') as f:
-                        datos = json.load(f)
-                    ruta_cargada = ruta_json
-                    print(f"[PARCIAL] Cargando desde: {ruta_json}")
-                except json.JSONDecodeError as e:
-                    print(f"[ERROR] El archivo JSON está mal escrito: {ruta_json}")
-                    print(f"  Error: {e}")
-                    pygame.quit(); sys.exit()
-                except Exception as e:
-                    print(f"[ERROR] No se pudo leer: {e}")
-                    datos = None
-        
-        # PRIORIDAD 3: Intentar resolver mediante el índice maps_index.json
+        # PRIORIDAD 2: Intentar resolver mediante el índice maps_index.json
         if datos is None:
             ruta_indice = os.path.join(DATABASE_PATH, 'maps_index.json')
             if os.path.exists(ruta_indice):
@@ -592,33 +598,89 @@ class Mapa:
     def cargar_objetos_interactivos(self):
         """Carga cofres, puertas, botones y otros objetos desde el JSON persistido por el editor."""
         nombre_base = os.path.splitext(self.nombre_archivo)[0]
-        # El editor persiste en: src/database/objetos_interactivos_mapas/<map_id>.json
-        # OJO: el editor normaliza el id (lower, espacios -> '_'), así que probamos ambas variantes.
-        candidatos = []
-        candidatos.append(os.path.join(DATABASE_PATH, "objetos_interactivos_mapas", f"{nombre_base}.json"))
         nombre_norm = str(nombre_base).strip().lower().replace(" ", "_")
-        if nombre_norm and nombre_norm != nombre_base:
-            candidatos.append(os.path.join(DATABASE_PATH, "objetos_interactivos_mapas", f"{nombre_norm}.json"))
+        variantes = [nombre_base]
+        if nombre_norm and nombre_norm not in variantes:
+            variantes.append(nombre_norm)
+        if nombre_norm.endswith("_unificado"):
+            base_simple = nombre_norm[:-10]
+            if base_simple and base_simple not in variantes:
+                variantes.append(base_simple)
 
-        ruta_objetos = next((p for p in candidatos if os.path.exists(p)), None)
-        if not ruta_objetos:
-            # Log minimo para diagnosticar mismatch de nombres.
-            if candidatos:
-                print(f"[OBJETOS] No hay JSON de objetos para '{nombre_base}'. Probados: {', '.join([os.path.basename(p) for p in candidatos])}")
-            return
+        def _candidatos_json(carpeta):
+            vistos = set()
+            out = []
+            for v in variantes:
+                p = os.path.join(DATABASE_PATH, carpeta, f"{v}.json")
+                if p in vistos:
+                    continue
+                vistos.add(p)
+                out.append(p)
+            return out
 
-        try:
-            with open(ruta_objetos, 'r', encoding='utf-8') as f:
-                datos = json.load(f)
-        except Exception as e:
-            print(f"[OBJETOS] No se pudo cargar {ruta_objetos}: {e}")
-            return
+        items_raw = []
+        fuentes_cargadas = []
 
-        items_raw = datos.get("canvas_items", []) if isinstance(datos, dict) else []
-        if not isinstance(items_raw, list):
-            return
+        # 1) Objetos del editor V1 clasico
+        candidatos_obj = _candidatos_json("objetos_interactivos_mapas")
+        ruta_objetos = next((p for p in candidatos_obj if os.path.exists(p)), None)
+        if ruta_objetos:
+            try:
+                with open(ruta_objetos, 'r', encoding='utf-8') as f:
+                    datos_obj = json.load(f)
+                raw_obj = datos_obj.get("canvas_items", []) if isinstance(datos_obj, dict) else []
+                if isinstance(raw_obj, list) and raw_obj:
+                    items_raw.extend(raw_obj)
+                    fuentes_cargadas.append(os.path.basename(ruta_objetos))
+                elif isinstance(raw_obj, list):
+                    print(f"[OBJETOS] JSON existe pero sin objetos: {ruta_objetos}")
+            except Exception as e:
+                print(f"[OBJETOS] No se pudo cargar {ruta_objetos}: {e}")
+
+        # 2) NPC del gestor nuevo (v1)
+        candidatos_npc = _candidatos_json("npc_interactivos_mapas")
+        ruta_npc = next((p for p in candidatos_npc if os.path.exists(p)), None)
+        if ruta_npc:
+            try:
+                with open(ruta_npc, 'r', encoding='utf-8') as f:
+                    datos_npc = json.load(f)
+                npc_items = datos_npc.get("npc_items", []) if isinstance(datos_npc, dict) else []
+                if isinstance(npc_items, list) and npc_items:
+                    for raw_npc in npc_items:
+                        if not isinstance(raw_npc, dict):
+                            continue
+                        modo_npc = str(raw_npc.get("modo_npc", "npc")).lower()
+                        subtipo = modo_npc if modo_npc in ("venta", "herrero", "evento") else str(raw_npc.get("tipo", "npc")).lower()
+                        dialogo_lineas = raw_npc.get("dialogo_lineas")
+                        if not isinstance(dialogo_lineas, list) or not dialogo_lineas:
+                            pool = raw_npc.get("dialog_pool", [])
+                            idx = int(raw_npc.get("dialogo_activo_idx", 0) or 0)
+                            if isinstance(pool, list) and pool:
+                                idx = max(0, min(idx, len(pool) - 1))
+                                if isinstance(pool[idx], list):
+                                    dialogo_lineas = [str(x).strip() for x in pool[idx] if str(x).strip()]
+                        if not isinstance(dialogo_lineas, list):
+                            dialogo_lineas = []
+
+                        items_raw.append(
+                            {
+                                "id": raw_npc.get("id"),
+                                "tipo": subtipo,
+                                "modo_npc": modo_npc,
+                                "sprite": raw_npc.get("sprite"),
+                                "rect": raw_npc.get("rect", {}),
+                                "dialogo_lineas": dialogo_lineas,
+                                "capa_render": "adelante",
+                                "_origen_npc_editor_v1": True,
+                            }
+                        )
+                    fuentes_cargadas.append(os.path.basename(ruta_npc))
+            except Exception as e:
+                print(f"[OBJETOS] No se pudo cargar NPC runtime {ruta_npc}: {e}")
+
         if not items_raw:
-            print(f"[OBJETOS] JSON existe pero sin objetos: {ruta_objetos}")
+            candidatos_debug = _candidatos_json("objetos_interactivos_mapas") + _candidatos_json("npc_interactivos_mapas")
+            print(f"[OBJETOS] No hay JSON de objetos/NPC para '{nombre_base}'. Probados: {', '.join([os.path.basename(p) for p in candidatos_debug])}")
             return
 
         def _path_abs(raw_path):
@@ -671,7 +733,7 @@ class Mapa:
                 rect_int.midbottom = anchor_midbottom
 
             # NPC: mas rango para iniciar dialogo sin colision dura.
-            if str(subtipo_obj).lower() in ("npc", "aldeano", "vendedor", "herrero"):
+            if str(subtipo_obj).lower() in ("npc", "aldeano", "vendedor", "venta", "herrero", "evento"):
                 rect_int = rect_int.inflate(18, 18)
                 rect_int.midbottom = anchor_midbottom
 
@@ -714,6 +776,9 @@ class Mapa:
                 continue
 
             rect_raw = raw.get("rect", {}) if isinstance(raw.get("rect"), dict) else {}
+            origen_npc_editor_v1 = bool(raw.get("_origen_npc_editor_v1", False))
+            coords_ya_escaladas = False
+
             # Preferir coordenadas en espacio del mapa (si existen) para que calce con el fondo real.
             if "map_x" in rect_raw and "map_y" in rect_raw:
                 x = int(rect_raw.get("map_x", 0))
@@ -726,14 +791,43 @@ class Mapa:
                 w = int(rect_raw.get("w", 72))
                 h = int(rect_raw.get("h", 72))
 
+            # NPC del gestor nuevo se guarda en coordenadas de ventana/editor.
+            # Convertimos a coordenadas de mapa para runtime.
+            if origen_npc_editor_v1:
+                # Layout base del editor en 1280x720:
+                # root=(12,12), canvas=(24,98,866,598)
+                canvas_x = 24.0
+                canvas_y = 98.0
+                canvas_w = 866.0
+                canvas_h = 598.0
+
+                # Detectar solo casos plausibles de coords de editor para no romper datos ya normalizados.
+                if x >= int(canvas_x - 8) and y >= int(canvas_y - 8):
+                    rx = (float(x) - canvas_x) / canvas_w
+                    ry = (float(y) - canvas_y) / canvas_h
+                    rw = float(w) / canvas_w
+                    rh = float(h) / canvas_h
+
+                    rx = max(0.0, min(1.0, rx))
+                    ry = max(0.0, min(1.0, ry))
+                    rw = max(0.02, min(1.0, rw))
+                    rh = max(0.02, min(1.0, rh))
+
+                    x = int(rx * self.mapa_img.get_width())
+                    y = int(ry * self.mapa_img.get_height())
+                    w = int(max(24, rw * self.mapa_img.get_width()))
+                    h = int(max(24, rh * self.mapa_img.get_height()))
+                    coords_ya_escaladas = True
+
             # Si este mapa está escalado (interiores), aplicar el mismo escalado que el resto del mapa.
-            try:
-                x = int(x * getattr(self, 'scale_x', 1.0))
-                y = int(y * getattr(self, 'scale_y', 1.0))
-                w = int(w * getattr(self, 'scale_x', 1.0))
-                h = int(h * getattr(self, 'scale_y', 1.0))
-            except Exception:
-                pass
+            if not coords_ya_escaladas:
+                try:
+                    x = int(x * getattr(self, 'scale_x', 1.0))
+                    y = int(y * getattr(self, 'scale_y', 1.0))
+                    w = int(w * getattr(self, 'scale_x', 1.0))
+                    h = int(h * getattr(self, 'scale_y', 1.0))
+                except Exception:
+                    pass
             item_id = raw.get("id")
             subtipo = str(raw.get("tipo", "objeto")).lower()
 
@@ -766,7 +860,7 @@ class Mapa:
             # - detras/adelante: no bloquea (solo cambia el dibujo)
             bloquea_paso = (capa_render == "colision")
             # NPC dialogable: por diseno no debe bloquear paso en esta fase base.
-            if subtipo in ("npc", "aldeano", "vendedor", "herrero"):
+            if subtipo in ("npc", "aldeano", "vendedor", "venta", "herrero", "evento"):
                 bloquea_paso = False
 
             rect_dibujo = pygame.Rect(x, y, w, h)
@@ -791,6 +885,7 @@ class Mapa:
                 "button_pressed": button_pressed,
                 "is_open": is_open,
                 "dialogo_lineas": dialogo_lineas,
+                "modo_npc": str(raw.get("modo_npc", "")).lower(),
                 "link_number": raw.get("link_number"),
                 "capa_render": capa_render,
                 "bloquea_paso": bool(bloquea_paso),
@@ -800,7 +895,8 @@ class Mapa:
             self.muros.append(obj)
 
         if self.objetos_interactivos:
-            print(f"[OBJETOS] Cargados {len(self.objetos_interactivos)} objeto(s) interactivo(s) desde: {os.path.basename(ruta_objetos)}")
+            fuentes = ", ".join(fuentes_cargadas) if fuentes_cargadas else "(origen no identificado)"
+            print(f"[OBJETOS] Cargados {len(self.objetos_interactivos)} objeto(s) interactivo(s) desde: {fuentes}")
 
     def _actualizar_sprite_objeto_interactivo(self, objeto):
         """Recalcula el sprite actual y el bloqueo según estado."""
@@ -845,12 +941,12 @@ class Mapa:
 
         tipo = str(candidato.get("subtipo", "objeto")).lower()
 
-        if tipo in ("npc", "aldeano", "vendedor", "herrero"):
+        if tipo in ("npc", "aldeano", "vendedor", "venta", "herrero", "evento"):
             lineas = candidato.get("dialogo_lineas") or ["Hola, viajero."]
             npc_id = int(candidato.get("id", 0) or 0)
-            npc_modo = "npc"
-            if tipo in ("vendedor", "herrero"):
-                npc_modo = tipo
+            npc_modo = str(candidato.get("modo_npc", "")).lower() or tipo
+            if npc_modo == "vendedor":
+                npc_modo = "venta"
             return {
                 "exito": True,
                 "mensaje": lineas[0],

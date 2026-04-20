@@ -1,174 +1,158 @@
 {
+  "portales": [
+    {
+      "id": "portal_mapa_herrero_1",
+      "tipo": "portal_enlazado",
+      "forma": "rect",
+      "x": 296,
+      "y": 315,
+      "w": 47,
+      "h": 56,
+      "mapa_destino": "mapa_pueblo_final",
+      "spawn_destino_id": "S_mapa_pueblo_final_mapa_herrero_6",
+      "linked_portal_id": "portal_mapa_pueblo_final_2",
+      "link_group_id": "mapa_pueblo_final:portal_mapa_pueblo_final_2<->mapa_herrero:portal_mapa_herrero_1",
+      "caja": {
+        "x": 296,
+        "y": 315,
+        "w": 47,
+        "h": 56
+      }
+    }
+  ],
+  "spawns": [
+    {
+      "id": "S_mapa_herrero_mapa_pueblo_final_1",
+      "x": 307,
+      "y": 263,
+      "direccion": "abajo",
+      "tam": 12,
+      "linked_portal_id": "portal_mapa_herrero"
+    },
+    {
+      "id": "S_mapa_herrero_mapa_pueblo_final_2",
+      "tipo": "spawn",
+      "x": 316,
+      "y": 376,
+      "direccion": "abajo",
+      "tam": 12
+    },
+    {
+      "id": "S_mapa_herrero_mapa_pueblo_final_3",
+      "tipo": "spawn",
+      "x": 412,
+      "y": 200,
+      "direccion": "abajo",
+      "tam": 12
+    },
+    {
+      "id": "S_mapa_herrero_mapa_pueblo_final_4",
+      "tipo": "spawn",
+      "x": 344,
+      "y": 254,
+      "direccion": "abajo",
+      "tam": 12
+    },
+    {
+      "id": "S_mapa_herrero_mapa_pueblo_final_5",
+      "tipo": "spawn",
+      "x": 236,
+      "y": 98,
+      "direccion": "abajo",
+      "tam": 12
+    },
+    {
+      "id": "S_mapa_herrero_mapa_pueblo_final_6",
+      "tipo": "spawn",
+      "x": 309,
+      "y": 329,
+      "direccion": "abajo",
+      "tam": 12
+    }
+  ],
   "muros": [
     {
       "tipo": "poly",
       "puntos": [
         [
-          350,
-          325
+          282,
+          322
         ],
         [
-          384,
-          327
+          257,
+          322
         ],
         [
-          554,
+          97,
           219
         ],
         [
-          549,
-          157
-        ],
-        [
-          313,
-          13
-        ],
-        [
-          92,
-          143
-        ],
-        [
-          103,
-          153
-        ],
-        [
-          102,
-          206
-        ],
-        [
-          255,
-          316
-        ],
-        [
-          283,
-          315
-        ],
-        [
-          278,
-          369
-        ],
-        [
-          243,
-          371
-        ],
-        [
-          59,
-          244
-        ],
-        [
-          62,
-          148
-        ],
-        [
-          273,
-          20
-        ],
-        [
-          338,
-          13
-        ],
-        [
-          575,
-          146
-        ],
-        [
-          580,
-          245
-        ],
-        [
-          397,
-          374
-        ],
-        [
-          349,
-          373
-        ],
-        [
-          348,
-          325
-        ]
-      ]
-    },
-    {
-      "tipo": "poly",
-      "puntos": [
-        [
-          384,
-          286
-        ],
-        [
-          403,
-          297
-        ],
-        [
-          467,
-          253
-        ],
-        [
-          448,
-          221
-        ],
-        [
-          381,
-          267
-        ],
-        [
-          383,
-          283
-        ]
-      ]
-    },
-    {
-      "tipo": "poly",
-      "puntos": [
-        [
-          319,
-          147
-        ],
-        [
-          367,
-          174
-        ],
-        [
-          404,
-          156
-        ],
-        [
-          390,
-          76
-        ],
-        [
-          368,
-          62
-        ],
-        [
-          321,
-          145
-        ]
-      ]
-    },
-    {
-      "tipo": "poly",
-      "puntos": [
-        [
-          235,
-          179
-        ],
-        [
-          271,
+          97,
           163
         ],
         [
-          252,
-          132
+          88,
+          149
         ],
         [
-          219,
-          159
+          315,
+          17
         ],
         [
-          235,
-          182
+          547,
+          145
+        ],
+        [
+          543,
+          222
+        ],
+        [
+          383,
+          321
+        ],
+        [
+          346,
+          317
+        ],
+        [
+          351,
+          364
+        ],
+        [
+          388,
+          366
+        ],
+        [
+          586,
+          245
+        ],
+        [
+          575,
+          148
+        ],
+        [
+          323,
+          5
+        ],
+        [
+          67,
+          146
+        ],
+        [
+          64,
+          247
+        ],
+        [
+          240,
+          363
+        ],
+        [
+          281,
+          375
+        ],
+        [
+          278,
+          319
         ]
       ]
     },
@@ -176,36 +160,123 @@
       "tipo": "poly",
       "puntos": [
         [
-          229,
-          291
+          223,
+          289
         ],
         [
-          246,
+          251,
+          271
+        ],
+        [
+          170,
+          218
+        ],
+        [
+          155,
+          236
+        ],
+        [
+          214,
           281
         ],
         [
-          247,
-          267
+          220,
+          286
+        ]
+      ]
+    },
+    {
+      "tipo": "poly",
+      "puntos": [
+        [
+          387,
+          269
         ],
         [
-          174,
-          215
+          380,
+          284
         ],
         [
-          157,
-          240
+          397,
+          297
         ],
         [
-          226,
-          290
+          465,
+          264
+        ],
+        [
+          449,
+          228
+        ],
+        [
+          395,
+          259
+        ],
+        [
+          383,
+          268
+        ]
+      ]
+    },
+    {
+      "tipo": "poly",
+      "puntos": [
+        [
+          367,
+          177
+        ],
+        [
+          419,
+          157
+        ],
+        [
+          380,
+          63
+        ],
+        [
+          323,
+          145
+        ],
+        [
+          355,
+          179
+        ]
+      ]
+    },
+    {
+      "tipo": "poly",
+      "puntos": [
+        [
+          237,
+          175
+        ],
+        [
+          282,
+          161
+        ],
+        [
+          252,
+          125
+        ],
+        [
+          218,
+          148
         ]
       ]
     }
   ],
   "nombre": "mapa_herrero",
   "carpeta": "ciudades_y_pueblos",
-  "portales": [],
-  "zonas_batalla": [],
+  "zonas_batalla": [
+    {
+      "id": "S_mapa_herrero_mapa_pueblo_final_1",
+      "x": 307,
+      "y": 263,
+      "direccion": "abajo",
+      "tam": 12,
+      "linked_portal_id": "portal_mapa_herrero"
+    }
+  ],
   "cofres": [],
   "npcs": []
 }

@@ -32,6 +32,20 @@ except Exception:
 MAPS_DIR = Path("src/database/mapas")
 
 
+def _prefer_map_file(existing: Path, candidate: Path) -> Path:
+    """Cuando hay dos JSON con el mismo nombre, preferir el de pueblo_inicio.
+
+    Si ninguno esta en pueblo_inicio, conservar el que ya existia.
+    """
+    existing_s = existing.as_posix().replace("\\", "/").lower()
+    candidate_s = candidate.as_posix().replace("\\", "/").lower()
+    existing_is_pueblo = "/pueblo_inicio/" in existing_s
+    candidate_is_pueblo = "/pueblo_inicio/" in candidate_s
+    if candidate_is_pueblo and not existing_is_pueblo:
+        return candidate
+    return existing
+
+
 @dataclass
 class Issue:
     nivel: str  # ERROR | WARN | INFO
@@ -68,7 +82,13 @@ class PortalInteraccionAuditV2:
             return 1
 
         # Indices para resolver destinos y validar spawn_destino_id cruzado.
-        self._map_file_by_name = {p.stem: p for p in files}
+        self._map_file_by_name = {}
+        for p in files:
+            current = self._map_file_by_name.get(p.stem)
+            if current is None:
+                self._map_file_by_name[p.stem] = p
+            else:
+                self._map_file_by_name[p.stem] = _prefer_map_file(current, p)
         mapas_disponibles = set(self._map_file_by_name.keys())
 
         for file_path in files:
@@ -331,8 +351,15 @@ class PortalEditorV2:
         if not self.map_files:
             raise FileNotFoundError("No se encontraron mapas JSON en src/database/mapas")
 
-        self.map_names = [p.stem for p in self.map_files]
-        self.map_by_name = {p.stem: p for p in self.map_files}
+        self.map_by_name = {}
+        for p in self.map_files:
+            current = self.map_by_name.get(p.stem)
+            if current is None:
+                self.map_by_name[p.stem] = p
+            else:
+                self.map_by_name[p.stem] = _prefer_map_file(current, p)
+
+        self.map_names = sorted(self.map_by_name.keys())
 
         self.left_map = map_name if map_name in self.map_by_name else self.map_names[0]
         self.right_map = self._pick_default_right(self.left_map)
@@ -411,10 +438,16 @@ class PortalEditorV2:
         assets_maps = Path("assets/maps")
         if not assets_maps.exists():
             return None
-        for p in assets_maps.rglob(image_name):
-            if p.is_file():
-                return p
-        return None
+        candidates = [p for p in assets_maps.rglob(image_name) if p.is_file()]
+        if not candidates:
+            return None
+
+        # Si hay duplicados, preferir la copia dentro de pueblo_inicio.
+        preferred = [p for p in candidates if "/pueblo_inicio/" in p.as_posix().replace("\\", "/").lower()]
+        if preferred:
+            return sorted(preferred)[0]
+
+        return sorted(candidates)[0]
 
     def _build_placeholder_surface(self, map_name: str) -> pygame.Surface:
         surf = pygame.Surface((1024, 768))
