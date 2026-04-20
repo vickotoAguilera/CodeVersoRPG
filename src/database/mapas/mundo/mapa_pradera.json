@@ -9,7 +9,7 @@
       "w": 35,
       "h": 44,
       "mapa_destino": "mapa_pueblo_final",
-      "spawn_destino_id": "S2",
+      "spawn_destino_id": "S_mapa_pueblo_final_mapa_pradera_1",
       "categoria_destino": "mundo",
       "caja": {
         "x": 556,
@@ -21,7 +21,7 @@
   ],
   "spawns": [
     {
-      "id": "",
+      "id": "S_AUTO_1",
       "tipo": "spawn",
       "x": 712,
       "y": 615,
@@ -29,7 +29,7 @@
       "tam": 12
     },
     {
-      "id": "",
+      "id": "S_AUTO_2",
       "tipo": "spawn",
       "x": 1290,
       "y": 790,

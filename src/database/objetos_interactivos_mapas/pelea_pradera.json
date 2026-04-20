@@ -1,0 +1,10 @@
+{
+  "map_id": "pelea_pradera",
+  "background": "assets/backgrounds/pelea_pradera.png",
+  "slots": {
+    "cerrado": "",
+    "activador": "",
+    "abierto": ""
+  },
+  "canvas_items": []
+}

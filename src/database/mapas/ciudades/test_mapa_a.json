@@ -1,4 +1,84 @@
 {
-  "portales": [],
-  "spawns": []
+  "portales": [
+    {
+      "id": "portal_test_mapa_a_1",
+      "tipo": "portal_enlazado",
+      "forma": "rect",
+      "x": 658,
+      "y": 118,
+      "w": 148,
+      "h": 120,
+      "mapa_destino": "test_mapa_b",
+      "spawn_destino_id": "S_test_mapa_b_test_mapa_a_5",
+      "linked_portal_id": "portal_test_mapa_b_2",
+      "link_group_id": "test_mapa_a:portal_test_mapa_a_1<->test_mapa_b:portal_test_mapa_b_2",
+      "caja": {
+        "x": 658,
+        "y": 118,
+        "w": 148,
+        "h": 120
+      }
+    },
+    {
+      "id": "portal_test_mapa_a_2",
+      "tipo": "portal_enlazado",
+      "forma": "rect",
+      "x": 209,
+      "y": 187,
+      "w": 53,
+      "h": 48,
+      "mapa_destino": "test_mapa_b",
+      "spawn_destino_id": "S_test_mapa_b_test_mapa_a_4",
+      "linked_portal_id": "portal_test_mapa_b_1",
+      "link_group_id": "test_mapa_a:portal_test_mapa_a_2<->test_mapa_b:portal_test_mapa_b_1",
+      "caja": {
+        "x": 209,
+        "y": 187,
+        "w": 53,
+        "h": 48
+      }
+    }
+  ],
+  "spawns": [
+    {
+      "id": "S_test_mapa_a_test_mapa_b_1",
+      "tipo": "spawn",
+      "x": 171,
+      "y": 366,
+      "direccion": "abajo",
+      "tam": 12
+    },
+    {
+      "id": "S_test_mapa_a_test_mapa_b_2",
+      "tipo": "spawn",
+      "x": 911,
+      "y": 207,
+      "direccion": "abajo",
+      "tam": 12
+    },
+    {
+      "id": "S_test_mapa_a_test_mapa_b_3",
+      "tipo": "spawn",
+      "x": 172,
+      "y": 366,
+      "direccion": "abajo",
+      "tam": 12
+    },
+    {
+      "id": "S_test_mapa_a_test_mapa_b_4",
+      "tipo": "spawn",
+      "x": 235,
+      "y": 253,
+      "direccion": "abajo",
+      "tam": 12
+    },
+    {
+      "id": "S_test_mapa_a_test_mapa_b_5",
+      "tipo": "spawn",
+      "x": 732,
+      "y": 256,
+      "direccion": "abajo",
+      "tam": 12
+    }
+  ]
 }

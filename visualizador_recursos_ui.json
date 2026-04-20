@@ -1,0 +1,8 @@
+{
+  "barra_carpetas": [
+    "sprites/heroes/batalla",
+    "sprites/monstruos"
+  ],
+  "barra_folder_activa": "sprites/monstruos",
+  "ruta_guardado_actual": "maps"
+}

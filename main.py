@@ -80,6 +80,52 @@ mi_pantalla_inventario = None
 mi_pantalla_habilidades = None  # ¡NUEVO! (Paso 7.18)
 
 
+def _envolver_texto(texto, fuente, ancho_max):
+    """Parte una linea larga en multiples renglones segun ancho de pixeles."""
+    if not texto:
+        return [""]
+
+    palabras = str(texto).split()
+    if not palabras:
+        return [""]
+
+    lineas = []
+    actual = palabras[0]
+    for palabra in palabras[1:]:
+        candidato = f"{actual} {palabra}"
+        if fuente.size(candidato)[0] <= ancho_max:
+            actual = candidato
+        else:
+            lineas.append(actual)
+            actual = palabra
+    lineas.append(actual)
+    return lineas
+
+
+def dibujar_caja_dialogo_npc(pantalla, fuente, texto, ancho_pantalla, alto_pantalla):
+    """Dibuja una caja de dialogo simple para la fase base de NPC."""
+    caja_h = 140
+    margen = 20
+    caja_w = ancho_pantalla - (margen * 2)
+    caja_x = margen
+    caja_y = alto_pantalla - caja_h - 18
+
+    caja = pygame.Surface((caja_w, caja_h), pygame.SRCALPHA)
+    caja.fill((0, 0, 0, 210))
+    pantalla.blit(caja, (caja_x, caja_y))
+    pygame.draw.rect(pantalla, (240, 240, 240), pygame.Rect(caja_x, caja_y, caja_w, caja_h), 2)
+
+    lineas = _envolver_texto(texto, fuente, caja_w - 24)
+    y_texto = caja_y + 14
+    for linea in lineas[:3]:
+        surf = fuente.render(linea, True, (255, 255, 255))
+        pantalla.blit(surf, (caja_x + 12, y_texto))
+        y_texto += surf.get_height() + 6
+
+    hint = fuente.render("E: siguiente", True, (255, 220, 120))
+    pantalla.blit(hint, (caja_x + caja_w - hint.get_width() - 12, caja_y + caja_h - hint.get_height() - 10))
+
+
 def resolver_mapa(nombre_mapa, categoria_guess):
     """Resolver el nombre de archivo y categoría reales del mapa. Devuelve (nombre_archivo, categoria).
     Si no encuentra en la categoría indicada, busca en todas las subcarpetas de `src/database/mapas` por nombre base.
@@ -168,6 +214,11 @@ mensaje_cofre_texto = ""
 mensaje_cofre_inicio = 0
 DURACION_MENSAJE_COFRE = 3000  # 3 segundos
 
+# Dialogos NPC (fase base)
+dialogo_npc_activo = False
+dialogo_npc_lineas = []
+dialogo_npc_indice = 0
+
 # Sistema de persistencia de cofres con recuperación temporal
 # Formato: {"mapa_nombre": {"id_cofre": {"abierto": bool, "vacio": bool, "tiempo_apertura": float}}}
 cofres_estado_global = {}
@@ -206,6 +257,12 @@ while True:
             
             # --- MANEJO DE TECLA ESCAPE (Global) ---
             if event.key == pygame.K_ESCAPE:
+                if dialogo_npc_activo:
+                    dialogo_npc_activo = False
+                    dialogo_npc_lineas = []
+                    dialogo_npc_indice = 0
+                    continue
+
                 if estado_juego == "mapa":
                     print("¡Abriendo Menú de Pausa!")
                     estado_juego = "menu_pausa"
@@ -288,9 +345,10 @@ while True:
                                 print(f"¡ADVERTENCIA! Datos incompletos para {miembro['nombre_en_juego']}")
 
                         # Posicionar héroes en el spawn principal del mapa (si existe)
-                        # Activar debug_draw temporal para visualizar muros/portales/spawns
+                        # Nota: debug_draw dibuja rectangulos de debug (muros/zonas/interactivos).
+                        # Mantenerlo apagado en juego normal.
                         try:
-                            mi_mapa.debug_draw = True
+                            mi_mapa.debug_draw = False
                             spawn = None
                             if hasattr(mi_mapa, 'spawns') and mi_mapa.spawns:
                                 spawn = mi_mapa.spawns[0]
@@ -592,10 +650,36 @@ while True:
             
             # ¡NUEVO! - Tecla E para interactuar con cofres
             if event.key == pygame.K_e:
+                if dialogo_npc_activo:
+                    dialogo_npc_indice += 1
+                    if dialogo_npc_indice >= len(dialogo_npc_lineas):
+                        dialogo_npc_activo = False
+                        dialogo_npc_lineas = []
+                        dialogo_npc_indice = 0
+                    continue
+
                 if estado_juego == "mapa" and mi_mapa and grupo_heroes:
                     heroe_lider = grupo_heroes[0]
+                    # 1) Prioridad: objetos nuevos del editor V1
+                    resultado_objeto = mi_mapa.interactuar_objetos_interactivos(heroe_lider.heroe_rect, grupo_heroes, ITEMS_DB)
+                    if resultado_objeto.get("tipo") == "npc" and resultado_objeto.get("dialogo_lineas"):
+                        dialogo_npc_lineas = list(resultado_objeto.get("dialogo_lineas", []))
+                        dialogo_npc_indice = 0
+                        dialogo_npc_activo = bool(dialogo_npc_lineas)
+                        mensaje_cofre_activo = False
+                        continue
+
+                    if resultado_objeto.get("exito") or resultado_objeto.get("mensaje"):
+                        mensaje_cofre_texto = resultado_objeto.get("mensaje", "")
+                        mensaje_cofre_activo = bool(mensaje_cofre_texto)
+                        mensaje_cofre_inicio = tiempo_actual_ticks
+                        if mensaje_cofre_texto:
+                            print(f"[Objeto] {mensaje_cofre_texto}")
+                        continue
+
+                    # 2) Fallback: cofres antiguos (con loot/estado guardado)
                     cofre_cercano = mi_mapa.chequear_cofre_cercano(heroe_lider.heroe_rect)
-                    
+
                     if cofre_cercano:
                         # Interactuar con el cofre
                         resultado = cofre_cercano.interactuar(grupo_heroes, ITEMS_DB)
@@ -775,13 +859,15 @@ while True:
             heroe_lider = grupo_heroes[0] 
             mi_mapa.draw(PANTALLA)
             heroe_lider.draw(PANTALLA, mi_mapa.camara_rect) 
+            mi_mapa.draw_objetos_frente(PANTALLA)
             texto_coords = f"X: {heroe_lider.heroe_rect.x}  Y: {heroe_lider.heroe_rect.y}"
             texto_surf = mi_fuente_debug.render(texto_coords, True, (255, 255, 255), (0, 0, 0))
             PANTALLA.blit(texto_surf, (10, 10))
             
             # Indicador de cofre cercano
             cofre_cercano = mi_mapa.chequear_cofre_cercano(heroe_lider.heroe_rect)
-            if cofre_cercano:
+            objeto_cercano = mi_mapa.chequear_objeto_interactivo_cercano(heroe_lider.heroe_rect)
+            if (cofre_cercano or objeto_cercano) and not dialogo_npc_activo:
                 texto_interaccion = "Presiona E para interactuar"
                 texto_surf_interaccion = mi_fuente_debug.render(texto_interaccion, True, (255, 255, 0), (0, 0, 0))
                 PANTALLA.blit(texto_surf_interaccion, (ANCHO // 2 - texto_surf_interaccion.get_width() // 2, ALTO - 50))
@@ -797,6 +883,7 @@ while True:
             heroe_lider = grupo_heroes[0] 
             mi_mapa.draw(PANTALLA)
             heroe_lider.draw(PANTALLA, mi_mapa.camara_rect) 
+            mi_mapa.draw_objetos_frente(PANTALLA)
         
         # 2. Dibujar el menú de pausa (siempre de fondo si está en submenú)
         if (estado_juego == "menu_pausa" or estado_juego == "pantalla_estado" or estado_juego == "pantalla_equipo" or estado_juego == "pantalla_inventario" or estado_juego == "pantalla_habilidades") and mi_menu_pausa:
@@ -842,7 +929,7 @@ while True:
             aviso_autoguardado_activo = False
 
     # --- Mensaje de interacción con cofre ---
-    if mensaje_cofre_activo:
+    if mensaje_cofre_activo and not dialogo_npc_activo:
         tiempo_transcurrido = tiempo_actual_ticks - mensaje_cofre_inicio
         if tiempo_transcurrido < DURACION_MENSAJE_COFRE:
             mensaje_surf = mi_fuente_debug.render(mensaje_cofre_texto, True, (255, 255, 255), (0, 0, 0))
@@ -854,6 +941,11 @@ while True:
             PANTALLA.blit(mensaje_surf, mensaje_rect)
         else:
             mensaje_cofre_activo = False
+
+    # Dialogo NPC sobre el mapa
+    if dialogo_npc_activo and estado_juego == "mapa" and dialogo_npc_lineas:
+        idx = min(dialogo_npc_indice, len(dialogo_npc_lineas) - 1)
+        dibujar_caja_dialogo_npc(PANTALLA, mi_fuente_debug, dialogo_npc_lineas[idx], ANCHO, ALTO)
 
 
     

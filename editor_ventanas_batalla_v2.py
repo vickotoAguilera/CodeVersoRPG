@@ -41,6 +41,18 @@ COLOR_HANDLE = (255, 100, 100)
 COLOR_AREA = (100, 255, 100)  # Verde para áreas de contenido
 
 # Colores para glassmorphism
+COLOR_GLASS_BG = (40, 40, 60)  # Fondo del vidrio
+COLOR_GLASS_BORDER = (100, 100, 150)  # Borde brillante
+COLOR_GLASS_SHADOW = (0, 0, 0)  # Sombra
+
+class AreaContenido:
+    """Área de contenido editable dentro de una ventana"""
+    def __init__(self, x, y, ancho, alto, tipo="lista", nombre="Nueva Área"):
+        self.x = x
+        self.y = y
+        self.ancho = ancho
+        self.alto = alto
+        self.nombre = nombre
         self.tipo = tipo  # "lista", "texto", "grid"
         
         # Estado

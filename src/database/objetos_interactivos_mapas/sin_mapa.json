@@ -1,0 +1,33 @@
+{
+  "map_id": "sin_mapa",
+  "background": "",
+  "slots": {
+    "cerrado": "",
+    "activador": "",
+    "abierto": "assets/sprites/cofres y demas/cofre_madera_2.png"
+  },
+  "canvas_items": [
+    {
+      "id": 1,
+      "tipo": "cofre",
+      "label": "1. cofre_madera_1",
+      "sprite": "assets/sprites/cofres y demas/cofre_madera_1.png",
+      "base_sprite": "assets/sprites/cofres y demas/cofre_madera_1.png",
+      "linked_sprite": "",
+      "linked_slot": null,
+      "trigger_item_id": null,
+      "requires_button": false,
+      "button_pressed": false,
+      "is_open": false,
+      "link_number": null,
+      "capa_render": "colision",
+      "scale": 1.0,
+      "rect": {
+        "x": 597,
+        "y": 256,
+        "w": 72,
+        "h": 72
+      }
+    }
+  ]
+}

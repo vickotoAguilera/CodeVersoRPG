@@ -311,6 +311,10 @@ class PantallaInventario:
                         # Consumir del inventario normal
                         self.grupo_heroes[0].usar_item(item_data['id_item'])
                         heroe_objetivo.recibir_curacion_mp(item_data['poder'])
+                    elif item_data['efecto'] == "AUMENTA_RANURAS_HABILIDAD":
+                        # Los ítems especiales no se consumen, pero llamamos a la lógica
+                        heroe_objetivo.usar_expansor_ranuras(item_data['poder'])
+                        print(f"¡{heroe_objetivo.nombre_en_juego} ahora tiene {heroe_objetivo.ranuras_habilidad_max} ranuras!")
                     
                     # Reconstruir inventario y volver
                     self._construir_lista_inventario()

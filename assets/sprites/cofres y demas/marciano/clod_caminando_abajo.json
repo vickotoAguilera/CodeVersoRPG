@@ -1,0 +1,29 @@
+{
+  "atlas": {
+    "width": 128,
+    "height": 128
+  },
+  "sprites": [
+    {
+      "name": "marciano_caminando_1",
+      "x": 2,
+      "y": 2,
+      "width": 15,
+      "height": 24
+    },
+    {
+      "name": "marciano_caminando_2",
+      "x": 19,
+      "y": 2,
+      "width": 16,
+      "height": 24
+    },
+    {
+      "name": "marciano_caminando_3",
+      "x": 37,
+      "y": 2,
+      "width": 16,
+      "height": 24
+    }
+  ]
+}

@@ -283,6 +283,14 @@ class Heroe:
                         elif delta_x < 0:
                             self.heroe_rect.left = mrect.right
                         self.heroe_x_float = float(self.heroe_rect.x)
+                elif muro.get('tipo') == 'interactivo' and muro.get('bloquea_paso', True):
+                    mrect = muro.get('rect_colision') or muro.get('rect')
+                    if mrect and self.heroe_rect.colliderect(mrect):
+                        if delta_x > 0:
+                            self.heroe_rect.right = mrect.left
+                        elif delta_x < 0:
+                            self.heroe_rect.left = mrect.right
+                        self.heroe_x_float = float(self.heroe_rect.x)
                 elif muro.get('tipo') == 'poly':
                     poly = muro.get('puntos', [])
                     if rect_poly_collide(self.heroe_rect, poly):
@@ -307,6 +315,14 @@ class Heroe:
                 if muro.get('tipo') == 'rect':
                     mrect = muro['rect']
                     if self.heroe_rect.colliderect(mrect):
+                        if delta_y > 0:
+                            self.heroe_rect.bottom = mrect.top
+                        elif delta_y < 0:
+                            self.heroe_rect.top = mrect.bottom
+                        self.heroe_y_float = float(self.heroe_rect.y)
+                elif muro.get('tipo') == 'interactivo' and muro.get('bloquea_paso', True):
+                    mrect = muro.get('rect_colision') or muro.get('rect')
+                    if mrect and self.heroe_rect.colliderect(mrect):
                         if delta_y > 0:
                             self.heroe_rect.bottom = mrect.top
                         elif delta_y < 0:
@@ -511,14 +527,9 @@ class Heroe:
         Expande las ranuras de habilidades del héroe.
         El expansor es acumulativo: +2, +4, +6...
         Este método se llama cuando se selecciona el item EXPANSOR_RANURAS.
-        El expansor NO se consume porque está en items especiales.
         """
         self.ranuras_habilidad_max += cantidad
         print(f"¡{self.nombre_en_juego} ahora tiene {self.ranuras_habilidad_max} ranuras de habilidades!")
-        
-        # Los items especiales NO se consumen, permanecen en el inventario
-        # No se debe agregar ni quitar nada del inventario especial aquí
-        
         return True
     
     def agregar_efecto(self, tipo_efecto, duracion, valor, es_mp=False):
@@ -794,13 +805,3 @@ class Heroe:
                 return True
 
         return False
-    
-    # --- SISTEMA DE EXPANSIÓN DE RANURAS ---
-    def usar_expansor_ranuras(self, cantidad_ranuras):
-        """
-        Aumenta permanentemente las ranuras de habilidad del héroe.
-        Esta función NO acumula, sino que ESTABLECE el valor total.
-        """
-        # Establecer el nuevo máximo de ranuras
-        self.ranuras_habilidad_max = cantidad_ranuras
-        print(f"{self.nombre_en_juego} ahora tiene {self.ranuras_habilidad_max} ranuras de habilidad.")

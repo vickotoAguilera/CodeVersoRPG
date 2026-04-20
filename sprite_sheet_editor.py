@@ -371,6 +371,7 @@ class SpriteSheetEditor:
         """Crea botones de acción"""
         acciones = [
             ("Cargar", self.cargar_spritesheet),
+            ("Auto Detectar (A)", self.auto_detectar_sprites),
             ("Preview", self.toggle_preview),
             ("Quitar Fondo", self.quitar_fondo_sprite),
             ("Guardar (S)", self.guardar_sprite_actual),
@@ -602,6 +603,120 @@ class SpriteSheetEditor:
             print(f"❌ Error quitando fondo: {e}")
             import traceback
             traceback.print_exc()
+
+    def auto_detectar_sprites(self):
+        """Auto-detects sprites using a Flood-Fill connected components algorithm (Magic Splitter)."""
+        if not self.spritesheet_original:
+            self.mostrar_mensaje("⚠️ No hay spritesheet cargado")
+            return
+            
+        self.mostrar_mensaje("⏳ Analizando imagen...")
+        # Forzar un update de la pantalla para mostrar el mensaje
+        pygame.display.flip()
+        
+        # Guardar al historial
+        self.agregar_al_historial()
+        
+        surface = self.spritesheet_original
+        ancho, alto = surface.get_width(), surface.get_height()
+        
+        # 1. Detectar color de fondo si no hay transparencia
+        hay_transparencia = False
+        for x in range(min(50, ancho)):
+            for y in range(min(50, alto)):
+                if surface.get_at((x, y))[3] < 255:
+                    hay_transparencia = True
+                    break
+            if hay_transparencia: break
+            
+        color_fondo = None
+        if not hay_transparencia:
+            # Muestrear perímetro
+            conteo_colores = {}
+            puntos_borde = []
+            salto_x = max(1, ancho // 40)
+            salto_y = max(1, alto // 40)
+            
+            for x in range(0, ancho, salto_x):
+                puntos_borde.extend([(x, 0), (x, alto - 1)])
+            for y in range(0, alto, salto_y):
+                puntos_borde.extend([(0, y), (ancho - 1, y)])
+                
+            for px, py in puntos_borde:
+                color = surface.get_at((px, py))[:3]
+                conteo_colores[color] = conteo_colores.get(color, 0) + 1
+                
+            if conteo_colores:
+                # El más común en el borde será nuestro color de fondo
+                color_fondo = max(conteo_colores, key=conteo_colores.get)
+                print(f"Color de fondo detectado estadísticamente: RGB{color_fondo}")
+        
+        visitados = set()
+        cajas_encontradas = []
+        
+        def es_fondo(x, y):
+            color = surface.get_at((x, y))
+            if color[3] == 0:  # Transparente
+                return True
+            if not hay_transparencia and color_fondo:
+                # Tolerancia 0, coincidencia exacta para no destruir el sprite
+                return color[:3] == color_fondo
+            return False
+
+        # 2. Búsqueda BFS (Flood-fill en 8 direcciones) para encontrar islas
+        direcciones = [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (1, -1), (-1, 1), (1, 1)]
+        
+        for y in range(alto):
+            for x in range(ancho):
+                if (x, y) not in visitados:
+                    if es_fondo(x, y):
+                        visitados.add((x, y))
+                        continue
+                    
+                    # Iniciar nueva isla
+                    cola = [(x, y)]
+                    visitados.add((x, y))
+                    min_x, max_x = x, x
+                    min_y, max_y = y, y
+                    pixeles = 0
+                    
+                    while cola:
+                        cx, cy = cola.pop(0)
+                        pixeles += 1
+                        
+                        if cx < min_x: min_x = cx
+                        if cx > max_x: max_x = cx
+                        if cy < min_y: min_y = cy
+                        if cy > max_y: max_y = cy
+                        
+                        for dx, dy in direcciones:
+                            nx, ny = cx + dx, cy + dy
+                            if 0 <= nx < ancho and 0 <= ny < alto:
+                                if (nx, ny) not in visitados:
+                                    visitados.add((nx, ny))
+                                    if not es_fondo(nx, ny):
+                                        cola.append((nx, ny))
+                                        
+                    # 3. Eliminar ruido pequeñísimo que es basura
+                    if pixeles > 10 and (max_x - min_x) >= 2 and (max_y - min_y) >= 2:
+                        w = max_x - min_x + 1
+                        h = max_y - min_y + 1
+                        cajas_encontradas.append(pygame.Rect(min_x, min_y, w, h))
+
+        # Integrar selecciones
+        if cajas_encontradas:
+            self.selecciones = []
+            for i, caja in enumerate(cajas_encontradas):
+                sel = SeleccionSprite(
+                    x=caja.x, y=caja.y, ancho=caja.width, alto=caja.height,
+                    categoria=self.categoria_actual,
+                    nombre=f"sprite_auto_{i+1}"
+                )
+                self.selecciones.append(sel)
+            self.mostrar_mensaje(f"✓ Detectados {len(self.selecciones)} sprites autómaticamente")
+        else:
+            self.mostrar_mensaje("⚠️ No se detectaron sprites aislables")
+
 
     
     def exportar_todos(self):
@@ -1236,6 +1351,9 @@ class SpriteSheetEditor:
                 elif evento.key == pygame.K_f:
                     self.toggle_fullscreen()
                 
+                elif evento.key == pygame.K_a:
+                    self.auto_detectar_sprites()
+                
                 elif evento.key == pygame.K_s and not self.input_nombre.activo:
                     self.guardar_sprite_actual()
                 
@@ -1576,6 +1694,7 @@ if __name__ == "__main__":
 ║  • Scroll (canvas) = Zoom                            ║
 ║  • Scroll (lista) = Desplazar                        ║
 ║  • Botón "Quitar Fondo" = Eliminar fondo sprite      ║
+║  • A = Auto-Detectar Sprites Mágicamente             ║
 ║  • S = Guardar sprite                                ║
 ║  • E = Exportar todos                                ║
 ║  • F = Pantalla completa                             ║

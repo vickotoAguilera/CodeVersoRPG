@@ -1,0 +1,11 @@
+{
+  "presets": [
+    {
+      "name": "caminando _abajo_42x42",
+      "sprite": "assets/sprites/heroes/mapa/caminando _abajo.png",
+      "w": 42,
+      "h": 42,
+      "tipo": "npc"
+    }
+  ]
+}

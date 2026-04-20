@@ -1,0 +1,186 @@
+{
+  "ventana": {
+    "nombre": "pantalla_habilidades",
+    "x": 0,
+    "y": 0,
+    "ancho": 1280,
+    "alto": 720,
+    "titulo": "Habilidades",
+    "color_acento": [
+      0,
+      0,
+      139
+    ],
+    "alpha": 255,
+    "visible": true
+  },
+  "textboxes": [
+    {
+      "nombre": "sprite_heroe",
+      "x": 20,
+      "y": 20,
+      "ancho": 150,
+      "alto": 200,
+      "tipo": "panel",
+      "contenido": [
+        "[SPRITE]"
+      ],
+      "fuente_size": 20,
+      "color_texto": [
+        255,
+        255,
+        255
+      ],
+      "alineacion": "center",
+      "scroll": {
+        "enabled": false,
+        "items_visibles": 1,
+        "color_scrollbar": [
+          100,
+          100,
+          255
+        ],
+        "offset_y": 0,
+        "offset_x": 0
+      }
+    },
+    {
+      "nombre": "boton_volver",
+      "x": 20,
+      "y": 230,
+      "ancho": 150,
+      "alto": 40,
+      "tipo": "boton",
+      "contenido": [
+        "VOLVER"
+      ],
+      "fuente_size": 24,
+      "color_texto": [
+        255,
+        255,
+        255
+      ],
+      "alineacion": "center",
+      "scroll": {
+        "enabled": false,
+        "items_visibles": 1,
+        "color_scrollbar": [
+          100,
+          100,
+          255
+        ],
+        "offset_y": 0,
+        "offset_x": 0
+      }
+    },
+    {
+      "nombre": "inventario_habilidades",
+      "x": 190,
+      "y": 20,
+      "ancho": 250,
+      "alto": 370,
+      "tipo": "lista",
+      "contenido": [
+        "• Corte Cruzado",
+        "• Golpe Fuerte",
+        "• Defensa",
+        "• Piro",
+        "• Hielo",
+        "• Cura",
+        "• Rayo",
+        "• Veneno"
+      ],
+      "fuente_size": 26,
+      "color_texto": [
+        255,
+        255,
+        255
+      ],
+      "alineacion": "left",
+      "scroll": {
+        "enabled": true,
+        "items_visibles": 8,
+        "color_scrollbar": [
+          0,
+          0,
+          139
+        ],
+        "offset_y": 0,
+        "offset_x": 0
+      }
+    },
+    {
+      "nombre": "descripcion_habilidad",
+      "x": 460,
+      "y": 20,
+      "ancho": 800,
+      "alto": 370,
+      "tipo": "texto",
+      "contenido": [
+        "NOMBRE: Corte Cruzado",
+        "",
+        "TIPO: Habilidad Física",
+        "",
+        "COSTO MP: 5",
+        "PODER: 25",
+        "ALCANCE: Un Enemigo",
+        "",
+        "DESCRIPCIÓN:",
+        "Un ataque de espada que golpea",
+        "con fuerza media al enemigo.",
+        "",
+        "EFECTOS: Ninguno"
+      ],
+      "fuente_size": 24,
+      "color_texto": [
+        255,
+        255,
+        255
+      ],
+      "alineacion": "left",
+      "scroll": {
+        "enabled": true,
+        "items_visibles": 12,
+        "color_scrollbar": [
+          0,
+          0,
+          139
+        ],
+        "offset_y": 0,
+        "offset_x": 0
+      }
+    },
+    {
+      "nombre": "ranuras_activas",
+      "x": 20,
+      "y": 410,
+      "ancho": 1240,
+      "alto": 290,
+      "tipo": "lista_horizontal",
+      "contenido": [
+        "[1] Corte Cruzado",
+        "[2] Piro",
+        "[3] Cura",
+        "[4] Vacío"
+      ],
+      "fuente_size": 28,
+      "color_texto": [
+        0,
+        255,
+        0
+      ],
+      "alineacion": "center",
+      "scroll": {
+        "enabled": false,
+        "items_visibles": 4,
+        "color_scrollbar": [
+          0,
+          0,
+          139
+        ],
+        "offset_y": 0,
+        "offset_x": 0
+      }
+    }
+  ]
+}

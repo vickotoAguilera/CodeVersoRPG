@@ -1,0 +1,49 @@
+{
+  "presets": [
+    {
+      "name": "cofre_madera_1_36x36",
+      "sprite": "assets/sprites/cofres y demas/cofre_madera_1.png",
+      "w": 36,
+      "h": 36,
+      "scale": 0.5,
+      "categoria": "puerta",
+      "map_id": "sin_mapa"
+    },
+    {
+      "name": "cofre_madera_2_28x28",
+      "sprite": "assets/sprites/cofres y demas/cofre_madera_2.png",
+      "w": 28,
+      "h": 28,
+      "scale": 0.4,
+      "categoria": "puerta",
+      "map_id": "sin_mapa"
+    },
+    {
+      "name": "cofre_28x28",
+      "sprite": "assets/sprites/cofres y demas/cofre.png",
+      "w": 28,
+      "h": 28,
+      "scale": 0.4,
+      "categoria": "puerta",
+      "map_id": "sin_mapa"
+    },
+    {
+      "name": "cofre_madera_1_28x28",
+      "sprite": "assets/sprites/cofres y demas/cofre_madera_1.png",
+      "w": 28,
+      "h": 28,
+      "scale": 0.4,
+      "categoria": "puerta",
+      "map_id": "sin_mapa"
+    },
+    {
+      "name": "cofre_madera_1_43x43",
+      "sprite": "assets/sprites/cofres y demas/cofre_madera_1.png",
+      "w": 43,
+      "h": 43,
+      "scale": 0.6,
+      "categoria": "puerta",
+      "map_id": "sin_mapa"
+    }
+  ]
+}

@@ -16,6 +16,9 @@ import pygame
 import json
 from pathlib import Path
 from typing import Optional, List, Dict, Tuple
+import tkinter as tk
+from tkinter import filedialog
+import os
 
 # Configuración
 ANCHO = 1200
@@ -58,6 +61,7 @@ class TextBox:
         self.contenido = ["• Línea 1", "• Línea 2", "• Línea 3"]
         
         self.fuente_size = 20
+        self.fuente_size_manual = None  # Si es None, usa auto-scaling (PPT). Si tiene valor, usa ese tamaño fijo.
         self.color_texto = (255, 255, 255)
         self.color_fondo = (50, 50, 80, 100)
         self.alineacion = "left"
@@ -109,33 +113,79 @@ class TextBox:
         color_borde = COLOR_TEXTBOX if seleccionada else (100, 100, 100)
         pygame.draw.rect(surface, color_borde, self.rect, 2, border_radius=5)
         
-        # Título
+        # Título (Nombre de la caja)
         fuente_titulo = pygame.font.Font(None, 16)
         texto_titulo = fuente_titulo.render(self.nombre, True, COLOR_TEXTO_SEC)
-        surface.blit(texto_titulo, (self.x + 5, self.y + 2))
+        surface.blit(texto_titulo, (self.x + 5, self.y - 15)) # Dibujar ARRIBA de la caja
         
-        # Contenido
-        fuente_contenido = pygame.font.Font(None, self.fuente_size)
-        y_offset = 18
-        line_height = self.fuente_size + 2
+        # --- LÓGICA PPT: Fuente Dinámica (o Manual) ---
+        # Si el usuario ha definido un tamaño manual, usarlo.
+        # Si no, calcular automáticamente según el alto de la caja.
         
-        lineas_que_caben = max(1, (self.alto - 20) // line_height)
-        inicio_linea = max(0, self.scroll_offset_y)
-        fin_linea = min(len(self.contenido), inicio_linea + lineas_que_caben)
-        
-        for i in range(inicio_linea, fin_linea):
-            linea = self.contenido[i]
-            texto_renderizado = fuente_contenido.render(linea, True, self.color_texto)
-            
-            if self.alineacion == "center":
-                x_pos = self.x + (self.ancho - texto_renderizado.get_width()) // 2
-            elif self.alineacion == "right":
-                x_pos = self.x + self.ancho - texto_renderizado.get_width() - 5
+        if self.fuente_size_manual is not None:
+            # Modo MANUAL: usar el tamaño fijo que el usuario definió
+            tamano_fuente = self.fuente_size_manual
+        else:
+            # Modo AUTO (PPT): calcular según el alto de la caja
+            if self.tipo == "lista":
+                items_visibles = max(1, self.items_visibles)
+                altura_linea = self.alto / items_visibles
+                tamano_fuente = int(altura_linea * 0.7) # 70% de la altura de la línea
             else:
-                x_pos = self.x + 5
+                # Texto simple o título
+                tamano_fuente = int(self.alto * 0.5) # 50% de la altura total
             
-            surface.blit(texto_renderizado, (x_pos, self.y + y_offset))
-            y_offset += line_height
+        tamano_fuente = max(10, min(150, tamano_fuente)) # Límites razonables
+        
+        try:
+            fuente_contenido = pygame.font.Font(None, tamano_fuente)
+        except:
+            fuente_contenido = pygame.font.Font(None, 20)
+            
+        # Contenido
+        y_offset = 0
+        if self.tipo == "lista":
+            line_height = self.alto / self.items_visibles
+            inicio_linea = max(0, self.scroll_offset_y)
+            fin_linea = min(len(self.contenido), inicio_linea + self.items_visibles)
+            
+            for i in range(inicio_linea, fin_linea):
+                linea = self.contenido[i]
+                texto_renderizado = fuente_contenido.render(linea, True, self.color_texto)
+                
+                # Centrado vertical en su línea
+                y_pos = self.y + (i - inicio_linea) * line_height + (line_height - texto_renderizado.get_height()) // 2
+                
+                if self.alineacion == "center":
+                    x_pos = self.x + (self.ancho - texto_renderizado.get_width()) // 2
+                elif self.alineacion == "right":
+                    x_pos = self.x + self.ancho - texto_renderizado.get_width() - 5
+                else:
+                    x_pos = self.x + 5
+                
+                surface.blit(texto_renderizado, (x_pos, y_pos))
+        else:
+            # Texto único centrado o alineado
+            if self.contenido:
+                texto_renderizado = fuente_contenido.render(self.contenido[0], True, self.color_texto)
+                
+                # Centrado vertical absoluto
+                y_pos = self.y + (self.alto - texto_renderizado.get_height()) // 2
+                
+                if self.alineacion == "center":
+                    x_pos = self.x + (self.ancho - texto_renderizado.get_width()) // 2
+                elif self.alineacion == "right":
+                    x_pos = self.x + self.ancho - texto_renderizado.get_width() - 5
+                else:
+                    x_pos = self.x + 5
+                    
+                surface.blit(texto_renderizado, (x_pos, y_pos))
+        
+        # Calcular líneas que caben para scrollbar
+        if self.tipo == "lista":
+            lineas_que_caben = self.items_visibles
+        else:
+            lineas_que_caben = 1
         
         # Scrollbar
         if self.scroll_enabled and len(self.contenido) > lineas_que_caben:
@@ -319,6 +369,11 @@ class EditorUIUniversal:
         self.boton_toggle_lista_rect = pygame.Rect(0, 0, 0, 0)
         self.boton_importar_rect = pygame.Rect(0, 0, 0, 0)
         
+        # Geometría del Lienzo (Calculada dinámicamente)
+        self.lienzo_rect = pygame.Rect(0, 0, 10, 10) # Rect en pantalla donde se dibuja el juego
+        self.scale = 1.0 # Factor de escala
+        self.calcular_geometria_lienzo()
+        
         print("="*70)
         print("EDITOR UI UNIVERSAL INICIADO")
         print("="*70)
@@ -326,13 +381,73 @@ class EditorUIUniversal:
         print("  V: Modo ventanas | T: Modo textboxes")
         print("  N: Nueva ventana | B: Nueva textbox")
         print("  I: Importar JSON | E: Exportar | G: Guardar todo")
+        print("  +/-: Ajustar tamaño fuente | 0: Auto (PPT)")
         print("  Delete: Eliminar | 1-9: Seleccionar | ESC: Salir")
         print("="*70)
     
+    def calcular_geometria_lienzo(self):
+        """Calcula el rectángulo de destino para mantener aspect ratio 16:9"""
+        area_ancho = self.ancho_actual - PANEL_ANCHO
+        area_alto = self.ancho_actual # Usar todo el alto disponible
+        
+        # Ratio objetivo (1280/720 = 1.777)
+        ratio_objetivo = LIENZO_JUEGO_ANCHO / LIENZO_JUEGO_ALTO
+        ratio_disponible = area_ancho / self.alto_actual
+        
+        if ratio_disponible > ratio_objetivo:
+            # Sobra ancho (Pillarbax - bordes laterales)
+            alto_final = self.alto_actual
+            ancho_final = int(alto_final * ratio_objetivo)
+        else:
+            # Sobra alto (Letterbox - bordes superior/inferior)
+            ancho_final = area_ancho
+            alto_final = int(ancho_final / ratio_objetivo)
+            
+        # Centrar
+        x_final = PANEL_ANCHO + (area_ancho - ancho_final) // 2
+        y_final = (self.alto_actual - alto_final) // 2
+        
+        self.lienzo_rect = pygame.Rect(x_final, y_final, ancho_final, alto_final)
+        self.scale = ancho_final / LIENZO_JUEGO_ANCHO
+
+    def window_to_canvas(self, wx, wy):
+        """Convierte coordenadas de ventana a coordenadas de juego (1280x720)"""
+        if not self.lienzo_rect.collidepoint(wx, wy):
+            return None
+            
+        cx = int((wx - self.lienzo_rect.x) / self.scale)
+        cy = int((wy - self.lienzo_rect.y) / self.scale)
+        
+        # Clamp para seguridad
+        cx = max(0, min(LIENZO_JUEGO_ANCHO, cx))
+        cy = max(0, min(LIENZO_JUEGO_ALTO, cy))
+        
+        return cx, cy
+
     def mostrar_mensaje(self, texto: str):
         self.mensaje = texto
         self.mensaje_tiempo = pygame.time.get_ticks()
         print(f"[INFO] {texto}")
+
+    def abrir_dialogo_archivo(self):
+        """Abre un diálogo para seleccionar archivo JSON"""
+        # Inicializar tkinter (oculto)
+        root = tk.Tk()
+        root.withdraw()
+        
+        # Directorio inicial
+        init_dir = os.path.abspath("src/database/ui")
+        if not os.path.exists(init_dir):
+            init_dir = os.getcwd()
+            
+        archivo = filedialog.askopenfilename(
+            initialdir=init_dir,
+            title="Seleccionar JSON de UI",
+            filetypes=(("Archivos JSON", "*.json"), ("Todos los archivos", "*.*"))
+        )
+        
+        root.destroy()
+        return archivo
     
     def importar_desde_json(self, ruta_json):
         """Importa ventana desde JSON"""
@@ -464,6 +579,7 @@ class EditorUIUniversal:
                 self.ancho_actual = evento.w
                 self.alto_actual = evento.h
                 self.pantalla = pygame.display.set_mode((self.ancho_actual, self.alto_actual), pygame.RESIZABLE)
+                self.calcular_geometria_lienzo()
             
             elif evento.type == pygame.KEYDOWN:
                 if evento.key == pygame.K_ESCAPE:
@@ -480,8 +596,10 @@ class EditorUIUniversal:
                 elif evento.key == pygame.K_b:
                     self.crear_textbox()
                 elif evento.key == pygame.K_i:
-                    # Importar pantalla_magia.json por defecto
-                    self.importar_desde_json("src/database/ui/pantalla_magia.json")
+                    # Abrir diálogo
+                    archivo = self.abrir_dialogo_archivo()
+                    if archivo:
+                        self.importar_desde_json(archivo)
                 elif evento.key == pygame.K_DELETE:
                     if self.modo == "textboxes":
                         self.eliminar_textbox()
@@ -491,6 +609,35 @@ class EditorUIUniversal:
                     self.guardar_todo()
                 elif evento.key == pygame.K_e:
                     self.exportar_ventana()
+                
+                # Control de tamaño de fuente (+ y -)
+                elif evento.key == pygame.K_EQUALS or evento.key == pygame.K_PLUS:  # Tecla +
+                    if self.modo == "textboxes" and self.textbox_seleccionada:
+                        tb = self.textbox_seleccionada
+                        if tb.fuente_size_manual is None:
+                            # Inicializar con el tamaño actual auto-calculado
+                            if tb.tipo == "lista":
+                                tb.fuente_size_manual = int((tb.alto / max(1, tb.items_visibles)) * 0.7)
+                            else:
+                                tb.fuente_size_manual = int(tb.alto * 0.5)
+                        tb.fuente_size_manual = min(150, tb.fuente_size_manual + 2)
+                        self.mostrar_mensaje(f"Tamaño fuente: {tb.fuente_size_manual}px")
+                
+                elif evento.key == pygame.K_MINUS:  # Tecla -
+                    if self.modo == "textboxes" and self.textbox_seleccionada:
+                        tb = self.textbox_seleccionada
+                        if tb.fuente_size_manual is None:
+                            if tb.tipo == "lista":
+                                tb.fuente_size_manual = int((tb.alto / max(1, tb.items_visibles)) * 0.7)
+                            else:
+                                tb.fuente_size_manual = int(tb.alto * 0.5)
+                        tb.fuente_size_manual = max(8, tb.fuente_size_manual - 2)
+                        self.mostrar_mensaje(f"Tamaño fuente: {tb.fuente_size_manual}px")
+                
+                elif evento.key == pygame.K_0:  # Tecla 0: resetear a auto
+                    if self.modo == "textboxes" and self.textbox_seleccionada:
+                        self.textbox_seleccionada.fuente_size_manual = None
+                        self.mostrar_mensaje("Modo AUTO (PPT) activado")
                 
                 # Scroll
                 elif self.modo == "textboxes" and self.textbox_seleccionada:
@@ -535,22 +682,30 @@ class EditorUIUniversal:
                                 self.crear_textbox()
                         
                         elif hasattr(self, 'boton_importar_rect') and self.boton_importar_rect.collidepoint(mouse_pos):
-                            self.importar_desde_json("src/database/ui/pantalla_magia.json")
+                            archivo = self.abrir_dialogo_archivo()
+                            if archivo:
+                                self.importar_desde_json(archivo)
                     
                     else:
-                        # Área de trabajo
+                        # Área de trabajo (Lienzo)
+                        coords = self.window_to_canvas(mouse_pos[0], mouse_pos[1])
+                        if not coords:
+                            return True # Click fuera del lienzo
+                            
+                        cx, cy = coords
+                        
                         if self.modo == "textboxes" and self.ventana_seleccionada:
                             for tb in reversed(self.textboxes[self.ventana_seleccionada]):
-                                handle = tb.get_handle_en_punto(mouse_pos[0], mouse_pos[1])
+                                handle = tb.get_handle_en_punto(cx, cy)
                                 if handle:
                                     tb.escalando = True
                                     tb.handle_activo = handle
                                     self.textbox_seleccionada = tb
                                     break
-                                elif tb.contiene_punto(mouse_pos[0], mouse_pos[1]):
+                                elif tb.contiene_punto(cx, cy):
                                     tb.arrastrando = True
-                                    tb.offset_x = tb.x - mouse_pos[0]
-                                    tb.offset_y = tb.y - mouse_pos[1]
+                                    tb.offset_x = tb.x - cx
+                                    tb.offset_y = tb.y - cy
                                     self.textbox_seleccionada = tb
                                     break
                         else:
@@ -558,17 +713,21 @@ class EditorUIUniversal:
                                 if not ventana.visible:
                                     continue
                                 
-                                handle = ventana.get_handle_en_punto(mouse_pos[0], mouse_pos[1])
+                                if not ventana.visible:
+                                    continue
+                                
+                                handle = ventana.get_handle_en_punto(cx, cy)
                                 if handle:
                                     ventana.escalando = True
                                     ventana.handle_activo = handle
                                     self.ventana_seleccionada = nombre
                                     break
-                                elif ventana.contiene_punto(mouse_pos[0], mouse_pos[1]):
-                                    if mouse_pos[1] - ventana.y <= 35:
+                                    break
+                                elif ventana.contiene_punto(cx, cy):
+                                    if cy - ventana.y <= 35:
                                         ventana.arrastrando = True
-                                        ventana.offset_x = ventana.x - mouse_pos[0]
-                                        ventana.offset_y = ventana.y - mouse_pos[1]
+                                        ventana.offset_x = ventana.x - cx
+                                        ventana.offset_y = ventana.y - cy
                                         self.ventana_seleccionada = nombre
                                         break
             
@@ -586,26 +745,31 @@ class EditorUIUniversal:
             elif evento.type == pygame.MOUSEMOTION:
                 mouse_pos = pygame.mouse.get_pos()
                 
+                # Intentar convertir, pero si estamos arrastrando, permitimos salirnos un poco
+                # Calculamos coords proyectadas aunque estemos fuera
+                cx = int((mouse_pos[0] - self.lienzo_rect.x) / self.scale)
+                cy = int((mouse_pos[1] - self.lienzo_rect.y) / self.scale)
+                
                 for ventana in self.ventanas.values():
                     if ventana.arrastrando:
-                        ventana.x = mouse_pos[0] + ventana.offset_x
-                        ventana.y = mouse_pos[1] + ventana.offset_y
+                        ventana.x = cx + ventana.offset_x
+                        ventana.y = cy + ventana.offset_y
                         ventana.actualizar_rect()
                     elif ventana.escalando and ventana.handle_activo:
                         if 'e' in ventana.handle_activo:
-                            ventana.ancho = max(200, mouse_pos[0] - ventana.x)
+                            ventana.ancho = max(200, cx - ventana.x)
                         elif 'w' in ventana.handle_activo:
-                            nuevo_ancho = max(200, ventana.x + ventana.ancho - mouse_pos[0])
+                            nuevo_ancho = max(200, ventana.x + ventana.ancho - cx)
                             if nuevo_ancho >= 200:
-                                ventana.x = mouse_pos[0]
+                                ventana.x = cx
                                 ventana.ancho = nuevo_ancho
                         
                         if 's' in ventana.handle_activo:
-                            ventana.alto = max(100, mouse_pos[1] - ventana.y)
+                            ventana.alto = max(100, cy - ventana.y)
                         elif 'n' in ventana.handle_activo:
-                            nuevo_alto = max(100, ventana.y + ventana.alto - mouse_pos[1])
+                            nuevo_alto = max(100, ventana.y + ventana.alto - cy)
                             if nuevo_alto >= 100:
-                                ventana.y = mouse_pos[1]
+                                ventana.y = cy
                                 ventana.alto = nuevo_alto
                         
                         ventana.actualizar_rect()
@@ -613,24 +777,24 @@ class EditorUIUniversal:
                 for textboxes_list in self.textboxes.values():
                     for tb in textboxes_list:
                         if tb.arrastrando:
-                            tb.x = mouse_pos[0] + tb.offset_x
-                            tb.y = mouse_pos[1] + tb.offset_y
+                            tb.x = cx + tb.offset_x
+                            tb.y = cy + tb.offset_y
                             tb.actualizar_rect()
                         elif tb.escalando and tb.handle_activo:
                             if 'e' in tb.handle_activo:
-                                tb.ancho = max(100, mouse_pos[0] - tb.x)
+                                tb.ancho = max(50, cx - tb.x)
                             elif 'w' in tb.handle_activo:
-                                nuevo_ancho = max(100, tb.x + tb.ancho - mouse_pos[0])
-                                if nuevo_ancho >= 100:
-                                    tb.x = mouse_pos[0]
+                                nuevo_ancho = max(50, tb.x + tb.ancho - cx)
+                                if nuevo_ancho >= 50:
+                                    tb.x = cx
                                     tb.ancho = nuevo_ancho
                             
                             if 's' in tb.handle_activo:
-                                tb.alto = max(50, mouse_pos[1] - tb.y)
+                                tb.alto = max(20, cy - tb.y)
                             elif 'n' in tb.handle_activo:
-                                nuevo_alto = max(50, tb.y + tb.alto - mouse_pos[1])
-                                if nuevo_alto >= 50:
-                                    tb.y = mouse_pos[1]
+                                nuevo_alto = max(20, tb.y + tb.alto - cy)
+                                if nuevo_alto >= 20:
+                                    tb.y = cy
                                     tb.alto = nuevo_alto
                             
                             tb.actualizar_rect()
@@ -750,28 +914,42 @@ class EditorUIUniversal:
     def dibujar_lienzo_juego(self):
         if not self.mostrar_lienzo:
             return
+            
+        # 1. Dibujar bordes azules (Letterboxing)
+        # Llenar todo el área derecha de azul primero
+        area_derecha = pygame.Rect(PANEL_ANCHO, 0, self.ancho_actual - PANEL_ANCHO, self.alto_actual)
+        pygame.draw.rect(self.pantalla, (0, 0, 50), area_derecha) # Azul muy oscuro de fondo
         
-        ancho_escalado = int(LIENZO_JUEGO_ANCHO * self.lienzo_escala)
-        alto_escalado = int(LIENZO_JUEGO_ALTO * self.lienzo_escala)
+        # 2. Dibujar el lienzo negro (Área de juego 1280x720 escalada)
+        pygame.draw.rect(self.pantalla, (0, 0, 0), self.lienzo_rect)
+        pygame.draw.rect(self.pantalla, (50, 50, 200), self.lienzo_rect, 2) # Borde azul claro
         
-        area_trabajo_ancho = self.ancho_actual - PANEL_ANCHO
-        area_trabajo_alto = self.alto_actual - 80
+        # 3. Crear superficie temporal para dibujar los elementos escalados
+        # Esto es clave: dibujamos todo en una surface de 1280x720 y luego la escalamos
+        surface_juego = pygame.Surface((LIENZO_JUEGO_ANCHO, LIENZO_JUEGO_ALTO), pygame.SRCALPHA)
         
-        lienzo_x = PANEL_ANCHO + (area_trabajo_ancho - ancho_escalado) // 2
-        lienzo_y = 40 + (area_trabajo_alto - alto_escalado) // 2
+        # Dibujar elementos en la surface temporal
+        # Ventanas
+        for nombre, ventana in self.ventanas.items():
+            seleccionada = (nombre == self.ventana_seleccionada and self.modo == "ventanas")
+            ventana.dibujar(surface_juego, seleccionada)
         
-        borde_rect = pygame.Rect(lienzo_x - 2, lienzo_y - 2, 
-                                ancho_escalado + 4, alto_escalado + 4)
-        pygame.draw.rect(self.pantalla, COLOR_LIENZO, borde_rect, 3, border_radius=5)
+        # TextBoxes
+        for nombre, textboxes in self.textboxes.items():
+            for tb in textboxes:
+                seleccionada = (tb == self.textbox_seleccionada and self.modo == "textboxes")
+                tb.dibujar(surface_juego, seleccionada)
+                
+        # Escalar y dibujar en pantalla
+        surface_escalada = pygame.transform.smoothscale(surface_juego, (self.lienzo_rect.width, self.lienzo_rect.height))
+        self.pantalla.blit(surface_escalada, self.lienzo_rect)
         
-        lienzo_rect = pygame.Rect(lienzo_x, lienzo_y, ancho_escalado, alto_escalado)
-        pygame.draw.rect(self.pantalla, (15, 15, 25), lienzo_rect)
-        
+        # Info de debug
         texto_dim = self.fuente_pequena.render(
-            f"Pantalla: {LIENZO_JUEGO_ANCHO}x{LIENZO_JUEGO_ALTO} ({int(self.lienzo_escala*100)}%)",
-            True, COLOR_TEXTO_SEC
+            f"Lienzo: 1280x720 | Escala: {self.scale:.2f}x",
+            True, (100, 200, 255)
         )
-        self.pantalla.blit(texto_dim, (lienzo_x, lienzo_y - 20))
+        self.pantalla.blit(texto_dim, (self.lienzo_rect.x, self.lienzo_rect.y - 20))
     
     def ejecutar(self):
         ejecutando = True
@@ -783,18 +961,11 @@ class EditorUIUniversal:
                 color = (20 + y // 20, 20 + y // 20, 30 + y // 15)
                 pygame.draw.line(self.pantalla, color, (PANEL_ANCHO, y), (self.ancho_actual, y))
             
+            # self.dibujar_lienzo_juego() YA DIBUJA TODO
             self.dibujar_lienzo_juego()
             
-            # Ventanas
-            for nombre, ventana in self.ventanas.items():
-                seleccionada = (nombre == self.ventana_seleccionada and self.modo == "ventanas")
-                ventana.dibujar(self.pantalla, seleccionada)
-            
-            # TextBoxes
-            for nombre, textboxes in self.textboxes.items():
-                for tb in textboxes:
-                    seleccionada = (tb == self.textbox_seleccionada and self.modo == "textboxes")
-                    tb.dibujar(self.pantalla, seleccionada)
+            # Ya no dibujamos ventanas/textboxes directamente en self.pantalla
+            # porque ahora se dibujan dentro de dibujar_lienzo_juego con escalado
             
             self.dibujar_panel_lateral()
             self.dibujar_barra_estado()

@@ -93,10 +93,12 @@ class Mapa:
         self.spawns = []
         self.spawns_ids = {}  # mapeo id -> (x,y)
         self.cofres = []  # ¡NUEVO! Lista de cofres en el mapa
+        self.objetos_interactivos = []  # Objetos del editor: cofres, puertas, botones, etc.
         self.debug_draw = False
         
         self.cargar_cofres_db()  # ¡NUEVO! Cargar base de datos de cofres PRIMERO
         self.cargar_datos_mapa()  # Luego cargar datos del mapa (que usa cofres_db)
+        self.cargar_objetos_interactivos()  # Cargar JSON por mapa del editor V1
 
 
     # --- ¡MODIFICADO! "EL MOTOR" PARA LEER JSON ---
@@ -482,6 +484,32 @@ class Mapa:
         # ¡NUEVO! Dibujar cofres
         for cofre in self.cofres:
             cofre.draw(pantalla, self.camara_rect)
+
+        for objeto in self.objetos_interactivos:
+            # Semantica (alineada a constructor_prefabs.py):
+            # - detras: el jugador pasa por detras => el objeto se dibuja SOBRE el jugador
+            # - adelante: el jugador pasa por delante => el objeto se dibuja BAJO el jugador
+            capa = str(objeto.get("capa_render", "colision")).lower()
+            if capa == "detras":
+                continue
+            rect = objeto.get("rect")
+            sprite = objeto.get("sprite_actual")
+            if rect is None or sprite is None:
+                continue
+            pos = rect.move(-self.camara_rect.x, -self.camara_rect.y)
+            pantalla.blit(sprite, pos)
+
+    def draw_objetos_frente(self, pantalla):
+        for objeto in self.objetos_interactivos:
+            capa = str(objeto.get("capa_render", "colision")).lower()
+            if capa != "detras":
+                continue
+            rect = objeto.get("rect")
+            sprite = objeto.get("sprite_actual")
+            if rect is None or sprite is None:
+                continue
+            pos = rect.move(-self.camara_rect.x, -self.camara_rect.y)
+            pantalla.blit(sprite, pos)
         
         # --- DEBUG: Dibujar cajas si está activado ---
         if getattr(self, 'debug_draw', False):
@@ -490,6 +518,10 @@ class Mapa:
                     if muro.get('tipo') == 'rect':
                         r = muro['rect'].move(-self.camara_rect.x, -self.camara_rect.y)
                         pygame.draw.rect(pantalla, (255, 0, 0), r, 2)
+                    elif muro.get('tipo') == 'interactivo':
+                        r = muro['rect'].move(-self.camara_rect.x, -self.camara_rect.y)
+                        color = (0, 180, 255) if muro.get('subtipo') == 'boton' else (255, 160, 0)
+                        pygame.draw.rect(pantalla, color, r, 2)
                     elif muro.get('tipo') == 'poly':
                         pts = [(p[0] - self.camara_rect.x, p[1] - self.camara_rect.y) for p in muro.get('puntos', [])]
                         if len(pts) >= 3:
@@ -555,6 +587,329 @@ class Mapa:
         except json.JSONDecodeError as e:
             print(f"¡ERROR! Archivo cofres_db.json malformado: {e}")
             self.cofres_db = {}
+
+    # ¡NUEVO! --- 6.1. CARGAR OBJETOS INTERACTIVOS DEL EDITOR ---
+    def cargar_objetos_interactivos(self):
+        """Carga cofres, puertas, botones y otros objetos desde el JSON persistido por el editor."""
+        nombre_base = os.path.splitext(self.nombre_archivo)[0]
+        # El editor persiste en: src/database/objetos_interactivos_mapas/<map_id>.json
+        # OJO: el editor normaliza el id (lower, espacios -> '_'), así que probamos ambas variantes.
+        candidatos = []
+        candidatos.append(os.path.join(DATABASE_PATH, "objetos_interactivos_mapas", f"{nombre_base}.json"))
+        nombre_norm = str(nombre_base).strip().lower().replace(" ", "_")
+        if nombre_norm and nombre_norm != nombre_base:
+            candidatos.append(os.path.join(DATABASE_PATH, "objetos_interactivos_mapas", f"{nombre_norm}.json"))
+
+        ruta_objetos = next((p for p in candidatos if os.path.exists(p)), None)
+        if not ruta_objetos:
+            # Log minimo para diagnosticar mismatch de nombres.
+            if candidatos:
+                print(f"[OBJETOS] No hay JSON de objetos para '{nombre_base}'. Probados: {', '.join([os.path.basename(p) for p in candidatos])}")
+            return
+
+        try:
+            with open(ruta_objetos, 'r', encoding='utf-8') as f:
+                datos = json.load(f)
+        except Exception as e:
+            print(f"[OBJETOS] No se pudo cargar {ruta_objetos}: {e}")
+            return
+
+        items_raw = datos.get("canvas_items", []) if isinstance(datos, dict) else []
+        if not isinstance(items_raw, list):
+            return
+        if not items_raw:
+            print(f"[OBJETOS] JSON existe pero sin objetos: {ruta_objetos}")
+            return
+
+        def _path_abs(raw_path):
+            if not raw_path:
+                return None
+            if os.path.isabs(raw_path):
+                return raw_path
+            return os.path.join(os.getcwd(), raw_path)
+
+        def _cargar_sprite(path_str, size_w, size_h):
+            if not path_str:
+                return None
+            ruta = _path_abs(path_str)
+            if ruta is None or not os.path.exists(ruta):
+                return None
+            try:
+                sprite = pygame.image.load(ruta).convert_alpha()
+                return pygame.transform.smoothscale(sprite, (max(1, int(size_w)), max(1, int(size_h))))
+            except Exception:
+                return None
+
+        def _calcular_hitboxes_base(rect_dibujo: pygame.Rect, subtipo_obj: str):
+            """Devuelve (rect_colision, rect_interaccion) basados en el sprite.
+
+            La idea es que la colision/interaccion se sienta "apegada" al objeto (parte baja),
+            evitando abrir/interactuar "a metros" por un rect gigante.
+            """
+            # Base "visual": muchos sprites traen padding transparente abajo.
+            # Subimos un poco el ancla para que desde abajo no se sienta "muy lejos".
+            y_offset = max(8, int(rect_dibujo.h * 0.22))
+            anchor_midbottom = (rect_dibujo.centerx, rect_dibujo.bottom - y_offset)
+
+            # Base pegada al suelo (parte inferior del sprite)
+            base_w = max(12, int(rect_dibujo.w * 0.55))
+            base_h = max(12, int(rect_dibujo.h * 0.35))
+            rect_col = pygame.Rect(0, 0, base_w, base_h)
+            rect_col.midbottom = anchor_midbottom
+
+            # Interaccion aun mas chica, centrada en la base
+            inter_w = max(10, min(32, int(rect_dibujo.w * 0.35)))
+            inter_h = max(10, min(24, int(rect_dibujo.h * 0.25)))
+            rect_int = pygame.Rect(0, 0, inter_w, inter_h)
+            rect_int.midbottom = anchor_midbottom
+
+            # Para puertas suele ser mas ancho/alto (sin pasarse)
+            if str(subtipo_obj).lower() in ("puerta", "portal"):
+                rect_col = rect_col.inflate(int(rect_dibujo.w * 0.15), int(rect_dibujo.h * 0.15))
+                rect_col.midbottom = anchor_midbottom
+                rect_int = rect_int.inflate(8, 8)
+                rect_int.midbottom = anchor_midbottom
+
+            # NPC: mas rango para iniciar dialogo sin colision dura.
+            if str(subtipo_obj).lower() in ("npc", "aldeano", "vendedor", "herrero"):
+                rect_int = rect_int.inflate(18, 18)
+                rect_int.midbottom = anchor_midbottom
+
+            return rect_col, rect_int
+
+        def _extraer_dialogo_lineas(raw_item):
+            """Extrae lineas de dialogo desde distintas claves opcionales del JSON."""
+            if not isinstance(raw_item, dict):
+                return []
+
+            candidatos = (
+                "dialogo_lineas",
+                "dialogo",
+                "dialogo_texto",
+                "texto_dialogo",
+                "texto",
+                "mensaje",
+            )
+
+            for clave in candidatos:
+                valor = raw_item.get(clave)
+                if isinstance(valor, list):
+                    lineas = [str(x).strip() for x in valor if str(x).strip()]
+                    if lineas:
+                        return lineas
+                if isinstance(valor, str) and valor.strip():
+                    texto = valor.strip().replace("|", "\n")
+                    lineas = [ln.strip() for ln in texto.splitlines() if ln.strip()]
+                    if lineas:
+                        return lineas
+
+            etiqueta = raw_item.get("label")
+            if isinstance(etiqueta, str) and etiqueta.strip():
+                return [etiqueta.strip()]
+
+            return []
+
+        for raw in items_raw:
+            if not isinstance(raw, dict):
+                continue
+
+            rect_raw = raw.get("rect", {}) if isinstance(raw.get("rect"), dict) else {}
+            # Preferir coordenadas en espacio del mapa (si existen) para que calce con el fondo real.
+            if "map_x" in rect_raw and "map_y" in rect_raw:
+                x = int(rect_raw.get("map_x", 0))
+                y = int(rect_raw.get("map_y", 0))
+                w = int(rect_raw.get("map_w", rect_raw.get("w", 72)))
+                h = int(rect_raw.get("map_h", rect_raw.get("h", 72)))
+            else:
+                x = int(rect_raw.get("x", 0))
+                y = int(rect_raw.get("y", 0))
+                w = int(rect_raw.get("w", 72))
+                h = int(rect_raw.get("h", 72))
+
+            # Si este mapa está escalado (interiores), aplicar el mismo escalado que el resto del mapa.
+            try:
+                x = int(x * getattr(self, 'scale_x', 1.0))
+                y = int(y * getattr(self, 'scale_y', 1.0))
+                w = int(w * getattr(self, 'scale_x', 1.0))
+                h = int(h * getattr(self, 'scale_y', 1.0))
+            except Exception:
+                pass
+            item_id = raw.get("id")
+            subtipo = str(raw.get("tipo", "objeto")).lower()
+
+            # En el editor, al "abrir" un objeto se puede pisar el campo 'sprite' para previsualizar.
+            # En el juego, el sprite cerrado SIEMPRE debe venir de base_sprite (si existe).
+            sprite_path = raw.get("base_sprite") or raw.get("sprite")
+            linked_sprite_path = raw.get("linked_sprite")
+
+            # IMPORTANTE (juego): el estado del editor no debe afectar el gameplay.
+            # Aunque en el editor lo dejes "abierto" para probar, al iniciar el juego
+            # siempre debe partir en estado default (cerrado / no presionado).
+            is_open = False
+            button_pressed = False
+            linked_slot = raw.get("linked_slot")
+            trigger_item_id = raw.get("trigger_item_id")
+            dialogo_lineas = _extraer_dialogo_lineas(raw)
+
+            sprite_actual = _cargar_sprite(linked_sprite_path if is_open and linked_sprite_path else sprite_path, w, h)
+            if sprite_actual is None:
+                # Fallback visual simple si la ruta no existe
+                sprite_actual = pygame.Surface((max(1, w), max(1, h)), pygame.SRCALPHA)
+                sprite_actual.fill((90, 90, 90, 255))
+                pygame.draw.rect(sprite_actual, (220, 220, 220), sprite_actual.get_rect(), 2)
+
+            capa_render = str(raw.get("capa_render", "colision")).lower()
+            if capa_render not in ("colision", "detras", "adelante"):
+                capa_render = "colision"
+            # Regla solicitada: la capa define la fisica.
+            # - colision: bloquea siempre
+            # - detras/adelante: no bloquea (solo cambia el dibujo)
+            bloquea_paso = (capa_render == "colision")
+            # NPC dialogable: por diseno no debe bloquear paso en esta fase base.
+            if subtipo in ("npc", "aldeano", "vendedor", "herrero"):
+                bloquea_paso = False
+
+            rect_dibujo = pygame.Rect(x, y, w, h)
+            rect_colision, rect_interaccion = _calcular_hitboxes_base(rect_dibujo, subtipo)
+
+            obj = {
+                "id": item_id,
+                "tipo": "interactivo",
+                "subtipo": subtipo,
+                # rect: usado para dibujar el sprite (NO tocar para que no se mueva lo visual)
+                "rect": rect_dibujo,
+                # rect_colision: usado para bloquear paso (si aplica)
+                "rect_colision": rect_colision,
+                # rect_interaccion: usado para calcular cercania al interactuar
+                "rect_interaccion": rect_interaccion,
+                "sprite_actual": sprite_actual,
+                "sprite_path": sprite_path,
+                "linked_sprite_path": linked_sprite_path,
+                "linked_slot": linked_slot,
+                "trigger_item_id": trigger_item_id,
+                "requires_button": bool(raw.get("requires_button", False)),
+                "button_pressed": button_pressed,
+                "is_open": is_open,
+                "dialogo_lineas": dialogo_lineas,
+                "link_number": raw.get("link_number"),
+                "capa_render": capa_render,
+                "bloquea_paso": bool(bloquea_paso),
+            }
+
+            self.objetos_interactivos.append(obj)
+            self.muros.append(obj)
+
+        if self.objetos_interactivos:
+            print(f"[OBJETOS] Cargados {len(self.objetos_interactivos)} objeto(s) interactivo(s) desde: {os.path.basename(ruta_objetos)}")
+
+    def _actualizar_sprite_objeto_interactivo(self, objeto):
+        """Recalcula el sprite actual y el bloqueo según estado."""
+        if not isinstance(objeto, dict):
+            return
+
+        rect = objeto.get("rect")
+        if rect is None:
+            return
+
+        w = int(getattr(rect, "w", 72))
+        h = int(getattr(rect, "h", 72))
+        tipo = str(objeto.get("subtipo", "objeto")).lower()
+        sprite_path = objeto.get("linked_sprite_path") if objeto.get("is_open", False) and objeto.get("linked_sprite_path") else objeto.get("sprite_path")
+
+        if sprite_path:
+            ruta = sprite_path
+            if not os.path.isabs(ruta):
+                ruta = os.path.join(os.getcwd(), ruta)
+            if os.path.exists(ruta):
+                try:
+                    sprite = pygame.image.load(ruta).convert_alpha()
+                    objeto["sprite_actual"] = pygame.transform.smoothscale(sprite, (max(1, w), max(1, h)))
+                except Exception:
+                    pass
+
+        capa_render = str(objeto.get("capa_render", "colision")).lower()
+        if capa_render not in ("colision", "detras", "adelante"):
+            capa_render = "colision"
+            objeto["capa_render"] = "colision"
+        objeto["bloquea_paso"] = (capa_render == "colision")
+
+    def interactuar_objetos_interactivos(self, rect_heroe, grupo_heroes, items_db):
+        """Interactua con el objeto mas cercano del editor V1."""
+        if not self.objetos_interactivos:
+            return {"exito": False, "mensaje": "", "tipo": None}
+
+        candidato = self.chequear_objeto_interactivo_cercano(rect_heroe)
+
+        if candidato is None:
+            return {"exito": False, "mensaje": "", "tipo": None}
+
+        tipo = str(candidato.get("subtipo", "objeto")).lower()
+
+        if tipo in ("npc", "aldeano", "vendedor", "herrero"):
+            lineas = candidato.get("dialogo_lineas") or ["Hola, viajero."]
+            return {
+                "exito": True,
+                "mensaje": lineas[0],
+                "tipo": "npc",
+                "dialogo_lineas": lineas,
+            }
+
+        if tipo == "boton":
+            candidato["button_pressed"] = True
+            objetivo_id = candidato.get("trigger_item_id")
+            abiertos = 0
+            for obj in self.objetos_interactivos:
+                if int(obj.get("id") or -1) != int(objetivo_id or -1):
+                    continue
+                obj["is_open"] = True
+                self._actualizar_sprite_objeto_interactivo(obj)
+                abiertos += 1
+            self._actualizar_sprite_objeto_interactivo(candidato)
+            return {"exito": True, "mensaje": f"Boton activado: {abiertos} objeto(s) abiertos.", "tipo": "boton"}
+
+        if candidato.get("is_open", False):
+            return {"exito": False, "mensaje": "El objeto ya esta abierto.", "tipo": tipo}
+
+        if candidato.get("requires_button", False):
+            return {"exito": False, "mensaje": "Este objeto requiere activar su boton enlazado.", "tipo": tipo}
+
+        candidato["is_open"] = True
+        self._actualizar_sprite_objeto_interactivo(candidato)
+        return {"exito": True, "mensaje": "Objeto interactuado y abierto.", "tipo": tipo}
+
+    def chequear_objeto_interactivo_cercano(self, rect_heroe):
+        """Devuelve el objeto interactivo del editor V1 mas cercano (si esta en rango)."""
+        if not self.objetos_interactivos or rect_heroe is None:
+            return None
+
+        candidato = None
+        distancia_minima = None
+
+        for obj in self.objetos_interactivos:
+            rect_int = obj.get("rect_interaccion") or obj.get("rect")
+            if rect_int is None:
+                continue
+
+            # Regla 1: si ya estas casi tocando la zona, cuenta como cercano.
+            # (Esto evita el "no pasa nada" cuando vienes desde un angulo raro.)
+            if rect_heroe.inflate(24, 24).colliderect(rect_int):
+                distancia = 0.0
+            else:
+                # Comparar pies del heroe vs zona de interaccion (parte baja)
+                hx, hy = rect_heroe.midbottom
+                ox, oy = rect_int.center
+                dx = hx - ox
+                dy = hy - oy
+                distancia = (dx ** 2 + dy ** 2) ** 0.5
+
+            # Umbral: lo suficientemente cercano para sentirse natural,
+            # pero sin permitir "a metros".
+            umbral = max(20, min(48, int(max(rect_int.w, rect_int.h) * 1.25)))
+            if distancia <= umbral and (distancia_minima is None or distancia < distancia_minima):
+                candidato = obj
+                distancia_minima = distancia
+
+        return candidato
     
     # ¡NUEVO! --- 7. CHEQUEAR COFRES CERCANOS ---
     def chequear_cofre_cercano(self, rect_heroe, distancia_interaccion=50):

@@ -1,0 +1,37 @@
+{
+  "map_id": "mapa_pradera",
+  "background": "assets/maps/mundo/mapa_pradera.jpg",
+  "slots": {
+    "cerrado": "",
+    "activador": "",
+    "abierto": "assets/sprites/cofres y demas/cofre_madera_2.png"
+  },
+  "canvas_items": [
+    {
+      "id": 4,
+      "tipo": "puerta",
+      "label": "4. cofre_madera_2 -> ABIERTO 1",
+      "sprite": "assets/sprites/cofres y demas/cofre_madera_2.png",
+      "base_sprite": "assets/sprites/cofres y demas/cofre_madera_1.png",
+      "linked_sprite": "assets/sprites/cofres y demas/cofre_madera_2.png",
+      "linked_slot": "abierto",
+      "trigger_item_id": null,
+      "requires_button": false,
+      "button_pressed": false,
+      "is_open": true,
+      "link_number": 1,
+      "capa_render": "colision",
+      "scale": 0.6000000000000001,
+      "rect": {
+        "x": 497,
+        "y": 262,
+        "w": 43,
+        "h": 43,
+        "map_x": 529,
+        "map_y": 223,
+        "map_w": 49,
+        "map_h": 81
+      }
+    }
+  ]
+}

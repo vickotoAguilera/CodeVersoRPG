@@ -1,0 +1,428 @@
+# ============================================================
+# LISTA DE RPGs PARA DESCARGAR - The Spriters Resource
+# ============================================================
+# Formato: NUMERO. [PLATAFORMA] NOMBRE
+# Para descargar, dime los numeros separados por coma
+# Ejemplo: 1,3,5,20-30,50
+# ============================================================
+
+## 8 BITS / RETRO
+
+### NES
+  1. Final Fantasy
+  2. Final Fantasy II
+  3. Final Fantasy III
+  4. Dragon Warrior
+  5. Dragon Warrior II
+  6. Dragon Warrior III
+  7. Dragon Warrior IV
+  8. Earthbound Zero
+  9. Mother
+ 10. Shinsekai
+ 11. Seiken Densetsu III
+ 12. Herakles
+ 13. Lagrange
+ 14. Cristiano
+ 15. Fire Emblem
+ 16. Fire Emblem II
+ 17. Willow
+ 18. Wizards & Warriors
+
+### Game Boy
+ 19. Final Fantasy Legend
+ 20. Final Fantasy Legend II
+ 21. Final Fantasy Legend III
+ 22. Dragon Warrior I
+ 23. Dragon Warrior II
+ 24. Dragon Warrior III
+ 25. Pokemon Red
+ 26. Pokemon Blue
+ 27. Pokemon Yellow
+ 28. Pokemon Gold
+ 29. Pokemon Silver
+ 30. Pokemon Crystal
+ 31. Pikachu
+ 32. Mega Man Pinball
+ 33. Zelda - Link's Awakening
+ 34. Metroid II
+ 35. Wario
+ 36. Kirby
+
+### GBC
+ 37. Pokemon Red/Blue
+ 38. Pokemon Yellow
+ 39. Pokemon Gold/Silver
+ 40. Pokemon Crystal
+ 41. Pokemon Pikachu
+ 42. Dragon Warrior III
+ 43. Dragon Warrior IV
+ 44. Final Fantasy
+ 45. Breath of Fire
+
+## 16 BITS
+
+### SNES
+ 46. Final Fantasy IV
+ 47. Final Fantasy V
+ 48. Final Fantasy VI
+ 49. Chrono Trigger
+ 50. Chrono Cross
+ 51. Breath of Fire
+ 52. Breath of Fire II
+ 53. Earthbound
+ 54. Super Mario RPG
+ 55. Seiken Densetsu
+ 56. Secret of Mana
+ 57. Gemfire
+ 58. Robotrek
+ 59. Shin Megami Tensei
+ 60. Shin Megami Tensei II
+ 61. Persona
+ 62. Persona 2
+ 63. Persona 2: Innocent Sin
+ 64. Tales of Phantasia
+ 65. Tales of Symphonia
+ 66. Star Ocean
+ 67. Star Ocean II
+ 68. Suikoden
+ 69. Suikoden II
+ 70. Suikoden Tierkreis
+ 71. Front Mission
+ 72. Xenogears
+ 73. Valkyrie Profile
+ 74. Final Fantasy Tactics
+ 75. Tactics Ogre
+ 76. Fire Emblem
+ 77. Fire Emblem: Thracia 776
+ 78. Fire Emblem: Radiant Dawn
+ 79. Golden Sun
+ 80. Golden Sun II
+ 81. Parasite Eve
+ 82. Lunar
+ 83. Lunar II
+ 84. Magic Fantasy
+ 85. Baten Kaitos
+ 86. Wonder Project
+
+## PORTABLE
+
+### GBA
+ 87. Final Fantasy I
+ 88. Final Fantasy II
+ 89. Final Fantasy III
+ 90. Final Fantasy IV
+ 91. Final Fantasy V
+ 92. Final Fantasy VI
+ 93. Breath of Fire
+ 94. Breath of Fire II
+ 95. Breath of Fire III
+ 96. Fire Emblem
+ 97. Fire Emblem II
+ 98. Fire Emblem III
+ 99. Golden Sun
+100. Golden Sun II
+101. Tales of Phantasia
+102. Tales of Symphonia
+103. Star Ocean
+104. Sword of Mana
+105. Mother 3
+106. Mega Man Bass
+107. Mega Man Battle Network
+108. Mega Man Battle Network 2
+109. Mega Man Battle Network 3
+110. Mega Man Battle Network 4
+111. Mega Man Battle Network 5
+112. Mega Man Battle Network 6
+113. Pokemon Emerald
+114. Pokemon Ruby/Sapphire
+115. Pokemon Fire Red
+116. Pokemon Leaf Green
+
+## PLAYSTATION (ESTILO ANIME)
+
+### PSX
+117. Final Fantasy VII
+118. Final Fantasy VIII
+119. Final Fantasy IX
+120. Final Fantasy X
+121. Final Fantasy X-2
+122. Final Fantasy: Crystal Chronicles
+123. Final Fantasy Tactics
+124. Xenogears
+125. Xenosaga Episode I
+126. Xenosaga Episode II
+127. Xenosaga Episode III
+128. Chrono Cross
+129. Chrono Trigger
+130. Parasite Eve
+131. Parasite Eve II
+132. Suikoden
+133. Suikoden II
+134. Suikoden III
+135. Suikoden IV
+136. Suikoden V
+137. Tales of Destiny
+138. Tales of Destiny 2
+139. Tales of Eternia
+140. Tales of Hearts
+141. Tales of Symphonia
+142. Tales of the Abyss
+143. Tales of Legendia
+144. Tales of Rebirth
+145. Tales of Graces
+146. Tales of Vesperia
+147. Star Ocean
+148. Star Ocean II
+149. Star Ocean III
+150. Persona
+151. Persona 2
+152. Persona 3
+153. Persona 4
+154. Shin Megami Tensei
+155. Shin Megami Tensei II
+156. Shin Megami Tensei III
+157. Devil Survivor
+158. Devil Survivor 2
+159. SMT: Nocturne
+160. SMT: Digital Devil Saga
+161. Vagrant Story
+162. Front Mission
+163. Front Mission 3
+164. Valkyrie Profile
+165. Valkyrie Profile 2
+166. Wild Arms
+167. Wild Arms II
+168. Wild Arms III
+169. Lunar: Silver Star
+170. Lunar 2: Eternal Blue
+171. Grandia
+172. Grandia II
+173. Ignition
+174. Breath of Fire III
+175. Breath of Fire IV
+176. Dragon Quest VII
+177. Drakengard
+178. Baten Kaitos
+179. Shadow of Destiny
+180. Infinite Undiscovery
+181. Lost Odyssey
+182. Blue Dragon
+183. Kingdom Hearts
+184. Kingdom Hearts II
+
+### PS2
+185. Final Fantasy X
+186. Final Fantasy X-2
+187. Final Fantasy XII
+188. Final Fantasy XII: Revenant Wings
+189. Persona 3
+190. Persona 4
+191. Persona 3 FES
+192. Persona 4 Arena
+193. SMT: Nocturne
+194. SMT: Digital Devil Saga
+195. SMT: Digital Devil Saga 2
+196. Devil Survivor
+197. Devil Survivor 2
+198. Suikoden Tactics
+199. Suikoden Tierkreis
+200. Tales of the Abyss
+201. Tales of Vesperia
+202. Tales of Legendia
+203. Tales of Symphonia
+204. Tales of Graces
+205. Tales of Hearts
+206. Xenosaga Episode I
+207. Xenosaga Episode II
+208. Xenosaga Episode III
+209. Xenogears
+210. Wild Arms 4
+211. Wild Arms 5
+212. Valkyrie Profile 2
+213. Star Ocean 3
+214. Star Ocean 2
+215. Lunar Silver Star
+216. Grandia II
+217. Grandia III
+218. Baten Kaitos Origins
+219. Dragon Quest VIII
+220. Drakengard 2
+221. Drakengard 3
+222. Nier
+223. Automata
+224. Drakengard
+225. Tales of Symphonia
+226. Tales of the Abyss
+227. Tales of Vesperia
+
+## NINTENDO 64
+228. Quest 64
+229. Paper Mario
+230. Mario Party
+231. Mario Party 2
+232. Mario Party 3
+233. Zelda: Ocarina of Time
+234. Zelda: Majora's Mask
+235. Donkey Kong
+
+## GAMECUBE
+236. Paper Mario: TTYD
+237. Mario Party 4
+238. Mario Party 5
+239. Mario Party 6
+240. Mario Party 7
+241. Zelda: Wind Waker
+242. Zelda: Four Swords
+243. Fire Emblem
+244. Fire Emblem: Path of Radiance
+245. Fire Emblem: Radiant Dawn
+246. Super Paper Mario
+247. Super Mario Strikers
+248. Super Mario Galaxy
+
+## WII
+249. Super Paper Mario
+250. Mario Party 8
+251. Mario Party 9
+252. Zelda: Skyward Sword
+253. Zelda: Twilight Princess
+254. Zelda: Phantom Hourglass
+255. Fire Emblem: Radiant Dawn
+256. Xenoblade Chronicles
+257. Last Story
+258. Dragon Quest Swords
+259. Sands of Destruction
+
+## SWITCH / MODERNA
+260. Paper Mario: Origami King
+261. Mario Party Superstars
+262. Mario Super Star
+263. Zelda: Breath of the Wild
+264. Zelda: Tears of the Kingdom
+265. Zelda: Link's Awakening
+266. Xenoblade Chronicles 2
+267. Xenoblade Chronicles 3
+268. Fire Emblem: Three Houses
+269. Fire Emblem: Warriors
+270. Fire Emblem: Engage
+271. Pokemon Sword
+272. Pokemon Shield
+273. Pokemon Let's Go Pikachu
+274. Pokemon Let's Go Eevee
+275. Pokemon Brilliant Diamond
+276. Pokemon Shining Pearl
+277. Pokemon Legends: Arceus
+278. Pokemon Scarlet
+279. Pokemon Violet
+280. Dragon Quest XI
+281. Dragon Quest Monsters
+282. Octopath Traveler
+283. Octopath Traveler 2
+284. Triangle Strategy
+285. Live A Live
+286. Harvest Moon
+287. Doraemon
+288. Story of Seasons
+289. Rune Factory 4
+290. Rune Factory 5
+291. Rune Factory 3
+292. Wildermyth
+293. Etrian Odyssey
+294. Etrian Untold
+295. Persona 5
+296. Persona 5 Strikers
+297. Persona 4 Arena
+298. Persona 3 Portable
+299. SMT V
+300. SMT V Vengeance
+301. Soul Hackers 2
+302. Revelations
+303. Trails Through Daybreak
+304. Trails of Cold Steel
+305. Trails of Cold Steel II
+306. Trails of Cold Steel III
+307. Trails of Cold Steel IV
+308. Trails from Zero
+309. Trails to Azure
+310. Honkai: Star Rail
+311. Genshin Impact
+312. Honkai Impact 3rd
+313. Zenless Zone Zero
+314. Blue Archive
+315. Arknights
+316. Fate/Grand Order
+317. Fate/Extra
+318. Fate/Stay Night
+319. Princess Connect Re:Dive
+320. Granblue Fantasy
+321. Dragalia Lost
+322. Dragon Quest Heroes
+323. Dissidia Opera Omnia
+324. SAO: Fatal Bullet
+325. SAO: Hollow Fragment
+326. SAO: Alicization
+327. Re:Zero
+328. Overlord
+329. Elden Ring
+330. Dark Souls
+331. Bloodborne
+332. Monster Hunter
+
+## PC / MODERNA
+333. Final Fantasy XIV
+334. Final Fantasy XVI
+335. Genshin Impact
+336. Honkai: Star Rail
+337. Zenless Zone Zero
+338. Arknights
+339. Blue Archive
+340. Fate/Grand Order
+341. Granblue Fantasy
+342. KanColle
+343. Azur Lane
+344. Princess Connect
+345. Dragalia Lost
+346. Monster Hunter
+347. Dauntless
+348. Dragon Quest X
+349. Persona 5
+350. SMT V
+351. Trails of Cold Steel
+352. Trails through Daybreak
+353. Yakuza: Like a Dragon
+354. Judgment
+355. Lost Judgment
+356. Dragon Quest Heroes
+357. Dissidia Opera Omnia
+358. Kingdom Hearts
+359. Nier: Automata
+360. Nier: Replicant
+361. Drakengard
+362. Koudelka
+363. Shadow of the Colossus
+364. The World Ends With You
+365. Live A Live
+366. Octopath Traveler
+367. Triangle Strategy
+368. Wildermyth
+369. Child of Light
+370. Chveron
+
+# ============================================================
+# INSTRUCCIONES:
+# ============================================================
+# 1. Revisa la lista y anota los numeros que te interesen
+# 2. Puedes seleccionar de varias formas:
+#    - Individual: 1,3,5,20
+#    - Rangos: 1-20 (todos del 1 al 20)
+#    - Combinado: 1,3,5-15,20-30,50
+#    - Plataformas completas: NES (1-18), SNES (46-86), etc.
+# 3. Mandame los numeros y yo preparare la descarga
+#
+# TAMBIEN puedes decirme:
+# - "todos 8bits" -> descarga todos los de NES, GB, GBC
+# - "todos 16bits" -> descarga todos los de SNES
+# - "todos anime" -> descarga todos los de PSX y PS2
+# - "todos switch" -> descarga todos los de Switch
+# - "todos" -> descarga absolutamente todo
+# ============================================================

@@ -1,0 +1,92 @@
+{
+  "map_id": "mapa_posada",
+  "background": "assets/maps/ciudades_y_pueblos/mapa_posada.png",
+  "npc_items": [
+    {
+      "id": 1,
+      "tipo": "npc",
+      "modo_npc": "npc",
+      "sprite": "assets/sprites/heroes/mapa/caminando _abajo.png",
+      "rect": {
+        "x": 150,
+        "y": 231,
+        "w": 42,
+        "h": 42
+      },
+      "dialog_pool": [
+        [
+          "NPC 1 - Dialogo 1",
+          "Linea 2 del dialogo 1.",
+          "(E siguiente, Q atras)"
+        ],
+        [
+          "NPC 1 - Dialogo 2",
+          "Linea 2 del dialogo 2.",
+          "(E siguiente, Q atras)"
+        ],
+        [
+          "NPC 1 - Dialogo 3",
+          "Linea 2 del dialogo 3.",
+          "(E siguiente, Q atras)"
+        ],
+        [
+          "NPC 1 - Dialogo 4",
+          "Linea 2 del dialogo 4.",
+          "(E siguiente, Q atras)"
+        ],
+        [
+          "NPC 1 - Dialogo 5",
+          "Linea 2 del dialogo 5.",
+          "(E siguiente, Q atras)"
+        ],
+        [
+          "NPC 1 - Dialogo 6",
+          "Linea 2 del dialogo 6.",
+          "(E siguiente, Q atras)"
+        ],
+        [
+          "NPC 1 - Dialogo 7",
+          "Linea 2 del dialogo 7.",
+          "(E siguiente, Q atras)"
+        ],
+        [
+          "NPC 1 - Dialogo 8",
+          "Linea 2 del dialogo 8.",
+          "(E siguiente, Q atras)"
+        ],
+        [
+          "NPC 1 - Dialogo 9",
+          "Linea 2 del dialogo 9.",
+          "(E siguiente, Q atras)"
+        ],
+        [
+          "NPC 1 - Dialogo 10",
+          "Linea 2 del dialogo 10.",
+          "(E siguiente, Q atras)"
+        ]
+      ],
+      "dialog_slot_names": [
+        "Dialogo 1",
+        "Dialogo 2",
+        "Dialogo 3",
+        "Dialogo 4",
+        "Dialogo 5",
+        "Dialogo 6",
+        "Dialogo 7",
+        "Dialogo 8",
+        "Dialogo 9",
+        "Dialogo 10"
+      ],
+      "dialogo_activo_idx": 0,
+      "dialogo_lineas": [
+        "NPC 1 - Dialogo 1",
+        "Linea 2 del dialogo 1.",
+        "(E siguiente, Q atras)"
+      ],
+      "ventana_dialogo": {
+        "w": 760,
+        "h": 130
+      }
+    }
+  ]
+}
