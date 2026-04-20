@@ -1,0 +1,102 @@
+{
+  "map_id": "sin_mapa",
+  "background": "",
+  "npc_items": [
+    {
+      "id": 1,
+      "tipo": "npc",
+      "modo_npc": "npc",
+      "sprite": "assets/sprites/heroes/mapa/caminando _abajo.png",
+      "rect": {
+        "x": 473,
+        "y": 244,
+        "w": 42,
+        "h": 42
+      },
+      "dialog_pool": [
+        [
+          "Hola, viajero. Soy el aldeano 1.",
+          "Que tengas un buen dia en el pueblo.",
+          "(E siguiente, Q atras)"
+        ],
+        [
+          "El clima esta tranquilo hoy.",
+          "Es buen momento para explorar.",
+          "(E siguiente, Q atras)"
+        ],
+        [
+          "Dicen que hay monstruos fuera de la aldea.",
+          "Ten cuidado si sales de noche.",
+          "(E siguiente, Q atras)"
+        ],
+        [
+          "La plaza siempre esta llena al atardecer.",
+          "Si buscas rumores, pregunta alli.",
+          "(E siguiente, Q atras)"
+        ],
+        [
+          "He visto aventureros entrenar cerca del bosque.",
+          "Quizas encuentres buenos combates por esa zona.",
+          "(E siguiente, Q atras)"
+        ],
+        [
+          "El herrero trabaja sin descanso.",
+          "Si tu equipo esta danado, visitalo.",
+          "(E siguiente, Q atras)"
+        ],
+        [
+          "El vendedor conoce todos los precios.",
+          "Compara antes de gastar tus monedas.",
+          "(E siguiente, Q atras)"
+        ],
+        [
+          "A veces aparecen cofres en lugares raros.",
+          "Revisa cada rincon del mapa.",
+          "(E siguiente, Q atras)"
+        ],
+        [
+          "Si te pierdes, vuelve a la entrada del pueblo.",
+          "Desde ahi es mas facil orientarse.",
+          "(E siguiente, Q atras)"
+        ],
+        [
+          "Buena suerte en tu viaje.",
+          "Que tus batallas te den experiencia.",
+          "(E siguiente, Q atras)"
+        ]
+      ],
+      "dialog_slot_names": [
+        "Dialogo 1",
+        "Dialogo 2",
+        "Dialogo 3",
+        "Dialogo 4",
+        "Dialogo 5",
+        "Dialogo 6",
+        "Dialogo 7",
+        "Dialogo 8",
+        "Dialogo 9",
+        "Dialogo 10"
+      ],
+      "dialogo_activo_idx": 0,
+      "dialogo_lineas": [
+        "Hola, viajero. Soy el aldeano 1.",
+        "Que tengas un buen dia en el pueblo.",
+        "(E siguiente, Q atras)"
+      ],
+      "ventana_dialogo": {
+        "w": 820,
+        "h": 122,
+        "x": 8,
+        "y": -18,
+        "use_default": false
+      },
+      "ventana_panel": {
+        "w": 220,
+        "h": 170,
+        "x": 0,
+        "y": 0,
+        "use_default": true
+      }
+    }
+  ]
+}

@@ -1,5 +1,16 @@
 # Plan siguiente sesion: Objetos interactivos
 
+## Documento puente entre PCs
+
+Leer y actualizar siempre este archivo antes de cambiar de computador:
+- [docs/PUENTE_SESIONES_PC.md](PUENTE_SESIONES_PC.md)
+
+Uso recomendado:
+1. Terminar sesion en este PC.
+2. Actualizar [docs/PUENTE_SESIONES_PC.md](PUENTE_SESIONES_PC.md) con resumen claro.
+3. Hacer push.
+4. En el otro PC, hacer pull y abrir primero [docs/PUENTE_SESIONES_PC.md](PUENTE_SESIONES_PC.md).
+
 ## Objetivo
 
 Crear una nueva herramienta para objetos seleccionables e interactivos del mapa, empezando por:
@@ -388,3 +399,26 @@ Se cerraron ajustes de uso diario y estabilidad del editor NPC:
 	- validacion defensiva antes de usar indices persistentes del panel,
 	- cierre automatico del panel si el NPC ya no existe,
 	- reapertura segura de dialogo solo con indice valido.
+
+## Nota para siguiente bloque: evento de pelea contra NPC
+
+Queda anotado para implementacion futura el flujo de decision al final del dialogo:
+
+- Opciones: `Pelear` y `Aun no`.
+- Si el jugador elige `Aun no`, se cierra el dialogo y puede seguir en mapa.
+- Si luego vuelve a interactuar y elige `Pelear`, recien ahi entra a batalla.
+
+Tambien queda planificado para el gestor NPC:
+
+- Enlace del NPC de evento usando logica estilo objetos interactivos.
+- Bloque de sprites del NPC de pelea con 3 cajas:
+	- `Espera`,
+	- `Ataque`,
+	- `Muerte` (opcional).
+- Si no hay sprite de muerte, usar desvanecimiento como fallback (similar al comportamiento actual de monstruos en batalla).
+
+Importante:
+
+- Antes de implementar este bloque, confirmar contigo cual NPC vamos a usar de prueba.
+- Esta especificacion tambien queda registrada en:
+	- `docs/HOJA_RUTA_SISTEMAS_NUEVOS_NPC_BATALLA.md`.

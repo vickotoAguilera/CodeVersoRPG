@@ -17,6 +17,7 @@ from src.pantalla_estado import PantallaEstado
 from src.pantalla_equipo import PantallaEquipo
 from src.pantalla_inventario import PantallaInventario
 from src.pantalla_habilidades import PantallaHabilidades  # ¡NUEVO! (Paso 7.18)
+from src.npc_comercio_herrero import opciones_panel_por_modo, ejecutar_accion_panel
 # --- NUEVAS IMPORTACIONES (Paso 53.6) ---
 from src.asset_coords_db import pillar_coords, COORDS_TERRA as COORDS_TERRA_FALLBACK
  
@@ -126,6 +127,34 @@ def dibujar_caja_dialogo_npc(pantalla, fuente, texto, ancho_pantalla, alto_panta
     pantalla.blit(hint, (caja_x + caja_w - hint.get_width() - 12, caja_y + caja_h - hint.get_height() - 10))
 
 
+def dibujar_panel_opciones_npc(pantalla, fuente, modo_npc, opciones, indice_sel, ancho_pantalla, alto_pantalla):
+    """Dibuja panel base de opciones para vendedor/herrero sobre el mapa."""
+    panel_w = 300
+    panel_h = 56 + max(1, len(opciones)) * 34
+    panel_x = ancho_pantalla - panel_w - 20
+    panel_y = 20
+    panel_rect = pygame.Rect(panel_x, panel_y, panel_w, panel_h)
+
+    base = pygame.Surface((panel_w, panel_h), pygame.SRCALPHA)
+    base.fill((10, 14, 24, 220))
+    pantalla.blit(base, (panel_x, panel_y))
+    pygame.draw.rect(pantalla, (170, 190, 230), panel_rect, 2, border_radius=8)
+
+    titulo = fuente.render(f"NPC {str(modo_npc).upper()}", True, (230, 235, 248))
+    pantalla.blit(titulo, (panel_x + 12, panel_y + 10))
+
+    for i, op in enumerate(opciones):
+        r = pygame.Rect(panel_x + 10, panel_y + 34 + i * 30, panel_w - 20, 26)
+        activo = (i == indice_sel)
+        pygame.draw.rect(pantalla, (38, 58, 95) if activo else (20, 30, 50), r, border_radius=6)
+        pygame.draw.rect(pantalla, (190, 220, 255) if activo else (90, 110, 150), r, 1, border_radius=6)
+        txt = fuente.render(str(op), True, (245, 248, 252))
+        pantalla.blit(txt, (r.x + 8, r.y + 4))
+
+    hint = fuente.render("W/S o Flechas: mover | E/Enter: elegir | Q/ESC: salir", True, (255, 220, 120))
+    pantalla.blit(hint, (panel_x + 12, panel_y + panel_h - hint.get_height() - 8))
+
+
 def resolver_mapa(nombre_mapa, categoria_guess):
     """Resolver el nombre de archivo y categoría reales del mapa. Devuelve (nombre_archivo, categoria).
     Si no encuentra en la categoría indicada, busca en todas las subcarpetas de `src/database/mapas` por nombre base.
@@ -219,6 +248,14 @@ dialogo_npc_activo = False
 dialogo_npc_lineas = []
 dialogo_npc_indice = 0
 
+# Panel runtime vendedor/herrero (fase 1)
+panel_npc_activo = False
+panel_npc_modo = "npc"
+panel_npc_opciones = []
+panel_npc_indice = 0
+panel_npc_id = 0
+panel_npc_dialogo_lineas = []
+
 # Sistema de persistencia de cofres con recuperación temporal
 # Formato: {"mapa_nombre": {"id_cofre": {"abierto": bool, "vacio": bool, "tiempo_apertura": float}}}
 cofres_estado_global = {}
@@ -257,6 +294,12 @@ while True:
             
             # --- MANEJO DE TECLA ESCAPE (Global) ---
             if event.key == pygame.K_ESCAPE:
+                if panel_npc_activo:
+                    panel_npc_activo = False
+                    panel_npc_opciones = []
+                    panel_npc_indice = 0
+                    panel_npc_dialogo_lineas = []
+                    continue
                 if dialogo_npc_activo:
                     dialogo_npc_activo = False
                     dialogo_npc_lineas = []
@@ -649,8 +692,41 @@ while True:
                     mi_pantalla_habilidades.update_input(event.key)
             
             # ¡NUEVO! - Tecla E para interactuar con cofres
-            if event.key == pygame.K_e:
-                if dialogo_npc_activo:
+            if estado_juego == "mapa" and panel_npc_activo and event.key in (pygame.K_w, pygame.K_s, pygame.K_UP, pygame.K_DOWN):
+                if panel_npc_opciones:
+                    step = -1 if event.key in (pygame.K_w, pygame.K_UP) else 1
+                    panel_npc_indice = (panel_npc_indice + step) % len(panel_npc_opciones)
+                continue
+
+            if estado_juego == "mapa" and panel_npc_activo and event.key == pygame.K_q:
+                panel_npc_activo = False
+                panel_npc_opciones = []
+                panel_npc_indice = 0
+                panel_npc_dialogo_lineas = []
+                continue
+
+            if event.key in (pygame.K_e, pygame.K_RETURN):
+                if estado_juego == "mapa" and panel_npc_activo:
+                    if panel_npc_opciones:
+                        accion = panel_npc_opciones[panel_npc_indice]
+                        res = ejecutar_accion_panel(panel_npc_modo, accion, panel_npc_id)
+                        msg = str(res.get("mensaje", ""))
+                        if msg:
+                            mensaje_cofre_texto = msg
+                            mensaje_cofre_activo = True
+                            mensaje_cofre_inicio = tiempo_actual_ticks
+                        if res.get("reabrir_dialogo") and panel_npc_dialogo_lineas:
+                            dialogo_npc_lineas = list(panel_npc_dialogo_lineas)
+                            dialogo_npc_indice = 0
+                            dialogo_npc_activo = True
+                        if res.get("cerrar_panel") or res.get("reabrir_dialogo"):
+                            panel_npc_activo = False
+                            panel_npc_opciones = []
+                            panel_npc_indice = 0
+                            panel_npc_dialogo_lineas = []
+                    continue
+
+                if event.key == pygame.K_e and dialogo_npc_activo:
                     dialogo_npc_indice += 1
                     if dialogo_npc_indice >= len(dialogo_npc_lineas):
                         dialogo_npc_activo = False
@@ -663,9 +739,25 @@ while True:
                     # 1) Prioridad: objetos nuevos del editor V1
                     resultado_objeto = mi_mapa.interactuar_objetos_interactivos(heroe_lider.heroe_rect, grupo_heroes, ITEMS_DB)
                     if resultado_objeto.get("tipo") == "npc" and resultado_objeto.get("dialogo_lineas"):
-                        dialogo_npc_lineas = list(resultado_objeto.get("dialogo_lineas", []))
-                        dialogo_npc_indice = 0
-                        dialogo_npc_activo = bool(dialogo_npc_lineas)
+                        modo_npc = str(resultado_objeto.get("npc_modo", "npc")).lower()
+                        if modo_npc in ("venta", "herrero"):
+                            panel_npc_activo = True
+                            panel_npc_modo = modo_npc
+                            panel_npc_opciones = opciones_panel_por_modo(modo_npc)
+                            panel_npc_indice = 0
+                            panel_npc_id = int(resultado_objeto.get("npc_id", 0) or 0)
+                            panel_npc_dialogo_lineas = list(resultado_objeto.get("dialogo_lineas", []))
+                            dialogo_npc_activo = False
+                            dialogo_npc_lineas = []
+                            dialogo_npc_indice = 0
+                        else:
+                            dialogo_npc_lineas = list(resultado_objeto.get("dialogo_lineas", []))
+                            dialogo_npc_indice = 0
+                            dialogo_npc_activo = bool(dialogo_npc_lineas)
+                            panel_npc_activo = False
+                            panel_npc_opciones = []
+                            panel_npc_indice = 0
+                            panel_npc_dialogo_lineas = []
                         mensaje_cofre_activo = False
                         continue
 
@@ -789,8 +881,10 @@ while True:
         
         if grupo_heroes and mi_mapa: 
             heroe_lider = grupo_heroes[0] 
-            
-            heroe_lider.update(teclas, mi_mapa.mapa_img, mi_mapa.muros)
+
+            # Mientras dialogo/panel NPC esta activo, se bloquea movimiento del heroe
+            if not dialogo_npc_activo and not panel_npc_activo:
+                heroe_lider.update(teclas, mi_mapa.mapa_img, mi_mapa.muros)
             
             mi_mapa.update_camara(heroe_lider)
             portal_tocado = mi_mapa.chequear_portales(heroe_lider.heroe_rect)
@@ -867,7 +961,7 @@ while True:
             # Indicador de cofre cercano
             cofre_cercano = mi_mapa.chequear_cofre_cercano(heroe_lider.heroe_rect)
             objeto_cercano = mi_mapa.chequear_objeto_interactivo_cercano(heroe_lider.heroe_rect)
-            if (cofre_cercano or objeto_cercano) and not dialogo_npc_activo:
+            if (cofre_cercano or objeto_cercano) and not dialogo_npc_activo and not panel_npc_activo:
                 texto_interaccion = "Presiona E para interactuar"
                 texto_surf_interaccion = mi_fuente_debug.render(texto_interaccion, True, (255, 255, 0), (0, 0, 0))
                 PANTALLA.blit(texto_surf_interaccion, (ANCHO // 2 - texto_surf_interaccion.get_width() // 2, ALTO - 50))
@@ -946,6 +1040,18 @@ while True:
     if dialogo_npc_activo and estado_juego == "mapa" and dialogo_npc_lineas:
         idx = min(dialogo_npc_indice, len(dialogo_npc_lineas) - 1)
         dibujar_caja_dialogo_npc(PANTALLA, mi_fuente_debug, dialogo_npc_lineas[idx], ANCHO, ALTO)
+
+    # Panel vendedor/herrero sobre el mapa
+    if panel_npc_activo and estado_juego == "mapa":
+        dibujar_panel_opciones_npc(
+            PANTALLA,
+            mi_fuente_debug,
+            panel_npc_modo,
+            panel_npc_opciones,
+            panel_npc_indice,
+            ANCHO,
+            ALTO,
+        )
 
 
     

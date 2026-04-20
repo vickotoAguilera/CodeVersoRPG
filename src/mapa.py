@@ -847,11 +847,17 @@ class Mapa:
 
         if tipo in ("npc", "aldeano", "vendedor", "herrero"):
             lineas = candidato.get("dialogo_lineas") or ["Hola, viajero."]
+            npc_id = int(candidato.get("id", 0) or 0)
+            npc_modo = "npc"
+            if tipo in ("vendedor", "herrero"):
+                npc_modo = tipo
             return {
                 "exito": True,
                 "mensaje": lineas[0],
                 "tipo": "npc",
                 "dialogo_lineas": lineas,
+                "npc_id": npc_id,
+                "npc_modo": npc_modo,
             }
 
         if tipo == "boton":

@@ -73,6 +73,7 @@ class GestorInterfazNPCV1:
         self.npc_maps_dir = self.root / "src" / "database" / "npc_interactivos_mapas"
         self.npc_maps_dir.mkdir(parents=True, exist_ok=True)
         self.npc_dim_presets_path = self.root / "src" / "database" / "npc_dimension_presets.json"
+        self.npc_ui_defaults_path = self.root / "src" / "database" / "npc_ui_defaults.json"
 
         self.sprite_folder = self.root / "assets" / "sprites" / "npcs"
         if not self.sprite_folder.exists():
@@ -127,6 +128,95 @@ class GestorInterfazNPCV1:
         payload = {"presets": presets}
         self.npc_dim_presets_path.parent.mkdir(parents=True, exist_ok=True)
         self.npc_dim_presets_path.write_text(json.dumps(payload, ensure_ascii=True, indent=2), encoding="utf-8")
+
+    def _default_dialog_window_cfg(self) -> Dict[str, object]:
+        return {"w": 760, "h": 130, "x": 0, "y": 0, "use_default": True}
+
+    def _default_panel_window_cfg(self) -> Dict[str, object]:
+        return {"w": 220, "h": 170, "x": 0, "y": 0, "use_default": True}
+
+    def _normalize_dialog_window_cfg(self, raw_cfg, default_cfg: Dict[str, object]) -> Dict[str, object]:
+        base = default_cfg if isinstance(default_cfg, dict) else self._default_dialog_window_cfg()
+        if not isinstance(raw_cfg, dict):
+            return {
+                "w": int(base.get("w", 760)),
+                "h": int(base.get("h", 130)),
+                "x": int(base.get("x", 0)),
+                "y": int(base.get("y", 0)),
+                "use_default": bool(base.get("use_default", True)),
+            }
+
+        use_default = bool(raw_cfg.get("use_default", False if ("w" in raw_cfg or "h" in raw_cfg) else True))
+        return {
+            "w": max(320, min(1200, int(raw_cfg.get("w", base.get("w", 760)) or base.get("w", 760)))),
+            "h": max(90, min(360, int(raw_cfg.get("h", base.get("h", 130)) or base.get("h", 130)))),
+            "x": int(raw_cfg.get("x", base.get("x", 0)) or 0),
+            "y": int(raw_cfg.get("y", base.get("y", 0)) or 0),
+            "use_default": use_default,
+        }
+
+    def _normalize_panel_window_cfg(self, raw_cfg, default_cfg: Dict[str, object]) -> Dict[str, object]:
+        base = default_cfg if isinstance(default_cfg, dict) else self._default_panel_window_cfg()
+        if not isinstance(raw_cfg, dict):
+            return {
+                "w": int(base.get("w", 220)),
+                "h": int(base.get("h", 170)),
+                "x": int(base.get("x", 0)),
+                "y": int(base.get("y", 0)),
+                "use_default": bool(base.get("use_default", True)),
+            }
+
+        use_default = bool(raw_cfg.get("use_default", False if ("w" in raw_cfg or "h" in raw_cfg) else True))
+        return {
+            "w": max(200, min(640, int(raw_cfg.get("w", base.get("w", 220)) or base.get("w", 220)))),
+            "h": max(120, min(520, int(raw_cfg.get("h", base.get("h", 170)) or base.get("h", 170)))),
+            "x": int(raw_cfg.get("x", base.get("x", 0)) or 0),
+            "y": int(raw_cfg.get("y", base.get("y", 0)) or 0),
+            "use_default": use_default,
+        }
+
+    def _load_ui_defaults(self) -> Dict[str, Dict[str, object]]:
+        defaults = {
+            "dialog_window": self._default_dialog_window_cfg(),
+            "panel_window": self._default_panel_window_cfg(),
+        }
+        try:
+            data = json.loads(self.npc_ui_defaults_path.read_text(encoding="utf-8"))
+        except Exception:
+            return defaults
+        if not isinstance(data, dict):
+            return defaults
+
+        defaults["dialog_window"] = self._normalize_dialog_window_cfg(
+            data.get("dialog_window", {}),
+            defaults["dialog_window"],
+        )
+        defaults["dialog_window"]["use_default"] = True
+
+        defaults["panel_window"] = self._normalize_panel_window_cfg(
+            data.get("panel_window", {}),
+            defaults["panel_window"],
+        )
+        defaults["panel_window"]["use_default"] = True
+        return defaults
+
+    def _save_ui_defaults(self, defaults: Dict[str, Dict[str, object]]) -> None:
+        payload = {
+            "dialog_window": {
+                "w": int(defaults.get("dialog_window", {}).get("w", 760)),
+                "h": int(defaults.get("dialog_window", {}).get("h", 130)),
+                "x": int(defaults.get("dialog_window", {}).get("x", 0)),
+                "y": int(defaults.get("dialog_window", {}).get("y", 0)),
+            },
+            "panel_window": {
+                "w": int(defaults.get("panel_window", {}).get("w", 220)),
+                "h": int(defaults.get("panel_window", {}).get("h", 170)),
+                "x": int(defaults.get("panel_window", {}).get("x", 0)),
+                "y": int(defaults.get("panel_window", {}).get("y", 0)),
+            },
+        }
+        self.npc_ui_defaults_path.parent.mkdir(parents=True, exist_ok=True)
+        self.npc_ui_defaults_path.write_text(json.dumps(payload, ensure_ascii=True, indent=2), encoding="utf-8")
 
     def _find_dimension_preset(self, presets: List[Dict[str, object]], sprite_path: Optional[Path]) -> Optional[Dict[str, object]]:
         if sprite_path is None:
@@ -258,7 +348,8 @@ class GestorInterfazNPCV1:
             "dialog_slot_names": self._default_dialog_slot_names(),
             "dialogo_activo_idx": 0,
             "dialogo_lineas": pool[0],
-            "ventana_dialogo": {"w": 760, "h": 130},
+            "ventana_dialogo": self._default_dialog_window_cfg(),
+            "ventana_panel": self._default_panel_window_cfg(),
         }
 
     def _save_scene(self, map_id: str, bg_path: Optional[Path], canvas_items: List[Dict[str, object]]) -> Path:
@@ -286,14 +377,15 @@ class GestorInterfazNPCV1:
                     "dialog_slot_names": item.get("dialog_slot_names", self._default_dialog_slot_names()),
                     "dialogo_activo_idx": int(item.get("dialogo_activo_idx", 0) or 0),
                     "dialogo_lineas": list(item.get("dialogo_lineas", [])),
-                    "ventana_dialogo": item.get("ventana_dialogo", {"w": 760, "h": 130}),
+                    "ventana_dialogo": item.get("ventana_dialogo", self._default_dialog_window_cfg()),
+                    "ventana_panel": item.get("ventana_panel", self._default_panel_window_cfg()),
                 }
             )
         with out.open("w", encoding="utf-8") as fh:
             json.dump(payload, fh, ensure_ascii=True, indent=2)
         return out
 
-    def _load_scene(self, pygame, json_path: Path) -> Optional[Dict[str, object]]:
+    def _load_scene(self, pygame, json_path: Path, ui_defaults: Dict[str, Dict[str, object]]) -> Optional[Dict[str, object]]:
         try:
             data = json.loads(json_path.read_text(encoding="utf-8"))
         except Exception:
@@ -319,11 +411,14 @@ class GestorInterfazNPCV1:
             item["dialog_slot_names"] = self._normalize_dialog_slot_names(raw.get("dialog_slot_names", []))
             item["dialogo_activo_idx"] = max(0, min(9, int(raw.get("dialogo_activo_idx", 0) or 0)))
             item["dialogo_lineas"] = list(raw.get("dialogo_lineas", [])) or item["dialog_pool"][item["dialogo_activo_idx"]]
-            ventana = raw.get("ventana_dialogo", {}) if isinstance(raw.get("ventana_dialogo"), dict) else {}
-            item["ventana_dialogo"] = {
-                "w": max(320, int(ventana.get("w", 760) or 760)),
-                "h": max(90, int(ventana.get("h", 130) or 130)),
-            }
+            item["ventana_dialogo"] = self._normalize_dialog_window_cfg(
+                raw.get("ventana_dialogo", {}),
+                ui_defaults.get("dialog_window", self._default_dialog_window_cfg()),
+            )
+            item["ventana_panel"] = self._normalize_panel_window_cfg(
+                raw.get("ventana_panel", {}),
+                ui_defaults.get("panel_window", self._default_panel_window_cfg()),
+            )
             items.append(item)
 
         return {
@@ -352,6 +447,7 @@ class GestorInterfazNPCV1:
         sprite_scroll = 0
         thumb_cache: Dict[str, object] = {}
         dimension_presets = self._load_dimension_presets()
+        ui_defaults = self._load_ui_defaults()
         preset_scroll = 0
         selected_preset_idx: Optional[int] = None
 
@@ -379,6 +475,13 @@ class GestorInterfazNPCV1:
         panel_npc_idx: Optional[int] = None
         panel_options: List[str] = []
         panel_selected = 0
+
+        ui_edit_active = False
+        ui_edit_target = "dialog"  # dialog | panel
+        ui_dragging = False
+        ui_resizing = False
+        ui_resize_target = "dialog"
+        ui_drag_offset = (0, 0)
 
         context_menu = {
             "visible": False,
@@ -462,6 +565,100 @@ class GestorInterfazNPCV1:
                 if c not in modes:
                     c = "npc"
                 return modes[(modes.index(c) + 1) % len(modes)]
+
+            def _effective_window_cfg(npc_item: Dict[str, object], key: str) -> Dict[str, int]:
+                if key == "ventana_panel":
+                    base = ui_defaults.get("panel_window", self._default_panel_window_cfg())
+                    own = npc_item.get("ventana_panel", self._default_panel_window_cfg())
+                else:
+                    base = ui_defaults.get("dialog_window", self._default_dialog_window_cfg())
+                    own = npc_item.get("ventana_dialogo", self._default_dialog_window_cfg())
+
+                if not isinstance(base, dict):
+                    base = self._default_panel_window_cfg() if key == "ventana_panel" else self._default_dialog_window_cfg()
+                if not isinstance(own, dict):
+                    own = self._default_panel_window_cfg() if key == "ventana_panel" else self._default_dialog_window_cfg()
+
+                use_default = bool(own.get("use_default", True))
+                src = base if use_default else own
+                return {
+                    "w": int(src.get("w", base.get("w", 220 if key == "ventana_panel" else 760))),
+                    "h": int(src.get("h", base.get("h", 170 if key == "ventana_panel" else 130))),
+                    "x": int(src.get("x", base.get("x", 0))),
+                    "y": int(src.get("y", base.get("y", 0))),
+                }
+
+            def _build_dialog_rect(npc_item: Dict[str, object], canvas: object):
+                cfg = _effective_window_cfg(npc_item, "ventana_dialogo")
+                bw = max(320, min(canvas.w - 24, int(cfg.get("w", 760) or 760)))
+                bh = max(90, min(canvas.h - 24, int(cfg.get("h", 130) or 130)))
+                bx = canvas.centerx - bw // 2 + int(cfg.get("x", 0) or 0)
+                by = canvas.bottom - bh - 12 + int(cfg.get("y", 0) or 0)
+                box = pygame.Rect(bx, by, bw, bh)
+                box.clamp_ip(canvas)
+                return box
+
+            def _build_panel_rect(npc_item: Dict[str, object], canvas: object, options_count: int):
+                cfg = _effective_window_cfg(npc_item, "ventana_panel")
+                min_h = 34 + max(1, int(options_count)) * 28
+                pw = max(200, min(canvas.w - 24, int(cfg.get("w", 220) or 220)))
+                ph = max(min_h, min(canvas.h - 24, int(cfg.get("h", min_h) or min_h)))
+                px = canvas.right - pw - 12 + int(cfg.get("x", 0) or 0)
+                py = canvas.y + 12 + int(cfg.get("y", 0) or 0)
+                panel = pygame.Rect(px, py, pw, ph)
+                panel.clamp_ip(canvas)
+                return panel
+
+            def _save_window_cfg_from_rect(npc_item: Dict[str, object], key: str, rect: object, canvas: object, options_count: int = 0):
+                if key == "ventana_panel":
+                    min_h = 34 + max(1, int(options_count)) * 28
+                    w = max(200, min(canvas.w - 24, int(rect.w)))
+                    h = max(min_h, min(canvas.h - 24, int(rect.h)))
+                    x = int(rect.x - (canvas.right - w - 12))
+                    y = int(rect.y - (canvas.y + 12))
+                    npc_item["ventana_panel"] = {"w": w, "h": h, "x": x, "y": y, "use_default": False}
+                else:
+                    w = max(320, min(canvas.w - 24, int(rect.w)))
+                    h = max(90, min(canvas.h - 24, int(rect.h)))
+                    x = int(rect.x - (canvas.centerx - w // 2))
+                    y = int(rect.y - (canvas.bottom - h - 12))
+                    npc_item["ventana_dialogo"] = {"w": w, "h": h, "x": x, "y": y, "use_default": False}
+
+            def _set_window_use_default(npc_item: Dict[str, object], key: str, use_default: bool):
+                if key == "ventana_panel":
+                    raw = npc_item.get("ventana_panel", self._default_panel_window_cfg())
+                    cfg = self._normalize_panel_window_cfg(raw, ui_defaults.get("panel_window", self._default_panel_window_cfg()))
+                    cfg["use_default"] = bool(use_default)
+                    npc_item["ventana_panel"] = cfg
+                else:
+                    raw = npc_item.get("ventana_dialogo", self._default_dialog_window_cfg())
+                    cfg = self._normalize_dialog_window_cfg(raw, ui_defaults.get("dialog_window", self._default_dialog_window_cfg()))
+                    cfg["use_default"] = bool(use_default)
+                    npc_item["ventana_dialogo"] = cfg
+
+            def _start_window_editor(npc_idx: int, target: str = "dialog"):
+                nonlocal ui_edit_active, ui_edit_target, dialog_active, panel_active, panel_npc_idx, panel_options, panel_selected, status
+                if not (0 <= npc_idx < len(canvas_items)):
+                    status = "Editor de ventana: NPC invalido"
+                    return
+
+                ui_edit_active = True
+                ui_edit_target = target if target in ("dialog", "panel") else "dialog"
+                _abrir_dialogo_desde_npc(npc_idx)
+
+                npc_item = canvas_items[npc_idx]
+                modo = str(npc_item.get("modo_npc", "npc"))
+                if modo in ("venta", "herrero"):
+                    panel_active = True
+                    panel_npc_idx = npc_idx
+                    panel_options = opciones_panel_por_modo(modo)
+                    panel_selected = 0
+                else:
+                    panel_active = False
+                    panel_npc_idx = None
+                    panel_options = []
+
+                status = "Editor de ventana activo: arrastra para mover, esquina inferior derecha para redimensionar, 1=Dialogo 2=Panel, G=guardar default global, U=usar default"
 
             def _open_context_menu(npc_idx: int, x: int, y: int) -> None:
                 if not (0 <= npc_idx < len(canvas_items)):
@@ -551,27 +748,7 @@ class GestorInterfazNPCV1:
                             status = f"NPC {npc_item['id']}: slot {slot + 1} -> {new_name}"
 
                 elif act == "resize_window":
-                    cfg = npc_item.get("ventana_dialogo", {}) if isinstance(npc_item.get("ventana_dialogo"), dict) else {}
-                    cur_w = int(cfg.get("w", 760) or 760)
-                    cur_h = int(cfg.get("h", 130) or 130)
-                    raw = prompt_text(
-                        "Redimensionar ventana",
-                        "Formato: ancho x alto (ej: 760x130)",
-                        f"{cur_w}x{cur_h}",
-                    )
-                    if raw is None:
-                        status = "Redimension cancelada"
-                    else:
-                        txt = raw.lower().replace(" ", "")
-                        sep = "x" if "x" in txt else ","
-                        try:
-                            a, b = txt.split(sep)
-                            nw = max(320, min(1200, int(a)))
-                            nh = max(90, min(360, int(b)))
-                            npc_item["ventana_dialogo"] = {"w": nw, "h": nh}
-                            status = f"NPC {npc_item['id']}: ventana {nw}x{nh}"
-                        except Exception:
-                            status = "Formato invalido. Usa anchoxalto, ejemplo 760x130"
+                    _start_window_editor(int(npc_idx), "dialog")
 
                 context_menu["visible"] = False
 
@@ -579,9 +756,46 @@ class GestorInterfazNPCV1:
                 if event.type == pygame.QUIT:
                     running = False
                 elif event.type == pygame.KEYDOWN:
+                    if ui_edit_active and event.key == pygame.K_1:
+                        ui_edit_target = "dialog"
+                        status = "Editor de ventana: objetivo DIALOGO"
+                        continue
+                    if ui_edit_active and event.key == pygame.K_2:
+                        ui_edit_target = "panel"
+                        status = "Editor de ventana: objetivo PANEL"
+                        continue
+                    if ui_edit_active and event.key == pygame.K_g:
+                        if selected_item is not None and 0 <= selected_item < len(canvas_items):
+                            item = canvas_items[selected_item]
+                            dialog_cfg = item.get("ventana_dialogo", {}) if isinstance(item.get("ventana_dialogo"), dict) else {}
+                            panel_cfg = item.get("ventana_panel", {}) if isinstance(item.get("ventana_panel"), dict) else {}
+                            ui_defaults["dialog_window"] = self._normalize_dialog_window_cfg(dialog_cfg, ui_defaults.get("dialog_window", self._default_dialog_window_cfg()))
+                            ui_defaults["dialog_window"]["use_default"] = True
+                            ui_defaults["panel_window"] = self._normalize_panel_window_cfg(panel_cfg, ui_defaults.get("panel_window", self._default_panel_window_cfg()))
+                            ui_defaults["panel_window"]["use_default"] = True
+                            self._save_ui_defaults(ui_defaults)
+                            status = "Default global de ventanas guardado desde NPC seleccionado"
+                        else:
+                            status = "G: selecciona un NPC primero"
+                        continue
+                    if ui_edit_active and event.key == pygame.K_u:
+                        if selected_item is not None and 0 <= selected_item < len(canvas_items):
+                            item = canvas_items[selected_item]
+                            _set_window_use_default(item, "ventana_dialogo", True)
+                            _set_window_use_default(item, "ventana_panel", True)
+                            status = f"NPC {item['id']}: usando default global de ventanas"
+                        else:
+                            status = "U: selecciona un NPC primero"
+                        continue
+
                     if event.key == pygame.K_ESCAPE:
                         if context_menu["visible"]:
                             context_menu["visible"] = False
+                        elif ui_edit_active:
+                            ui_edit_active = False
+                            ui_dragging = False
+                            ui_resizing = False
+                            status = "Editor de ventana desactivado"
                         elif dialog_active:
                             _cerrar_dialogo()
                         elif panel_active:
@@ -776,6 +990,37 @@ class GestorInterfazNPCV1:
                             status = f"NPC {canvas_items[selected_item]['id']}: tamano {rect.w}x{rect.h}"
                 elif event.type == pygame.MOUSEMOTION:
                     mouse = event.pos
+                    if (ui_dragging or ui_resizing) and selected_item is not None and 0 <= selected_item < len(canvas_items):
+                        item = canvas_items[selected_item]
+                        if ui_resize_target == "panel":
+                            options_count = max(1, len(panel_options))
+                            box = _build_panel_rect(item, canvas_rect, options_count)
+                        else:
+                            options_count = 0
+                            box = _build_dialog_rect(item, canvas_rect)
+
+                        if ui_dragging:
+                            box.x = event.pos[0] - ui_drag_offset[0]
+                            box.y = event.pos[1] - ui_drag_offset[1]
+                            box.clamp_ip(canvas_rect)
+                        elif ui_resizing:
+                            if ui_resize_target == "panel":
+                                min_h = 34 + options_count * 28
+                                box.w = max(200, min(canvas_rect.w - 24, event.pos[0] - box.x))
+                                box.h = max(min_h, min(canvas_rect.h - 24, event.pos[1] - box.y))
+                            else:
+                                box.w = max(320, min(canvas_rect.w - 24, event.pos[0] - box.x))
+                                box.h = max(90, min(canvas_rect.h - 24, event.pos[1] - box.y))
+
+                        _save_window_cfg_from_rect(
+                            item,
+                            "ventana_panel" if ui_resize_target == "panel" else "ventana_dialogo",
+                            box,
+                            canvas_rect,
+                            options_count,
+                        )
+                        continue
+
                     if moving_item and selected_item is not None and 0 <= selected_item < len(canvas_items):
                         rect = canvas_items[selected_item]["rect"]
                         rect.x = event.pos[0] - move_offset[0]
@@ -799,6 +1044,30 @@ class GestorInterfazNPCV1:
                         context_menu["visible"] = False
 
                     if event.button == 1:
+                        if ui_edit_active and selected_item is not None and 0 <= selected_item < len(canvas_items):
+                            item = canvas_items[selected_item]
+                            if ui_edit_target == "panel":
+                                options_count = max(1, len(panel_options))
+                                target_rect = _build_panel_rect(item, canvas_rect, options_count)
+                            else:
+                                target_rect = _build_dialog_rect(item, canvas_rect)
+
+                            handle = pygame.Rect(target_rect.right - 14, target_rect.bottom - 14, 14, 14)
+                            if handle.collidepoint(mx, my):
+                                ui_resizing = True
+                                ui_dragging = False
+                                ui_resize_target = ui_edit_target
+                                status = f"Editor ventana: redimensionando {ui_resize_target}"
+                                continue
+
+                            if target_rect.collidepoint(mx, my):
+                                ui_dragging = True
+                                ui_resizing = False
+                                ui_resize_target = ui_edit_target
+                                ui_drag_offset = (mx - target_rect.x, my - target_rect.y)
+                                status = f"Editor ventana: moviendo {ui_resize_target}"
+                                continue
+
                         for label, rect in buttons.items():
                             if not rect.collidepoint(mx, my):
                                 continue
@@ -825,7 +1094,7 @@ class GestorInterfazNPCV1:
                                         map_id = self._map_id(background_path)
                                         scene_path = self.npc_maps_dir / f"{map_id}.json"
                                         if scene_path.exists():
-                                            loaded = self._load_scene(pygame, scene_path)
+                                            loaded = self._load_scene(pygame, scene_path, ui_defaults)
                                             if loaded is not None:
                                                 canvas_items = loaded["items"]
                                                 next_id = max([int(i.get("id", 0)) for i in canvas_items], default=0) + 1
@@ -860,7 +1129,7 @@ class GestorInterfazNPCV1:
                             elif label == "Cargar":
                                 p = prompt_file("Cargar escena NPC", self.npc_maps_dir, "*.json")
                                 if p is not None and p.exists():
-                                    loaded = self._load_scene(pygame, p)
+                                    loaded = self._load_scene(pygame, p, ui_defaults)
                                     if loaded is None:
                                         checklist["carga_mapa"] = False
                                         status = "No se pudo cargar el JSON"
@@ -886,28 +1155,7 @@ class GestorInterfazNPCV1:
                                 if selected_item is None or not (0 <= selected_item < len(canvas_items)):
                                     status = "Crear Ventana: selecciona primero un NPC en canvas"
                                 else:
-                                    item = canvas_items[selected_item]
-                                    cfg = item.get("ventana_dialogo", {}) if isinstance(item.get("ventana_dialogo"), dict) else {}
-                                    cur_w = int(cfg.get("w", 760) or 760)
-                                    cur_h = int(cfg.get("h", 130) or 130)
-                                    raw = prompt_text(
-                                        "Crear/Redimensionar ventana",
-                                        "Formato: ancho x alto (ej: 760x130)",
-                                        f"{cur_w}x{cur_h}",
-                                    )
-                                    if raw is None:
-                                        status = "Crear Ventana cancelado"
-                                    else:
-                                        txt = raw.lower().replace(" ", "")
-                                        sep = "x" if "x" in txt else ","
-                                        try:
-                                            a, b = txt.split(sep)
-                                            nw = max(320, min(1200, int(a)))
-                                            nh = max(90, min(360, int(b)))
-                                            item["ventana_dialogo"] = {"w": nw, "h": nh}
-                                            status = f"NPC {item['id']}: ventana configurada {nw}x{nh}"
-                                        except Exception:
-                                            status = "Formato invalido. Usa anchoxalto, ejemplo 760x130"
+                                    _start_window_editor(selected_item, "dialog")
 
                             elif label == "Guardar Dim":
                                 if selected_item is None or not (0 <= selected_item < len(canvas_items)):
@@ -989,6 +1237,8 @@ class GestorInterfazNPCV1:
                                 status = f"Menu NPC {canvas_items[picked]['id']}: elige Dialogo 1..10"
                 elif event.type == pygame.MOUSEBUTTONUP:
                     if event.button == 1:
+                        ui_dragging = False
+                        ui_resizing = False
                         mx, my = event.pos
                         if dragging_from_list and drag_sprite is not None and canvas_rect.collidepoint(mx, my):
                             new_item = self._build_npc_item(pygame, next_id, drag_sprite, pygame.Rect(mx - 36, my - 36, 72, 72))
@@ -1190,14 +1440,14 @@ class GestorInterfazNPCV1:
             screen.blit(st, (status_bar.x + 6, status_bar.y + 2))
 
             if dialog_active and dialog_lines:
-                cfg = {"w": 760, "h": 130}
+                cfg = ui_defaults.get("dialog_window", self._default_dialog_window_cfg())
                 if dialog_npc_idx is not None and 0 <= dialog_npc_idx < len(canvas_items):
-                    item_cfg = canvas_items[dialog_npc_idx].get("ventana_dialogo", {})
-                    if isinstance(item_cfg, dict):
-                        cfg = item_cfg
-                bw = max(320, min(canvas_rect.w - 24, int(cfg.get("w", 760) or 760)))
-                bh = max(90, min(canvas_rect.h - 24, int(cfg.get("h", 130) or 130)))
-                box = pygame.Rect(canvas_rect.centerx - bw // 2, canvas_rect.bottom - bh - 12, bw, bh)
+                    box = _build_dialog_rect(canvas_items[dialog_npc_idx], canvas_rect)
+                else:
+                    bw = max(320, min(canvas_rect.w - 24, int(cfg.get("w", 760) or 760)))
+                    bh = max(90, min(canvas_rect.h - 24, int(cfg.get("h", 130) or 130)))
+                    box = pygame.Rect(canvas_rect.centerx - bw // 2, canvas_rect.bottom - bh - 12, bw, bh)
+                    box.clamp_ip(canvas_rect)
                 pygame.draw.rect(screen, (0, 0, 0), box, border_radius=8)
                 pygame.draw.rect(screen, (220, 220, 220), box, 2, border_radius=8)
                 idx = min(dialog_idx, len(dialog_lines) - 1)
@@ -1206,20 +1456,22 @@ class GestorInterfazNPCV1:
                 nxt = font_small.render("E: siguiente | Q: atras", True, (255, 220, 120))
                 screen.blit(nxt, (box.right - nxt.get_width() - 12, box.bottom - nxt.get_height() - 10))
 
+                if ui_edit_active and ui_edit_target == "dialog":
+                    handle = pygame.Rect(box.right - 14, box.bottom - 14, 12, 12)
+                    pygame.draw.rect(screen, (255, 210, 90), handle)
+                    tip = font_small.render("EDIT DIALOGO", True, (255, 220, 120))
+                    screen.blit(tip, (box.x + 10, box.y - 18))
+
             if panel_active and panel_npc_idx is not None and panel_options:
                 if not (0 <= panel_npc_idx < len(canvas_items)):
                     panel_active = False
                     panel_npc_idx = None
                     status = "Panel cerrado: NPC ya no existe"
                 else:
-                    pw = 220
-                    ph = 34 + len(panel_options) * 28
-                    px = canvas_rect.right - pw - 12
-                    py = canvas_rect.y + 12
-                    panel = pygame.Rect(px, py, pw, ph)
+                    npc_item = canvas_items[panel_npc_idx]
+                    panel = _build_panel_rect(npc_item, canvas_rect, len(panel_options))
                     pygame.draw.rect(screen, (14, 18, 28), panel, border_radius=8)
                     pygame.draw.rect(screen, (145, 170, 220), panel, 1, border_radius=8)
-                    npc_item = canvas_items[panel_npc_idx]
                     title_panel = font_small.render(f"NPC {npc_item['id']} {str(npc_item.get('modo_npc', 'npc')).upper()}", True, (230, 235, 248))
                     screen.blit(title_panel, (panel.x + 10, panel.y + 8))
                     for i, opt in enumerate(panel_options):
@@ -1229,6 +1481,12 @@ class GestorInterfazNPCV1:
                         pygame.draw.rect(screen, (180, 210, 255) if active else (95, 110, 150), r, 1, border_radius=4)
                         t = font_small.render(opt, True, (240, 245, 252))
                         screen.blit(t, (r.x + 8, r.y + 4))
+
+                    if ui_edit_active and ui_edit_target == "panel":
+                        handle = pygame.Rect(panel.right - 14, panel.bottom - 14, 12, 12)
+                        pygame.draw.rect(screen, (255, 210, 90), handle)
+                        tip = font_small.render("EDIT PANEL", True, (255, 220, 120))
+                        screen.blit(tip, (panel.x + 10, panel.y - 18))
 
             if context_menu["visible"]:
                 entries = context_menu.get("items", [])
