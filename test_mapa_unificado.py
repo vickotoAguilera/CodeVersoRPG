@@ -2,14 +2,13 @@
 """Test para verificar que el mapa carga correctamente desde el archivo unificado"""
 import pygame
 import sys
-sys.path.insert(0, 'src')
 
 # Inicializar pygame con ventana
 pygame.init()
 screen = pygame.display.set_mode((1280, 720))
 
 # Importar y crear mapa
-from mapa import Mapa
+from src.mapa import Mapa
 
 print("\n" + "="*60)
 print("TEST: Cargando mapa desde archivo unificado")

@@ -17,7 +17,12 @@ from src.pantalla_estado import PantallaEstado
 from src.pantalla_equipo import PantallaEquipo
 from src.pantalla_inventario import PantallaInventario
 from src.pantalla_habilidades import PantallaHabilidades  # ¡NUEVO! (Paso 7.18)
-from src.npc_comercio_herrero import opciones_panel_por_modo, ejecutar_accion_panel
+from src.npc_comercio_herrero import (
+    opciones_panel_por_modo,
+    ejecutar_accion_panel,
+    construir_submenu,
+    ejecutar_accion_submenu,
+)
 # --- NUEVAS IMPORTACIONES (Paso 53.6) ---
 from src.asset_coords_db import pillar_coords, COORDS_TERRA as COORDS_TERRA_FALLBACK
  
@@ -127,7 +132,17 @@ def dibujar_caja_dialogo_npc(pantalla, fuente, texto, ancho_pantalla, alto_panta
     pantalla.blit(hint, (caja_x + caja_w - hint.get_width() - 12, caja_y + caja_h - hint.get_height() - 10))
 
 
-def dibujar_panel_opciones_npc(pantalla, fuente, modo_npc, opciones, indice_sel, ancho_pantalla, alto_pantalla):
+def dibujar_panel_opciones_npc(
+    pantalla,
+    fuente,
+    modo_npc,
+    opciones,
+    indice_sel,
+    ancho_pantalla,
+    alto_pantalla,
+    titulo_panel=None,
+    hint_panel=None,
+):
     """Dibuja panel base de opciones para vendedor/herrero sobre el mapa."""
     panel_w = 300
     panel_h = 56 + max(1, len(opciones)) * 34
@@ -140,7 +155,8 @@ def dibujar_panel_opciones_npc(pantalla, fuente, modo_npc, opciones, indice_sel,
     pantalla.blit(base, (panel_x, panel_y))
     pygame.draw.rect(pantalla, (170, 190, 230), panel_rect, 2, border_radius=8)
 
-    titulo = fuente.render(f"NPC {str(modo_npc).upper()}", True, (230, 235, 248))
+    texto_titulo = titulo_panel or f"NPC {str(modo_npc).upper()}"
+    titulo = fuente.render(texto_titulo, True, (230, 235, 248))
     pantalla.blit(titulo, (panel_x + 12, panel_y + 10))
 
     for i, op in enumerate(opciones):
@@ -151,7 +167,8 @@ def dibujar_panel_opciones_npc(pantalla, fuente, modo_npc, opciones, indice_sel,
         txt = fuente.render(str(op), True, (245, 248, 252))
         pantalla.blit(txt, (r.x + 8, r.y + 4))
 
-    hint = fuente.render("W/S o Flechas: mover | E/Enter: elegir | Q/ESC: salir", True, (255, 220, 120))
+    texto_hint = hint_panel or "W/S o Flechas: mover | E/Enter: elegir | Q/ESC: salir"
+    hint = fuente.render(texto_hint, True, (255, 220, 120))
     pantalla.blit(hint, (panel_x + 12, panel_y + panel_h - hint.get_height() - 8))
 
 
@@ -255,6 +272,10 @@ panel_npc_opciones = []
 panel_npc_indice = 0
 panel_npc_id = 0
 panel_npc_dialogo_lineas = []
+panel_npc_titulo = ""
+panel_npc_submenu_activo = False
+panel_npc_submenu_tipo = ""
+panel_npc_submenu_opciones = []
 
 # Sistema de persistencia de cofres con recuperación temporal
 # Formato: {"mapa_nombre": {"id_cofre": {"abierto": bool, "vacio": bool, "tiempo_apertura": float}}}
@@ -295,10 +316,22 @@ while True:
             # --- MANEJO DE TECLA ESCAPE (Global) ---
             if event.key == pygame.K_ESCAPE:
                 if panel_npc_activo:
-                    panel_npc_activo = False
-                    panel_npc_opciones = []
-                    panel_npc_indice = 0
-                    panel_npc_dialogo_lineas = []
+                    if panel_npc_submenu_activo:
+                        panel_npc_submenu_activo = False
+                        panel_npc_submenu_tipo = ""
+                        panel_npc_submenu_opciones = []
+                        panel_npc_opciones = opciones_panel_por_modo(panel_npc_modo)
+                        panel_npc_titulo = f"NPC {str(panel_npc_modo).upper()}"
+                        panel_npc_indice = 0
+                    else:
+                        panel_npc_activo = False
+                        panel_npc_opciones = []
+                        panel_npc_indice = 0
+                        panel_npc_dialogo_lineas = []
+                        panel_npc_titulo = ""
+                        panel_npc_submenu_activo = False
+                        panel_npc_submenu_tipo = ""
+                        panel_npc_submenu_opciones = []
                     continue
                 if dialogo_npc_activo:
                     dialogo_npc_activo = False
@@ -699,17 +732,82 @@ while True:
                 continue
 
             if estado_juego == "mapa" and panel_npc_activo and event.key == pygame.K_q:
-                panel_npc_activo = False
-                panel_npc_opciones = []
-                panel_npc_indice = 0
-                panel_npc_dialogo_lineas = []
+                if panel_npc_submenu_activo:
+                    panel_npc_submenu_activo = False
+                    panel_npc_submenu_tipo = ""
+                    panel_npc_submenu_opciones = []
+                    panel_npc_opciones = opciones_panel_por_modo(panel_npc_modo)
+                    panel_npc_titulo = f"NPC {str(panel_npc_modo).upper()}"
+                    panel_npc_indice = 0
+                else:
+                    panel_npc_activo = False
+                    panel_npc_opciones = []
+                    panel_npc_indice = 0
+                    panel_npc_dialogo_lineas = []
+                    panel_npc_titulo = ""
+                    panel_npc_submenu_activo = False
+                    panel_npc_submenu_tipo = ""
+                    panel_npc_submenu_opciones = []
                 continue
 
             if event.key in (pygame.K_e, pygame.K_RETURN):
                 if estado_juego == "mapa" and panel_npc_activo:
                     if panel_npc_opciones:
-                        accion = panel_npc_opciones[panel_npc_indice]
-                        res = ejecutar_accion_panel(panel_npc_modo, accion, panel_npc_id)
+                        heroe_lider = grupo_heroes[0] if grupo_heroes else None
+
+                        if panel_npc_submenu_activo and heroe_lider and panel_npc_submenu_opciones:
+                            opcion_data = panel_npc_submenu_opciones[panel_npc_indice]
+                            res = ejecutar_accion_submenu(
+                                panel_npc_modo,
+                                panel_npc_submenu_tipo,
+                                opcion_data,
+                                heroe_lider,
+                                ITEMS_DB,
+                                EQUIPO_DB,
+                            )
+
+                            if res.get("refrescar_submenu") and heroe_lider:
+                                rebuild = construir_submenu(
+                                    panel_npc_modo,
+                                    panel_npc_submenu_tipo,
+                                    heroe_lider,
+                                    ITEMS_DB,
+                                    EQUIPO_DB,
+                                )
+                                if rebuild.get("ok"):
+                                    panel_npc_submenu_opciones = list(rebuild.get("opciones", []))
+                                    panel_npc_opciones = [str(op.get("texto", "-")) for op in panel_npc_submenu_opciones]
+                                    panel_npc_titulo = str(rebuild.get("titulo", panel_npc_titulo))
+                                    panel_npc_indice = 0
+
+                            if res.get("cerrar_submenu"):
+                                panel_npc_submenu_activo = False
+                                panel_npc_submenu_tipo = ""
+                                panel_npc_submenu_opciones = []
+                                panel_npc_opciones = opciones_panel_por_modo(panel_npc_modo)
+                                panel_npc_titulo = f"NPC {str(panel_npc_modo).upper()}"
+                                panel_npc_indice = 0
+                        else:
+                            accion = panel_npc_opciones[panel_npc_indice]
+                            res = ejecutar_accion_panel(panel_npc_modo, accion, panel_npc_id)
+
+                            submenu = str(res.get("abrir_submenu", "") or "").lower()
+                            if submenu and heroe_lider:
+                                sub = construir_submenu(
+                                    panel_npc_modo,
+                                    submenu,
+                                    heroe_lider,
+                                    ITEMS_DB,
+                                    EQUIPO_DB,
+                                )
+                                if sub.get("ok"):
+                                    panel_npc_submenu_activo = True
+                                    panel_npc_submenu_tipo = submenu
+                                    panel_npc_submenu_opciones = list(sub.get("opciones", []))
+                                    panel_npc_opciones = [str(op.get("texto", "-")) for op in panel_npc_submenu_opciones]
+                                    panel_npc_titulo = str(sub.get("titulo", f"NPC {str(panel_npc_modo).upper()}"))
+                                    panel_npc_indice = 0
+
                         msg = str(res.get("mensaje", ""))
                         if msg:
                             mensaje_cofre_texto = msg
@@ -724,6 +822,10 @@ while True:
                             panel_npc_opciones = []
                             panel_npc_indice = 0
                             panel_npc_dialogo_lineas = []
+                            panel_npc_titulo = ""
+                            panel_npc_submenu_activo = False
+                            panel_npc_submenu_tipo = ""
+                            panel_npc_submenu_opciones = []
                     continue
 
                 if event.key == pygame.K_e and dialogo_npc_activo:
@@ -744,9 +846,13 @@ while True:
                             panel_npc_activo = True
                             panel_npc_modo = modo_npc
                             panel_npc_opciones = opciones_panel_por_modo(modo_npc)
+                            panel_npc_titulo = f"NPC {str(modo_npc).upper()}"
                             panel_npc_indice = 0
                             panel_npc_id = int(resultado_objeto.get("npc_id", 0) or 0)
                             panel_npc_dialogo_lineas = list(resultado_objeto.get("dialogo_lineas", []))
+                            panel_npc_submenu_activo = False
+                            panel_npc_submenu_tipo = ""
+                            panel_npc_submenu_opciones = []
                             dialogo_npc_activo = False
                             dialogo_npc_lineas = []
                             dialogo_npc_indice = 0
@@ -758,6 +864,10 @@ while True:
                             panel_npc_opciones = []
                             panel_npc_indice = 0
                             panel_npc_dialogo_lineas = []
+                            panel_npc_titulo = ""
+                            panel_npc_submenu_activo = False
+                            panel_npc_submenu_tipo = ""
+                            panel_npc_submenu_opciones = []
                         mensaje_cofre_activo = False
                         continue
 
@@ -1043,6 +1153,7 @@ while True:
 
     # Panel vendedor/herrero sobre el mapa
     if panel_npc_activo and estado_juego == "mapa":
+        hint_panel = "W/S o Flechas: mover | E/Enter: elegir | Q/ESC: volver" if panel_npc_submenu_activo else None
         dibujar_panel_opciones_npc(
             PANTALLA,
             mi_fuente_debug,
@@ -1051,6 +1162,8 @@ while True:
             panel_npc_indice,
             ANCHO,
             ALTO,
+            titulo_panel=panel_npc_titulo or None,
+            hint_panel=hint_panel,
         )
 
 
