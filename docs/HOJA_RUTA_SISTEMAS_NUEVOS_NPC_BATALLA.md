@@ -219,6 +219,8 @@ Orden recomendado para no romper nada y avanzar modular:
 - Se implemento base de dialogo robusta con modos y persistencia.
 - Se completo una primera capa de UX (slots, checklist, presets, confirmaciones).
 - Se ordeno parte del repo archivando respaldos y duplicados.
+- En herrero runtime: compra/venta/mejorar/forjar operativos con validaciones, tope `+5`, recetas por materiales y panel de mejora con scroll/texto envuelto.
+- En dialogos NPC runtime: tecla `Q` vuelve a retroceder lineas en conversacion y al cerrar panel retorna al dialogo base.
 - Proximo foco: cerrar runtime NPC completo; luego pasar a batalla/magias.
 
 ## 7) Documento de referencia de contexto

@@ -49,12 +49,14 @@ class Heroe:
             "pies": None,         # Botas
             "manos": None,        # Guantes
             "espalda": None,      # Capa
-            "mano_principal": None, # Arma
-            "mano_secundaria": None, # Escudo
+            "mano_principal": "ESPADA_COBRE",  # ¡EQUIPO INICIAL PARA PRUEBA!
+            "mano_secundaria": "ESCUDO_MADERA",  # ¡EQUIPO INICIAL PARA PRUEBA!
             "accesorio1": None,   # Aro 1
             "accesorio2": None,   # Aro 2
             "accesorio3": None    # Collar
         }
+        # Mejoras aplicadas por herrero por cada item equipado (no muta equipo_db global).
+        self.mejoras_equipo = {}
 
         # Velocidad y Carga de Sprites
         self.velocidad_movimiento = coords_data['VELOCIDAD']
@@ -426,6 +428,7 @@ class Heroe:
         """Función interna para sumar la stat de todo el equipo equipado."""
         total_bonus = 0
         ids_ya_sumados = [] # ¡NUEVO! Lista para evitar sumar 2H dos veces
+        mejoras_equipo = getattr(self, "mejoras_equipo", {})
         
         for slot, id_equipo in self.equipo.items():
             
@@ -437,6 +440,15 @@ class Heroe:
                 if item_data:
                     # Sumamos el bonus de esa stat
                     total_bonus += item_data["stats"].get(stat_nombre, 0)
+
+                    # Bonus extra por mejoras de herrero para este item del heroe.
+                    if isinstance(mejoras_equipo, dict):
+                        data_mejora = mejoras_equipo.get(id_equipo, {})
+                        if isinstance(data_mejora, dict):
+                            bonus_stats = data_mejora.get("stats_bonus", {})
+                            if isinstance(bonus_stats, dict):
+                                total_bonus += int(bonus_stats.get(stat_nombre, 0) or 0)
+
                     # Añadimos el ID a la lista para no volver a sumarlo
                     ids_ya_sumados.append(id_equipo)
                     
@@ -594,10 +606,14 @@ class Heroe:
 
     # --- GESTIÓN DE INVENTARIO ---
     def tiene_item(self, id_item, cantidad=1):
+        if cantidad <= 0:
+            return True
         cantidad_actual = self.inventario.get(id_item, 0)
         return cantidad_actual >= cantidad
 
     def usar_item(self, id_item, cantidad=1):
+        if cantidad <= 0:
+            return True
         if self.tiene_item(id_item, cantidad):
             self.inventario[id_item] -= cantidad
             if self.inventario[id_item] <= 0:

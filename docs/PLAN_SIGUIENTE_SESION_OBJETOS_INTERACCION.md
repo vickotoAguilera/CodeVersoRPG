@@ -90,6 +90,18 @@ Se cerro y ajusto lo siguiente durante esta sesion:
 - Se agrego un boton `Reiniciar` en el editor para volver todos los objetos del canvas a estado cerrado sin romper enlaces.
 - Se hizo que en runtime el juego parta siempre desde `base_sprite` y no herede el estado visual abierto del editor.
 
+**NUEVA SESION - IMPLEMENTACION DE HERRERO:**
+- Se agrego opcion "Vender" al herrero para abrir el catalogo de materiales de forja y se mantiene el flujo de venta de inventario compartido.
+- Se creo catalogo de materiales con 8 items: `POLVO_CRISTAL`, `FIBRA_CUERO`, `MINERAL_HIERRO`, `ESENCIA_FUEGO`, `ESENCIA_AGUA`, `FRAGMENTO_MADERA`, `PIEL_BESTIA`, `GEMA_ZAFIRO`.
+- Se implemento logica de compra de materiales en `ejecutar_accion_submenu`.
+- Se creo nueva pantalla visual `PantallaMejoraHerrero` en `src/pantalla_mejora_herrero.py` para que el heroe seleccione equipo equipado o de la mochila y lo mejore graficamente (navegacion con flechas, enter para confirmar).
+- Las opciones del herrero ahora son: `["Comprar", "Vender", "Mejorar", "Forjar", "Hablar", "Salir"]`.
+- Se corrigio crash de mejora por consumo de materiales en cantidad 0 (`KeyError` en `usar_item`) con validaciones defensivas.
+- Se agrego limite explicito de mejora por equipo: maximo `+5`.
+- Se actualizaron recetas de forja para usar materiales del herrero (sin uso de eter/pociones en recetas).
+- Se mejoro UI de mejora: texto envuelto tipo chat y scroll para lista de equipos y panel de materiales/detalle.
+- Se restauro comportamiento de dialogo con tecla `Q`: en dialogo retrocede linea, y en panel NPC vuelve al dialogo base.
+
 ## Nueva linea: biblioteca de dimensiones por sprite
 
 La idea aqui es poder guardar un preset de tamaño por sprite para reutilizarlo despues sin tener que reescalar manualmente cada vez.
@@ -310,7 +322,7 @@ Se implemento en el gestor NUEVO de NPC la base pedida para conversaciones y mod
 - Tecla `TAB`: cambiar modo del NPC seleccionado en ciclo `NPC -> VENTA -> HERRERO -> EVENTO`.
 - Boton `Crear Ventana`: configurar ancho/alto de caja de dialogo del NPC seleccionado.
 - Modo `VENTA`: al terminar dialogo abre panel lateral en canvas con `Comprar`, `Vender`, `Hablar`, `Salir`.
-- Modo `HERRERO`: panel base preparado (`Mejorar`, `Forjar`, `Hablar`, `Salir`) para conectar logica despues.
+- Modo `HERRERO`: panel con `Comprar`, `Vender`, `Mejorar`, `Forjar`, `Hablar`, `Salir`.
 - Modo `EVENTO`: hook base preparado para futura integracion de batalla por NPC.
 
 Archivos nuevos de base modular:
@@ -322,7 +334,7 @@ Archivos nuevos de base modular:
 
 - Paleta de colores para estilo de ventana de dialogo (postergado por ahora).
 - Generador/guia de dialogos predeterminados por tipo de NPC.
-- Logica completa de compra/venta/herrero en modulo separado (inventario, precios, mejoras reales).
+- Ajustar la coherencia final entre el panel del herrero y sus submenus, y revisar balance de compra/venta/mejora/forja.
 - Logica de evento que lance batalla contra NPC en archivo aparte.
 - En modo batalla, mostrar dialogos en parte superior para no tapar opciones de combate.
 

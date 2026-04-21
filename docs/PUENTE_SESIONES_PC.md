@@ -61,6 +61,19 @@ Avance reciente adicional (2026-04-20, UI comercio):
 - Transaccion aplica cantidad real en compra/venta (oro e inventario se actualizan por lote).
 - Persistencia de seleccion: despues de comprar/vender se mantiene el item seleccionado en submenu.
 
+Avance adicional Critico (UI Herrero Mejorada V2):
+
+- **Tienda Herrero Arreglada**: Ahora el Herrero vende `MATERIALES_HERRERO` en lugar de pociones en la pestaña "Comprar".
+- **Herrero y materiales**: La opción "Vender" del herrero abre el catálogo de materiales de forja para comprarlos, y la venta de inventario sigue disponible en el flujo compartido.
+- **Mochila+Equipo en Herrero**: La UI de "Mejorar" (en `src/pantalla_mejora_herrero.py`) lista tanto el equipo en la **Mochila** como el **Equipado**.
+- **Pop-Up Details Herrero**: Seleccionar un arma a mejorar abre un panel lateral con *Glassmorphism* que compara stats e indica costo real en Oro y Materiales (resta inventario).
+- **Adiós Pantalla Negra**: Se engancharon correctamente las subfunciones de la Pantalla de Mejora a `main.py`, eliminando loops o returns sin procesar que resultaban en crasheos al darle ESC/Mejorar.
+- **Estabilidad de mejora**: Corregido `KeyError` en consumo de materiales al mejorar (cantidades 0 ignoradas de forma segura).
+- **Limite de mejora**: Se fijo tope de mejora por equipo en `+5` y se informa cuando un equipo llega a maximo.
+- **Recetas de forja ajustadas**: Las recetas del herrero ahora usan materiales de herreria en lugar de consumibles (eter/pociones).
+- **UI de mejora con scroll**: Lista de equipos y detalle de materiales ahora soportan scroll y texto envuelto para no cortar lineas largas.
+- **Tecla Q en dialogo NPC**: Se restauro retroceso de linea en conversaciones y retorno al dialogo base al salir del panel.
+
 Integracion confirmada:
 
 - `main.py`: importa `opciones_panel_por_modo`, `ejecutar_accion_panel`, `construir_submenu`, `ejecutar_accion_submenu`.
@@ -127,6 +140,18 @@ Archivos tocados en el ultimo ajuste de comercio (2026-04-20):
 - `main.py`
 - `src/npc_comercio_herrero.py`
 - `src/database/heroes_db.json`
+- `docs/PUENTE_SESIONES_PC.md`
+- `docs/PLAN_FASE_VENDEDOR_HERRERO_V2.md`
+- `docs/HOJA_RUTA_SISTEMAS_NUEVOS_NPC_BATALLA.md`
+
+Archivos tocados en el ultimo ajuste de estabilidad/UI de herrero (2026-04-20):
+
+- `main.py`
+- `src/heroe.py`
+- `src/npc_comercio_herrero.py`
+- `src/pantalla_mejora_herrero.py`
+- `src/database/items_db.json`
+- `docs/PLAN_SIGUIENTE_SESION_OBJETOS_INTERACCION.md`
 - `docs/PUENTE_SESIONES_PC.md`
 - `docs/PLAN_FASE_VENDEDOR_HERRERO_V2.md`
 - `docs/HOJA_RUTA_SISTEMAS_NUEVOS_NPC_BATALLA.md`

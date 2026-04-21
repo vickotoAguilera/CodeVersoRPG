@@ -17,6 +17,7 @@ from src.pantalla_estado import PantallaEstado
 from src.pantalla_equipo import PantallaEquipo
 from src.pantalla_inventario import PantallaInventario
 from src.pantalla_habilidades import PantallaHabilidades  # ¡NUEVO! (Paso 7.18)
+from src.pantalla_mejora_herrero import PantallaMejoraHerrero
 from src.npc_comercio_herrero import (
     opciones_panel_por_modo,
     ejecutar_accion_panel,
@@ -149,16 +150,67 @@ def dibujar_panel_opciones_npc(
 ):
     """Dibuja panel base de opciones para vendedor/herrero sobre el mapa.
     Retorna dict con info de botones para detección de clicks."""
-    panel_w = 380
+    def _texto_ajustado(texto, color, ancho_max):
+        txt = str(texto or "")
+        if ancho_max <= 8:
+            return fuente.render("", True, color)
+        if fuente.size(txt)[0] <= ancho_max:
+            return fuente.render(txt, True, color)
+
+        sufijo = "..."
+        ancho_sufijo = fuente.size(sufijo)[0]
+        if ancho_sufijo >= ancho_max:
+            return fuente.render("", True, color)
+
+        base = txt
+        while base and (fuente.size(base)[0] + ancho_sufijo > ancho_max):
+            base = base[:-1]
+        return fuente.render(base + sufijo, True, color)
+
+    def _dibujar_texto_deslizante(texto, color, area_rect):
+        txt = str(texto or "")
+        if area_rect.w <= 8:
+            return
+
+        surf = fuente.render(txt, True, color)
+        if surf.get_width() <= area_rect.w:
+            pantalla.blit(surf, (area_rect.x, area_rect.y))
+            return
+
+        extra = surf.get_width() - area_rect.w
+        pausa_ms = 900
+        separacion = 18
+        velocidad_px_s = 52.0
+        ms_ida = int((extra + separacion) / velocidad_px_s * 1000)
+        ciclo = pausa_ms + ms_ida + pausa_ms + ms_ida
+        t = pygame.time.get_ticks() % max(1, ciclo)
+
+        if t < pausa_ms:
+            offset = 0
+        elif t < pausa_ms + ms_ida:
+            prog = (t - pausa_ms) / float(max(1, ms_ida))
+            offset = int(prog * (extra + separacion))
+        elif t < pausa_ms + ms_ida + pausa_ms:
+            offset = extra + separacion
+        else:
+            prog = (t - (pausa_ms + ms_ida + pausa_ms)) / float(max(1, ms_ida))
+            offset = int((extra + separacion) * (1.0 - prog))
+
+        clip_prev = pantalla.get_clip()
+        pantalla.set_clip(area_rect)
+        pantalla.blit(surf, (area_rect.x - offset, area_rect.y))
+        pantalla.set_clip(clip_prev)
+
+    panel_w = min(500, max(380, ancho_pantalla - 36))
     panel_h = 56 + max(1, len(opciones)) * 34
     panel_x = ancho_pantalla - panel_w - 20
     panel_y = 20
     panel_rect = pygame.Rect(panel_x, panel_y, panel_w, panel_h)
 
     base = pygame.Surface((panel_w, panel_h), pygame.SRCALPHA)
-    base.fill((10, 14, 24, 220))
+    base.fill((15, 20, 60, 220))
     pantalla.blit(base, (panel_x, panel_y))
-    pygame.draw.rect(pantalla, (170, 190, 230), panel_rect, 2, border_radius=8)
+    pygame.draw.rect(pantalla, (70, 100, 200), panel_rect, 2, border_radius=8)
 
     texto_titulo = titulo_panel or f"NPC {str(modo_npc).upper()}"
     titulo = fuente.render(texto_titulo, True, (230, 235, 248))
@@ -226,13 +278,14 @@ def dibujar_panel_opciones_npc(
 
             # Intentar mostrar solo nombre base para evitar texto duplicado
             nombre_base = str(op).split(" - ")[0].split("[")[0].strip()
-            nombre_txt = fuente.render(nombre_base, True, (245, 248, 252))
 
             # Dibujar precio y nombre a la derecha de los botones
             precio_x = btn_mas_rect.right + 8
             pantalla.blit(precio_txt, (precio_x, r.y + 4))
             nombre_x = precio_x + precio_txt.get_width() + 8
-            pantalla.blit(nombre_txt, (nombre_x, r.y + 4))
+            ancho_nombre = max(10, r.right - 8 - nombre_x)
+            area_nombre = pygame.Rect(nombre_x, r.y + 4, ancho_nombre, 18)
+            _dibujar_texto_deslizante(nombre_base, (245, 248, 252), area_nombre)
             
             botones_info[i] = {
                 "menos": btn_menos_rect,
@@ -241,7 +294,7 @@ def dibujar_panel_opciones_npc(
             }
         else:
             # Sin cantidad, solo texto normal
-            txt = fuente.render(str(op), True, (245, 248, 252))
+            txt = _texto_ajustado(str(op), (245, 248, 252), r.w - 16)
             pantalla.blit(txt, (r.x + 8, r.y + 4))
 
     texto_hint = hint_panel or "W/S o Flechas: mover | E/Enter: elegir | Q/ESC: salir"
@@ -407,6 +460,9 @@ texto_cantidad_temporal = ""
 cofres_estado_global = {}
 TIEMPO_RECUPERACION_COFRE = 10  # TESTING: 10 segundos (cambiar a 3600 para 1 hora real)
 
+# Pantalla de mejora del herrero
+mi_pantalla_mejora_herrero = None
+
 
 # 4. Bucle principal del juego
 while True:
@@ -446,7 +502,10 @@ while True:
                         if indice < len(panel_npc_submenu_opciones):
                             opcion = panel_npc_submenu_opciones[indice]
                             cantidad_actual = int(opcion.get("cantidad_seleccionada", 1))
-                            if cantidad_actual < 999:
+                            max_cantidad = 999
+                            if "cantidad_disponible" in opcion:
+                                max_cantidad = int(opcion.get("cantidad_disponible", 999))
+                            if cantidad_actual < max_cantidad:
                                 opcion["cantidad_seleccionada"] = cantidad_actual + 1
                         continue
                     
@@ -467,6 +526,42 @@ while True:
                     mi_pantalla_habilidades = None
             
         if event.type == pygame.KEYDOWN:
+            # ¡NUEVO! - Manejo directo de pantalla de mejora del herrero
+            if estado_juego == "pantalla_mejora_herrero" and mi_pantalla_mejora_herrero:
+                accion_mejora = mi_pantalla_mejora_herrero.procesar_entrada(event)
+                if accion_mejora:
+                    if accion_mejora.get("accion") == "cerrar":
+                        estado_juego = "mapa"
+                        mi_pantalla_mejora_herrero = None
+                    elif accion_mejora.get("accion") == "intentar_mejora":
+                        id_equipo = accion_mejora.get("id_equipo")
+                        heroe_lider = grupo_heroes[0] if grupo_heroes else None
+                        if heroe_lider:
+                            res = ejecutar_accion_submenu(
+                                "herrero",
+                                "mejorar",
+                                {
+                                    "accion": "mejorar_equipo",
+                                    "id_equipo": id_equipo,
+                                    "costo": accion_mejora.get("costo_oro"),
+                                    "materiales": accion_mejora.get("materiales")
+                                },
+                                heroe_lider,
+                                ITEMS_DB,
+                                EQUIPO_DB,
+                            )
+                            if res.get("ok"):
+                                mensaje_cofre_texto = res.get("mensaje", "Mejora exitosa!")
+                                mi_pantalla_mejora_herrero.actualizar_equipo(heroe_lider, EQUIPO_DB)
+                                mi_pantalla_mejora_herrero.estado_ui = "lista"
+                                mensaje_cofre_activo = True
+                                mensaje_cofre_inicio = tiempo_actual_ticks
+                                mi_pantalla_mejora_herrero.actualizar_equipo(heroe_lider, EQUIPO_DB)
+                            else:
+                                mensaje_cofre_texto = res.get("mensaje", "No se pudo mejorar.")
+                                mensaje_cofre_activo = True
+                                mensaje_cofre_inicio = tiempo_actual_ticks
+                continue
             
             # --- MANEJO DE EDICION DE CANTIDAD EN SUBMENU NPC ---
             if modo_edicion_cantidad and indice_edicion_cantidad >= 0:
@@ -561,6 +656,7 @@ while True:
                         estado_juego = "menu_pausa"
                         mi_menu_pausa = MenuPausa(ANCHO, ALTO, CURSOR_IMG)
                         mi_pantalla_habilidades = None
+                
                 # --- FIN BLOQUE CORREGIDO ---
 
             # --- MANEJO DE TECLA ENTER (Por Estado) ---
@@ -714,6 +810,7 @@ while True:
                                     heroe_cargado.inventario = data_heroe.get("inventario", heroe_cargado.inventario).copy()
                                     heroe_cargado.inventario_especiales = data_heroe.get("inventario_especiales", heroe_cargado.inventario_especiales).copy()
                                     heroe_cargado.equipo = data_heroe.get("equipo", heroe_cargado.equipo).copy()
+                                    heroe_cargado.mejoras_equipo = data_heroe.get("mejoras_equipo", getattr(heroe_cargado, "mejoras_equipo", {})).copy()
                                     # --- ¡NUEVO! Sistema de Habilidades (Paso 7.15) ---
                                     heroe_cargado.clase = data_heroe.get("clase", heroe_cargado.clase)
                                     heroe_cargado.ranuras_habilidad_max = data_heroe.get("ranuras_habilidad_max", heroe_cargado.ranuras_habilidad_max)
@@ -836,6 +933,7 @@ while True:
                                     "inventario": heroe.inventario,
                                     "inventario_especiales": heroe.inventario_especiales,
                                     "equipo": heroe.equipo,
+                                    "mejoras_equipo": getattr(heroe, "mejoras_equipo", {}),
                                     # --- \u00a1NUEVO! Sistema de Habilidades (Paso 7.15) ---
                                     "clase": heroe.clase,
                                     "ranuras_habilidad_max": heroe.ranuras_habilidad_max,
@@ -953,6 +1051,11 @@ while True:
                         panel_npc_opciones[panel_npc_indice] = str(opcion.get("texto", "-"))
                 continue
 
+            # Retroceder linea de dialogo NPC con Q (como funcionaba antes)
+            if estado_juego == "mapa" and dialogo_npc_activo and event.key == pygame.K_q:
+                dialogo_npc_indice = max(0, dialogo_npc_indice - 1)
+                continue
+
             if estado_juego == "mapa" and panel_npc_activo and event.key == pygame.K_q:
                 if panel_npc_submenu_activo:
                     panel_npc_submenu_activo = False
@@ -962,6 +1065,11 @@ while True:
                     panel_npc_titulo = f"NPC {str(panel_npc_modo).upper()}"
                     panel_npc_indice = 0
                 else:
+                    # Al salir del panel principal con Q, volver al dialogo base del NPC.
+                    if panel_npc_dialogo_lineas:
+                        dialogo_npc_lineas = list(panel_npc_dialogo_lineas)
+                        dialogo_npc_indice = 0
+                        dialogo_npc_activo = True
                     panel_npc_activo = False
                     panel_npc_opciones = []
                     panel_npc_indice = 0
@@ -978,6 +1086,7 @@ while True:
                         heroe_lider = grupo_heroes[0] if grupo_heroes else None
 
                         if panel_npc_submenu_activo and heroe_lider and panel_npc_submenu_opciones:
+                            panel_npc_indice = max(0, min(panel_npc_indice, len(panel_npc_submenu_opciones) - 1))
                             opcion_data = panel_npc_submenu_opciones[panel_npc_indice]
                             cantidad = int(opcion_data.get("cantidad_seleccionada", 1))
                             res = ejecutar_accion_submenu(
@@ -1002,7 +1111,10 @@ while True:
                                     panel_npc_submenu_opciones = list(rebuild.get("opciones", []))
                                     panel_npc_opciones = [str(op.get("texto", "-")) for op in panel_npc_submenu_opciones]
                                     panel_npc_titulo = str(rebuild.get("titulo", panel_npc_titulo))
-                                    # NO resetear panel_npc_indice; mantener en el mismo item
+                                    if panel_npc_submenu_opciones:
+                                        panel_npc_indice = max(0, min(panel_npc_indice, len(panel_npc_submenu_opciones) - 1))
+                                    else:
+                                        panel_npc_indice = 0
 
                             if res.get("cerrar_submenu"):
                                 panel_npc_submenu_activo = False
@@ -1016,7 +1128,14 @@ while True:
                             res = ejecutar_accion_panel(panel_npc_modo, accion, panel_npc_id)
 
                             submenu = str(res.get("abrir_submenu", "") or "").lower()
-                            if submenu and heroe_lider:
+                            
+                            # ESPECIAL: Si es "mejorar" en herrero, abrir pantalla visual
+                            if submenu == "mejorar" and panel_npc_modo == "herrero" and heroe_lider:
+                                mi_pantalla_mejora_herrero = PantallaMejoraHerrero(ANCHO, ALTO)
+                                mi_pantalla_mejora_herrero.actualizar_equipo(heroe_lider, EQUIPO_DB)
+                                panel_npc_activo = False
+                                estado_juego = "pantalla_mejora_herrero"
+                            elif submenu and heroe_lider:
                                 sub = construir_submenu(
                                     panel_npc_modo,
                                     submenu,
@@ -1026,7 +1145,7 @@ while True:
                                 )
                                 if sub.get("ok"):
                                     panel_npc_submenu_activo = True
-                                    panel_npc_submenu_tipo = submenu
+                                    panel_npc_submenu_tipo = str(sub.get("submenu", submenu) or submenu)
                                     panel_npc_submenu_opciones = list(sub.get("opciones", []))
                                     panel_npc_opciones = [str(op.get("texto", "-")) for op in panel_npc_submenu_opciones]
                                     panel_npc_titulo = str(sub.get("titulo", f"NPC {str(panel_npc_modo).upper()}"))
@@ -1188,6 +1307,7 @@ while True:
                         "magias": heroe.magias,
                         "inventario": heroe.inventario,
                         "equipo": heroe.equipo,
+                        "mejoras_equipo": getattr(heroe, "mejoras_equipo", {}),
                         "oro": heroe.oro,
                         "nivel": heroe.nivel,
                         "pos_x": heroe.heroe_rect.x,
@@ -1217,7 +1337,7 @@ while True:
             heroe_lider = grupo_heroes[0] 
 
             # Mientras dialogo/panel NPC esta activo, se bloquea movimiento del heroe
-            if not dialogo_npc_activo and not panel_npc_activo:
+            if not dialogo_npc_activo and not panel_npc_activo and estado_juego != "pantalla_mejora_herrero":
                 heroe_lider.update(teclas, mi_mapa.mapa_img, mi_mapa.muros)
             
             mi_mapa.update_camara(heroe_lider)
@@ -1305,7 +1425,7 @@ while True:
         if batalla_actual: batalla_actual.draw(PANTALLA) 
 
     # --- ¡BLOQUE CORREGIDO! (Desanidado) ---
-    elif estado_juego == "menu_pausa" or estado_juego == "slots_guardar" or estado_juego == "pantalla_estado" or estado_juego == "pantalla_equipo" or estado_juego == "pantalla_inventario" or estado_juego == "pantalla_habilidades":
+    elif estado_juego == "menu_pausa" or estado_juego == "slots_guardar" or estado_juego == "pantalla_estado" or estado_juego == "pantalla_equipo" or estado_juego == "pantalla_inventario" or estado_juego == "pantalla_habilidades" or estado_juego == "pantalla_mejora_herrero":
         # 1. Dibujar el fondo del mapa (pausado)
         if mi_mapa and grupo_heroes: 
             heroe_lider = grupo_heroes[0] 
@@ -1337,6 +1457,12 @@ while True:
         # 7. Dibujar pantalla de habilidades (ENCIMA del menú de pausa)
         if estado_juego == "pantalla_habilidades" and mi_pantalla_habilidades:
             mi_pantalla_habilidades.draw(PANTALLA)
+        
+        # ¡NUEVO! - Dibujar pantalla de mejora del herrero
+        if estado_juego == "pantalla_mejora_herrero" and mi_pantalla_mejora_herrero:
+            if grupo_heroes:
+                heroe_lider = grupo_heroes[0]
+                mi_pantalla_mejora_herrero.dibujar(PANTALLA, heroe_lider, ITEMS_DB)
     # --- FIN BLOQUE CORREGIDO ---
             
     # --- (Aviso de Autoguardado - Sin cambios) ---

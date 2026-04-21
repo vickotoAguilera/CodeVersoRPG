@@ -106,5 +106,77 @@
     "efecto": "RESTAURA_TODO",
     "poder": 9999,
     "target": "Aliado"
+  },
+  "POLVO_CRISTAL": {
+    "id_item": "POLVO_CRISTAL",
+    "nombre": "Polvo de Cristal",
+    "descripcion": "Material de forja cristalino.",
+    "tipo": "Material",
+    "efecto": "NINGUNO",
+    "poder": 0,
+    "target": "Ninguno"
+  },
+  "FIBRA_CUERO": {
+    "id_item": "FIBRA_CUERO",
+    "nombre": "Fibra de Cuero",
+    "descripcion": "Material flexible para forja.",
+    "tipo": "Material",
+    "efecto": "NINGUNO",
+    "poder": 0,
+    "target": "Ninguno"
+  },
+  "MINERAL_HIERRO": {
+    "id_item": "MINERAL_HIERRO",
+    "nombre": "Mineral de Hierro",
+    "descripcion": "Mineral base para mejorar equipo.",
+    "tipo": "Material",
+    "efecto": "NINGUNO",
+    "poder": 0,
+    "target": "Ninguno"
+  },
+  "ESENCIA_FUEGO": {
+    "id_item": "ESENCIA_FUEGO",
+    "nombre": "Esencia de Fuego",
+    "descripcion": "Material elemental para forja.",
+    "tipo": "Material",
+    "efecto": "NINGUNO",
+    "poder": 0,
+    "target": "Ninguno"
+  },
+  "ESENCIA_AGUA": {
+    "id_item": "ESENCIA_AGUA",
+    "nombre": "Esencia de Agua",
+    "descripcion": "Material elemental para forja.",
+    "tipo": "Material",
+    "efecto": "NINGUNO",
+    "poder": 0,
+    "target": "Ninguno"
+  },
+  "FRAGMENTO_MADERA": {
+    "id_item": "FRAGMENTO_MADERA",
+    "nombre": "Fragmento de Madera",
+    "descripcion": "Material ligero de forja.",
+    "tipo": "Material",
+    "efecto": "NINGUNO",
+    "poder": 0,
+    "target": "Ninguno"
+  },
+  "PIEL_BESTIA": {
+    "id_item": "PIEL_BESTIA",
+    "nombre": "Piel de Bestia",
+    "descripcion": "Material resistente para forja.",
+    "tipo": "Material",
+    "efecto": "NINGUNO",
+    "poder": 0,
+    "target": "Ninguno"
+  },
+  "GEMA_ZAFIRO": {
+    "id_item": "GEMA_ZAFIRO",
+    "nombre": "Gema Zafiro",
+    "descripcion": "Material raro para forja avanzada.",
+    "tipo": "Material",
+    "efecto": "NINGUNO",
+    "poder": 0,
+    "target": "Ninguno"
   }
 }

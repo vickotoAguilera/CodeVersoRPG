@@ -1,7 +1,7 @@
 # Plan Fase Vendedor/Herrero V2
 
 Fecha inicio plan: 2026-04-20
-Estado: En planificacion activa
+Estado: En ejecucion parcial
 Orden de ejecucion: 1) Vendedor, 2) Herrero
 
 NPCs objetivo para pruebas iniciales:
@@ -78,13 +78,17 @@ Avance implementado en runtime actual (sin UI grande de dos columnas aun):
 
 ### 4.3 Checklist Herrero
 
-- [ ] Definir estructura de niveles de mejora por equipo.
-- [ ] Definir estructura de recetas de forja.
-- [ ] Crear UI grande de herrero (mejorar/forjar/vender).
-- [ ] Integrar comparador de stats Antes vs Despues.
-- [ ] Implementar consumo de oro/materiales.
-- [ ] Reflejar resultado en inventario/equipo.
-- [ ] Prueba manual completa del flujo herrero.
+- [x] Definir estructura de niveles de mejora por equipo. (El plan asume +1 nivel por mejora, y aumento dinámico de costo).
+- [x] Definir estructura de recetas de forja. (Ya existe `RECETAS_FORJA` en `src/npc_comercio_herrero.py`).
+- [x] Crear UI grande de herrero (mejorar/forjar/vender). (Implementada con glassmorphism oscuro y pop-up).
+- [x] Integrar comparador de stats Antes vs Despues. (Implementado visualmente).
+- [x] Implementar consumo de oro/materiales. (Módulo npc_comercio_herrero lo revisa dinámicamente).
+- [x] Reflejar resultado en inventario/equipo. (Descuenta mats correctos y actualiza el buff heroico).
+- [x] Corregir crash por consumo de materiales al mejorar. (Validacion defensiva para cantidades 0 y llaves faltantes).
+- [x] Definir limite de mejora por equipo. (Tope actual: +5).
+- [x] Actualizar recetas de forja a materiales del herrero. (Sin uso de eter/pociones en recetas base).
+- [x] Hacer scroll/legibilidad de UI de mejora. (Lista de equipos + detalle de materiales con texto envuelto).
+- [ ] Prueba manual completa del flujo herrero. (Requiere test en entorno de juego activo).
 
 ## 5) Mejora UX transversal
 

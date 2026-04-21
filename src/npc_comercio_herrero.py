@@ -14,23 +14,36 @@ PRECIOS_COMPRA_CONSUMIBLES = {
     "ELIXIR": 420,
 }
 
+MATERIALES_HERRERO = {
+    "POLVO_CRISTAL": 60,
+    "FIBRA_CUERO": 45,
+    "MINERAL_HIERRO": 75,
+    "ESENCIA_FUEGO": 90,
+    "ESENCIA_AGUA": 85,
+    "FRAGMENTO_MADERA": 35,
+    "PIEL_BESTIA": 110,
+    "GEMA_ZAFIRO": 150,
+}
+
+MAX_NIVEL_MEJORA = 5
+
 RECETAS_FORJA = [
     {
         "id": "forja_mandoble_hierro",
         "resultado": "MANDOBLE_HIERRO",
-        "materiales": {"ESPADA_COBRE": 1, "ESCUDO_MADERA": 1},
+        "materiales": {"MINERAL_HIERRO": 3, "FRAGMENTO_MADERA": 2, "POLVO_CRISTAL": 1},
         "costo_oro": 180,
     },
     {
         "id": "forja_collar_salud",
         "resultado": "COLLAR_SALUD",
-        "materiales": {"POCION_INTERMEDIA": 2, "ETER_INTERMEDIO": 1},
+        "materiales": {"FIBRA_CUERO": 3, "GEMA_ZAFIRO": 1, "ESENCIA_AGUA": 1},
         "costo_oro": 140,
     },
     {
         "id": "forja_anillo_agilidad",
         "resultado": "ANILLO_AGILIDAD",
-        "materiales": {"ETER_BASICO": 2, "ANTIDOTO": 1},
+        "materiales": {"POLVO_CRISTAL": 2, "ESENCIA_FUEGO": 1, "ESENCIA_AGUA": 1},
         "costo_oro": 120,
     },
 ]
@@ -41,7 +54,8 @@ def opciones_panel_por_modo(modo_npc: str) -> List[str]:
     if modo == "venta":
         return ["Comprar", "Vender", "Hablar", "Salir"]
     if modo == "herrero":
-        return ["Mejorar", "Forjar", "Hablar", "Salir"]
+        # Añadimos opción de comprar ítems al herrero además de vender materiales, mejorar y forjar
+        return ["Comprar", "Vender", "Mejorar", "Forjar", "Hablar", "Salir"]
     return ["Hablar", "Salir"]
 
 
@@ -72,8 +86,8 @@ def _precio_venta_item(id_item: str, items_db: Dict[str, dict], equipo_db: Dict[
     return max(20, puntaje * 12)
 
 
-def _costo_mejora_equipo(item_data: Dict[str, object]) -> int:
-    nivel = int(item_data.get("nivel_mejora", 0) or 0)
+def _costo_mejora_equipo(nivel_mejora: int) -> int:
+    nivel = max(0, int(nivel_mejora or 0))
     return 120 + (nivel * 70)
 
 
@@ -96,6 +110,35 @@ def _formatear_materiales(materiales: Dict[str, int], items_db: Dict[str, dict],
         nombre = items_db.get(id_item, {}).get("nombre") or equipo_db.get(id_item, {}).get("nombre") or id_item
         partes.append(f"{nombre} x{cantidad}")
     return ", ".join(partes)
+
+
+def _asegurar_mejoras_heroe(heroe) -> Dict[str, Dict[str, object]]:
+    mejoras = getattr(heroe, "mejoras_equipo", None)
+    if not isinstance(mejoras, dict):
+        mejoras = {}
+        heroe.mejoras_equipo = mejoras
+    return mejoras
+
+
+def _get_mejora_equipo_heroe(heroe, id_equipo: str) -> Dict[str, object]:
+    mejoras = _asegurar_mejoras_heroe(heroe)
+    raw = mejoras.get(id_equipo, {}) if isinstance(mejoras, dict) else {}
+    if not isinstance(raw, dict):
+        raw = {}
+
+    nivel = int(raw.get("nivel_mejora", 0) or 0)
+    raw_bonus = raw.get("stats_bonus", {})
+    stats_bonus = {}
+    if isinstance(raw_bonus, dict):
+        for k, v in raw_bonus.items():
+            stats_bonus[str(k)] = int(v or 0)
+
+    data = {
+        "nivel_mejora": nivel,
+        "stats_bonus": stats_bonus,
+    }
+    mejoras[id_equipo] = data
+    return data
 
 
 def construir_submenu(
@@ -144,8 +187,35 @@ def construir_submenu(
             "opciones": opciones,
             "mensaje": f"Oro: {heroe.oro}G | [+/-] cantidad | Selecciona item para comprar.",
         }
+    # Nuevo submenu para que el herrero venda ítems al jugador
+    if modo == "herrero" and a == "comprar":
+        # El herrero vende exclusivamente materiales de forja
+        stock = list(MATERIALES_HERRERO.keys())
+        opciones = []
+        for id_item in stock:
+            if id_item not in items_db:
+                continue
+            nombre = items_db[id_item].get("nombre", id_item)
+            precio = _precio_venta_item(id_item, items_db, equipo_db)
+            opciones.append(
+                {
+                    "accion": "comprar_item",
+                    "id_item": id_item,
+                    "precio": precio,
+                    "cantidad_seleccionada": 1,
+                    "texto": f"{nombre} - {precio}G [x1]",
+                }
+            )
+        opciones.append({"accion": "volver", "texto": "Volver"})
+        return {
+            "ok": True,
+            "submenu": "comprar",
+            "titulo": "Herrero - Comprar Ítems",
+            "opciones": opciones,
+            "mensaje": f"Oro: {heroe.oro}G | [+/-] cantidad | Selecciona ítem para comprar.",
+        }
 
-    if modo == "venta" and a == "vender":
+    if (modo == "venta" or modo == "herrero") and a == "vender":
         opciones = []
         for id_item, cantidad in sorted(heroe.inventario.items()):
             if cantidad <= 0:
@@ -175,6 +245,30 @@ def construir_submenu(
             "mensaje": f"Oro: {heroe.oro}G | [+/-] cantidad | Selecciona item para vender.",
         }
 
+    if modo == "herrero" and a in ("vender", "vender_materiales"):
+        opciones = []
+        for id_material, precio in MATERIALES_HERRERO.items():
+            # Buscar nombre en items_db o equipo_db
+            nombre = items_db.get(id_material, {}).get("nombre") or equipo_db.get(id_material, {}).get("nombre") or id_material
+            opciones.append(
+                {
+                    "accion": "comprar_material",
+                    "id_material": id_material,
+                    "precio": precio,
+                    "cantidad_seleccionada": 1,
+                    "texto": f"{nombre} - {precio}G [x1]",
+                }
+            )
+
+        opciones.append({"accion": "volver", "texto": "Volver"})
+        return {
+            "ok": True,
+            "submenu": "vender",
+            "titulo": "Herrero - Vender Materiales",
+            "opciones": opciones,
+            "mensaje": f"Oro: {heroe.oro}G | [+/-] cantidad | Selecciona material para comprar.",
+        }
+
     if modo == "herrero" and a == "mejorar":
         opciones = []
         ids_vistos = set()
@@ -185,8 +279,20 @@ def construir_submenu(
             data = equipo_db.get(id_equipo)
             if not data:
                 continue
-            costo = _costo_mejora_equipo(data)
-            nivel = int(data.get("nivel_mejora", 0) or 0)
+            mejora_heroe = _get_mejora_equipo_heroe(heroe, id_equipo)
+            nivel = int(mejora_heroe.get("nivel_mejora", 0) or 0)
+            if nivel >= MAX_NIVEL_MEJORA:
+                nombre = data.get("nombre", id_equipo)
+                opciones.append(
+                    {
+                        "accion": "max_nivel",
+                        "id_equipo": id_equipo,
+                        "costo": 0,
+                        "texto": f"{nombre} Nv.{nivel} - MAX",
+                    }
+                )
+                continue
+            costo = _costo_mejora_equipo(nivel)
             nombre = data.get("nombre", id_equipo)
             opciones.append(
                 {
@@ -259,6 +365,10 @@ def ejecutar_accion_panel(modo_npc: str, accion: str, npc_id: int) -> Dict[str, 
         return {"ok": True, "cerrar_panel": True, "mensaje": "Panel cerrado."}
 
     if modo == "herrero":
+        if a == "comprar":
+            return {"ok": True, "abrir_submenu": "comprar", "mensaje": f"NPC {npc_id}: abre catálogo de materiales."}
+        if a == "vender":
+            return {"ok": True, "abrir_submenu": "vender", "mensaje": f"NPC {npc_id}: abre catálogo de materiales."}
         if a in ("mejorar", "forjar"):
             return {"ok": True, "abrir_submenu": a, "mensaje": f"NPC {npc_id}: abre {a}."}
         if a == "hablar":
@@ -288,7 +398,7 @@ def ejecutar_accion_submenu(
     submenu = str(submenu_tipo or "").lower()
     cantidad = max(1, int(cantidad))  # Asegurar mínimo 1
 
-    if accion in ("volver", "sin_items", "sin_equipo", "sin_recetas"):
+    if accion in ("volver", "sin_items", "sin_equipo", "sin_recetas", "max_nivel"):
         return {"ok": True, "cerrar_submenu": True, "mensaje": "Volviendo al menu principal."}
 
     if modo == "venta" and submenu == "comprar" and accion == "comprar_item":
@@ -310,8 +420,26 @@ def ejecutar_accion_submenu(
             "mensaje": f"Compraste {nombre} x{cantidad} por {precio_total}G. Oro restante: {heroe.oro}G.",
             "refrescar_submenu": True,
         }
+    # Nuevo manejo para compra de ítems en el herrero
+    if modo == "herrero" and submenu in ("comprar", "comprar_herrero") and accion == "comprar_item":
+        id_item = str(opcion.get("id_item", ""))
+        precio_unitario = int(opcion.get("precio", 0) or 0)
+        precio_total = precio_unitario * cantidad
+        if precio_unitario <= 0 or not id_item:
+            return {"ok": False, "mensaje": "Item invalido."}
+        if heroe.oro < precio_total:
+            return {"ok": False, "mensaje": f"No tienes oro suficiente. Necesitas {precio_total}G, tienes {heroe.oro}G."}
+        heroe.oro -= precio_total
+        heroe.agregar_item(id_item, cantidad)
+        nombre = items_db.get(id_item, {}).get("nombre", id_item)
+        return {
+            "ok": True,
+            "mensaje": f"Compraste {nombre} x{cantidad} por {precio_total}G. Oro restante: {heroe.oro}G.",
+            "refrescar_submenu": True,
+        }
 
-    if modo == "venta" and submenu == "vender" and accion == "vender_item":
+    # Nuevo manejo para venta en cualquier modo (normal o herrero)
+    if (modo == "venta" or modo == "herrero") and submenu == "vender" and accion == "vender_item":
         id_item = str(opcion.get("id_item", ""))
         precio_unitario = int(opcion.get("precio", 0) or 0)
         precio_total = precio_unitario * cantidad
@@ -336,20 +464,47 @@ def ejecutar_accion_submenu(
         if not item_data:
             return {"ok": False, "mensaje": "Equipo invalido."}
 
+        mejora_heroe = _get_mejora_equipo_heroe(heroe, id_equipo)
+        nivel_actual = int(mejora_heroe.get("nivel_mejora", 0) or 0)
+        if nivel_actual >= MAX_NIVEL_MEJORA:
+            nombre = item_data.get("nombre", id_equipo)
+            return {"ok": False, "mensaje": f"{nombre} ya está en nivel maximo (+{MAX_NIVEL_MEJORA})."}
+
         costo = int(opcion.get("costo", 0) or 0)
+        materiales = opcion.get("materiales", {})
+        
         if heroe.oro < costo:
             return {"ok": False, "mensaje": f"No tienes oro para mejorar ({costo}G)."}
+            
+        faltantes = []
+        for mat_id, mat_cant in materiales.items():
+            if int(mat_cant or 0) <= 0:
+                continue
+            if not heroe.tiene_item(mat_id, mat_cant):
+                mat_name = items_db.get(mat_id, {}).get("nombre", mat_id)
+                faltantes.append(f"{mat_name} x{mat_cant}")
+                
+        if faltantes:
+            return {"ok": False, "mensaje": f"Faltan materiales: {', '.join(faltantes)}"}
 
+        # Consumir recursos
         heroe.oro -= costo
-        item_data.setdefault("stats", {})
+        for mat_id, mat_cant in materiales.items():
+            if int(mat_cant or 0) <= 0:
+                continue
+            heroe.usar_item(mat_id, mat_cant)
+            
+        # Aplicar mejora
         stat_mejora = _stat_principal_equipo(item_data)
-        item_data["stats"][stat_mejora] = int(item_data["stats"].get(stat_mejora, 0) or 0) + 1
-        item_data["nivel_mejora"] = int(item_data.get("nivel_mejora", 0) or 0) + 1
+        bonus_stats = mejora_heroe.setdefault("stats_bonus", {})
+        bonus_stats[stat_mejora] = int(bonus_stats.get(stat_mejora, 0) or 0) + 1
+        mejora_heroe["nivel_mejora"] = int(mejora_heroe.get("nivel_mejora", 0) or 0) + 1
         nombre = item_data.get("nombre", id_equipo)
+        nivel_actual = int(mejora_heroe.get("nivel_mejora", 0) or 0)
 
         return {
             "ok": True,
-            "mensaje": f"{nombre} mejorado (+1 {stat_mejora}). Oro restante: {heroe.oro}G.",
+            "mensaje": f"{nombre} a Nv.{nivel_actual}. Oro restante: {heroe.oro}G.",
             "refrescar_submenu": True,
         }
 
@@ -363,6 +518,8 @@ def ejecutar_accion_submenu(
 
         faltantes = []
         for id_item, cant_material in materiales.items():
+            if int(cant_material or 0) <= 0:
+                continue
             if not heroe.tiene_item(id_item, int(cant_material)):
                 nombre = items_db.get(id_item, {}).get("nombre") or equipo_db.get(id_item, {}).get("nombre") or id_item
                 faltantes.append(f"{nombre} x{cant_material}")
@@ -372,6 +529,8 @@ def ejecutar_accion_submenu(
 
         heroe.oro -= costo
         for id_item, cant_material in materiales.items():
+            if int(cant_material or 0) <= 0:
+                continue
             heroe.usar_item(id_item, int(cant_material))
         heroe.agregar_item(id_resultado, 1)
 
@@ -379,6 +538,25 @@ def ejecutar_accion_submenu(
         return {
             "ok": True,
             "mensaje": f"Forja exitosa: {nombre_res}. Oro restante: {heroe.oro}G.",
+            "refrescar_submenu": True,
+        }
+
+    if modo == "herrero" and submenu in ("vender", "vender_materiales") and accion == "comprar_material":
+        id_material = str(opcion.get("id_material", ""))
+        precio_unitario = int(opcion.get("precio", 0) or 0)
+        precio_total = precio_unitario * cantidad
+        
+        if precio_unitario <= 0 or not id_material:
+            return {"ok": False, "mensaje": "Material invalido."}
+        if heroe.oro < precio_total:
+            return {"ok": False, "mensaje": f"No tienes oro suficiente. Necesitas {precio_total}G, tienes {heroe.oro}G."}
+
+        heroe.oro -= precio_total
+        heroe.agregar_item(id_material, cantidad)
+        nombre = items_db.get(id_material, {}).get("nombre") or equipo_db.get(id_material, {}).get("nombre") or id_material
+        return {
+            "ok": True,
+            "mensaje": f"Compraste {nombre} x{cantidad} por {precio_total}G. Oro restante: {heroe.oro}G.",
             "refrescar_submenu": True,
         }
 
