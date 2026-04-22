@@ -26,13 +26,18 @@ from pathlib import Path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
 from config import (
-    ANCHO_PANTALLA, ALTO_PANTALLA, FPS, DATABASE_PATH,
-    MAPAS_PATH, HEROES_SPRITES_PATH, MONSTRUOS_SPRITES_PATH
+    DATABASE_PATH,
+    HEROES_SPRITES_PATH, MONSTRUOS_SPRITES_PATH
 )
 
 # ============================================================================
 # CONSTANTES EDITOR
 # ============================================================================
+
+# Dimensiones de pantalla
+ANCHO_PANTALLA = 800
+ALTO_PANTALLA = 600
+FPS = 60
 
 TITULO_VENTANA = "Gestor NPC Evento Batalla - Editor Canvas Doble (v1)"
 
@@ -142,11 +147,25 @@ class EditorCanvasDoble:
     def _cargar_mapas_disponibles(self):
         """Cargar lista de mapas JSON disponibles."""
         mapas = []
-        if os.path.exists(MAPAS_PATH):
-            for archivo in os.listdir(MAPAS_PATH):
+        # Buscar en mapas_unificados primero
+        ruta_unificados = os.path.join(DATABASE_PATH, 'mapas_unificados')
+        if os.path.exists(ruta_unificados):
+            for archivo in os.listdir(ruta_unificados):
+                if archivo.endswith('.json') and 'mapa_' in archivo:
+                    mapa_nombre = archivo.replace('.json', '')
+                    mapas.append(mapa_nombre)
+        
+        if mapas:
+            return sorted(mapas)
+        
+        # Fallback: buscar en mapas/mundo/
+        ruta_mundo = os.path.join(DATABASE_PATH, 'mapas', 'mundo')
+        if os.path.exists(ruta_mundo):
+            for archivo in os.listdir(ruta_mundo):
                 if archivo.endswith('.json'):
                     mapa_nombre = archivo.replace('.json', '')
                     mapas.append(mapa_nombre)
+        
         return sorted(mapas)
     
     def _cargar_sprites_en_cache(self):
@@ -220,7 +239,12 @@ class EditorCanvasDoble:
     
     def _cargar_mapa(self, nombre_mapa):
         """Cargar archivo JSON de mapa y preparar surface."""
-        ruta_mapa = os.path.join(MAPAS_PATH, f"{nombre_mapa}.json")
+        # Intentar cargar desde mapas_unificados primero
+        ruta_mapa = os.path.join(DATABASE_PATH, 'mapas_unificados', f"{nombre_mapa}.json")
+        if not os.path.exists(ruta_mapa):
+            # Fallback a mapas/mundo/
+            ruta_mapa = os.path.join(DATABASE_PATH, 'mapas', 'mundo', f"{nombre_mapa}.json")
+        
         if not os.path.exists(ruta_mapa):
             print(f"[ERROR] Mapa no encontrado: {ruta_mapa}")
             return False
