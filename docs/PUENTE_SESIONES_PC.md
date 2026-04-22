@@ -2,6 +2,8 @@
 
 Fecha de ultima actualizacion: 2026-04-20 (PC Casa)
 
+Estado de sesion: Cierre de jornada, continuar en proxima sesion
+
 Objetivo de este archivo:
 
 - Este es el documento oficial para traspasar contexto entre computadores.
@@ -247,6 +249,12 @@ Nota importante:
 - Paso critico 3: guardar/cargar layouts globales por cantidad (1..5).
 - Paso alto 1: drag de cajas y override de boss centrado.
 - Paso alto 2: enlace NPC evento (mundo) con NPC evento batalla (preview derecho).
+
+9. Regla de seguimiento cruzado (OBLIGATORIA):
+
+- Si se avanza algo en la otra PC, registrar ese avance aqui mismo en seccion 2 (resumen tecnico) y seccion 4 (archivos tocados).
+- Marcar el progreso del plan en `docs/PLAN_NPC_EVENTO_BATALLA_CANVAS_DOBLE.md` usando casillas `[x]` para lo completado.
+- Antes de cerrar cada PC: commit + push + nota corta de validacion.
 
 ---
 

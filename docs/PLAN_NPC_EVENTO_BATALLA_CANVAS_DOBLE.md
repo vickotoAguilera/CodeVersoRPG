@@ -3,6 +3,8 @@
 Fecha: 2026-04-22
 Estado: Plan listo para implementacion
 
+Seguimiento: Este plan se actualiza desde cualquier PC. Lo completado se marca con `[x]` y se refleja tambien en `docs/PUENTE_SESIONES_PC.md`.
+
 ## 1) Objetivo
 
 Crear un editor nuevo (py + bat) para configurar NPC de evento de batalla usando dos canvas en una sola pantalla:
@@ -38,9 +40,9 @@ La batalla real se ejecuta en runtime del juego; este editor solo prepara datos 
 
 - Se habilita posicion personalizada para boss (slot unico o principal) sin perder layout global.
 - Prioridad de uso:
-  1) Override del encuentro actual.
-  2) Layout global por cantidad.
-  3) Layout por defecto del sistema.
+  1. Override del encuentro actual.
+  2. Layout global por cantidad.
+  3. Layout por defecto del sistema.
 
 ## 4) Flujo de edicion en el nuevo editor
 
@@ -108,6 +110,15 @@ La batalla real se ejecuta en runtime del juego; este editor solo prepara datos 
 3. Atajos extra no criticos.
 
 ## 8) Plan de implementacion por pasos
+
+Checklist rapido de ejecucion (tachar al completar):
+
+- [ ] Paso 1 base completado (py + bat + marco UI + carga mapa izquierdo)
+- [ ] Paso 2 mundo completado (arrastre NPC + guardado posicion/sprite)
+- [ ] Paso 3 batalla preview completado (slots 1..5 + auto-layout heroes)
+- [ ] Paso 4 layout global/override completado (global + boss centrado)
+- [ ] Paso 5 enlace/dialogo completado (Pelear ahora / Aun no)
+- [ ] Paso 6 integracion runtime completado (hook evento -> batalla)
 
 ### Paso 1 (base)
 
