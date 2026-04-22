@@ -13,7 +13,12 @@ Fecha de actualizacion: 2026-04-20
 Plan activo de implementacion (obligatorio en esta fase):
 
 - `docs/PLAN_FASE_VENDEDOR_HERRERO_V2.md`
+- `docs/PLAN_NPC_EVENTO_BATALLA_CANVAS_DOBLE.md`
 - Orden: 1) Vendedor, 2) Herrero
+
+Siguiente foco de implementacion (ya definido):
+
+- NPC evento batalla con editor de canvas doble (mundo + preview batalla), layouts globales y override para boss centrado.
 
 ## 1) Archivos nuevos de esta semana (.bat y .py)
 

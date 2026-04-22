@@ -49,6 +49,20 @@ Arreglo reciente (2026-04-20):
 - Verificacion: portal bidireccional pueblo_final <-> tienda_items carga correctamente.
 - Runtime ahora encuentra portal cuando se carga el mapa.
 
+Validacion manual final (2026-04-21):
+
+- Vendedor verificado en runtime: cantidad, botones, tecla `ESPACIO`, total dinamico y compra/venta por lote funcionando.
+- Herrero verificado en runtime: mejorar y forjar aplican costos, materiales y mensajes correctos.
+- Persistencia de seleccion verificada: no se pierde el foco al confirmar transaccion.
+- Portal y regreso al mapa verificados sin errores visibles.
+
+Nuevo plan aprobado (2026-04-22):
+
+- Se crea fase de NPC evento batalla con editor de canvas doble.
+- Documento oficial de esta fase: `docs/PLAN_NPC_EVENTO_BATALLA_CANVAS_DOBLE.md`.
+- Regla nueva: heroes usan distribucion espejo por cantidad (1..5), con cajas reacomodables y guardado global.
+- Se agrega soporte de override por encuentro para boss centrado.
+
 Avance reciente adicional (2026-04-20, UI comercio):
 
 - Oro inicial de heroes ajustado a 100000 para pruebas de flujo de compra/venta.
@@ -66,7 +80,7 @@ Avance adicional Critico (UI Herrero Mejorada V2):
 - **Tienda Herrero Arreglada**: Ahora el Herrero vende `MATERIALES_HERRERO` en lugar de pociones en la pestaña "Comprar".
 - **Herrero y materiales**: La opción "Vender" del herrero abre el catálogo de materiales de forja para comprarlos, y la venta de inventario sigue disponible en el flujo compartido.
 - **Mochila+Equipo en Herrero**: La UI de "Mejorar" (en `src/pantalla_mejora_herrero.py`) lista tanto el equipo en la **Mochila** como el **Equipado**.
-- **Pop-Up Details Herrero**: Seleccionar un arma a mejorar abre un panel lateral con *Glassmorphism* que compara stats e indica costo real en Oro y Materiales (resta inventario).
+- **Pop-Up Details Herrero**: Seleccionar un arma a mejorar abre un panel lateral con _Glassmorphism_ que compara stats e indica costo real en Oro y Materiales (resta inventario).
 - **Adiós Pantalla Negra**: Se engancharon correctamente las subfunciones de la Pantalla de Mejora a `main.py`, eliminando loops o returns sin procesar que resultaban en crasheos al darle ESC/Mejorar.
 - **Estabilidad de mejora**: Corregido `KeyError` en consumo de materiales al mejorar (cantidades 0 ignoradas de forma segura).
 - **Limite de mejora**: Se fijo tope de mejora por equipo en `+5` y se informa cuando un equipo llega a maximo.
@@ -219,6 +233,20 @@ Nota importante:
 - que quedo funcionando,
 - que falta,
 - validacion realizada.
+
+7. Estado actual tras validacion:
+
+- Comercio vendedor: cerrado y validado.
+- Herrero: cerrado y validado.
+- Siguiente foco sugerido: ejecutar `docs/PLAN_NPC_EVENTO_BATALLA_CANVAS_DOBLE.md`.
+
+8. Orden sugerido de arranque para la nueva fase:
+
+- Paso critico 1: crear `gestor_npc_evento_batalla_v1.py` y su `.bat`.
+- Paso critico 2: habilitar canvas doble (mundo + preview batalla) con grilla alineada al juego.
+- Paso critico 3: guardar/cargar layouts globales por cantidad (1..5).
+- Paso alto 1: drag de cajas y override de boss centrado.
+- Paso alto 2: enlace NPC evento (mundo) con NPC evento batalla (preview derecho).
 
 ---
 
