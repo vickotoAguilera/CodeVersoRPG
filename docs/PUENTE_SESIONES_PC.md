@@ -1,8 +1,8 @@
 # Puente de Sesiones entre PCs (Trabajo <-> Casa)
 
-Fecha de ultima actualizacion: 2026-04-20 (PC Casa)
+Fecha de ultima actualizacion: 2026-04-22 (PC Trabajo)
 
-Estado de sesion: Cierre de jornada, continuar en proxima sesion
+Estado de sesion: Avance activo en fase NPC evento batalla
 
 Objetivo de este archivo:
 
@@ -45,6 +45,10 @@ Regla de uso obligatorio:
   - `src/database/npc_evento_batalla_por_mapa/` → Directorio para overrides por mapa.
   - `src/database/npc_evento_batalla_por_mapa/TEMPLATE_EJEMPLO.json` → Template de referencia.
 - Paso 1 completado: marco UI, carga de mapas, carga de sprites de monstruos/heroes, dibujo de slots, guardado de config por mapa.
+- Paso 3 funcional: slots 1..5, asignacion de enemigos a slots y reacomodo por drag de cajas en canvas batalla.
+- Mejora UX aplicada: modo `Canvas Batalla XL` para ampliar area de posicionamiento y evitar vista comprimida.
+- Fix aplicado: corregido `ImportError` por constantes de pantalla no presentes en `src/config.py` (definicion local en el editor).
+- Fix aplicado: corregidas rutas de carga de mapas (uso de `src/database/mapas_unificados` con fallback).
 - Fase anterior (Vendedor/Herrero): cerrada y validada en sesion previa.
 
 Arreglo reciente (2026-04-20):
@@ -151,8 +155,14 @@ Archivos tocados en la fase actual (segun docs + integracion verificada):
 - `src/npc_comercio_herrero.py`
 - `src/npc_eventos_batalla.py`
 - `gestor_interfaz_npc_v1.py`
-- `docs/PLAN_SIGUIENTE_SESION_OBJETOS_INTERACCION.md`
+- `gestor_npc_evento_batalla_v1.py`
+- `ejecutar_gestor_npc_evento_batalla_v1.bat`
+- `src/database/npc_evento_batalla_layouts.json`
+- `src/database/npc_evento_batalla_por_mapa/TEMPLATE_EJEMPLO.json`
+- `docs/PLAN_CERRADO_OBJETOS_INTERACCION.md`
 - `docs/HOJA_RUTA_SISTEMAS_NUEVOS_NPC_BATALLA.md`
+- `docs/PLAN_NPC_EVENTO_BATALLA_CANVAS_DOBLE.md`
+- `docs/PUENTE_SESIONES_PC.md`
 
 Archivos tocados en el ultimo ajuste de comercio (2026-04-20):
 
@@ -170,7 +180,7 @@ Archivos tocados en el ultimo ajuste de estabilidad/UI de herrero (2026-04-20):
 - `src/npc_comercio_herrero.py`
 - `src/pantalla_mejora_herrero.py`
 - `src/database/items_db.json`
-- `docs/PLAN_SIGUIENTE_SESION_OBJETOS_INTERACCION.md`
+- `docs/PLAN_CERRADO_OBJETOS_INTERACCION.md`
 - `docs/PUENTE_SESIONES_PC.md`
 - `docs/PLAN_FASE_VENDEDOR_HERRERO_V2.md`
 - `docs/HOJA_RUTA_SISTEMAS_NUEVOS_NPC_BATALLA.md`
@@ -225,12 +235,12 @@ Nota importante:
 
 1. Hacer pull.
 2. Abrir este archivo (`docs/PUENTE_SESIONES_PC.md`) antes de tocar codigo.
-3. Abrir y seguir `docs/PLAN_FASE_VENDEDOR_HERRERO_V2.md`.
-4. Ejecutar primero checklist de Vendedor y luego checklist de Herrero.
-5. NPC objetivo para comenzar ya:
+3. Abrir y seguir `docs/PLAN_NPC_EVENTO_BATALLA_CANVAS_DOBLE.md`.
+4. Continuar por orden:
 
-- Vendedor: `mapa_tienda_items`, NPC id `2`, modo `venta`.
-- Herrero (despues): `mapa_herrero`, NPC id `1`, modo `herrero`.
+- Paso 2 mundo: arrastre NPC en canvas izquierdo y guardado de posicion/sprite.
+- Paso 4 layout: reforzar guardado/carga override con prioridad `override -> global -> default`.
+- Paso 5 enlace: guardar decision final `Pelear ahora / Aun no`.
 
 6. Dejar en este puente:
 
@@ -243,7 +253,8 @@ Nota importante:
 
 - Comercio vendedor: cerrado y validado.
 - Herrero: cerrado y validado.
-- Siguiente foco sugerido: ejecutar `docs/PLAN_NPC_EVENTO_BATALLA_CANVAS_DOBLE.md`.
+- NPC evento batalla: Paso 1 completado + Paso 3 funcional + modo Canvas Batalla XL aplicado.
+- Siguiente foco sugerido: completar Paso 2 y cierre de Paso 4.
 
 8. Orden sugerido de arranque para la nueva fase:
 

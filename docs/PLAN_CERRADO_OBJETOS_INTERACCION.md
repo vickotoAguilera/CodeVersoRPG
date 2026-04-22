@@ -1,4 +1,6 @@
-# Plan siguiente sesion: Objetos interactivos
+# Plan cerrado: Objetos interactivos
+
+Estado: Cerrado y reemplazado por la fase NPC evento batalla.
 
 ## Documento puente entre PCs
 

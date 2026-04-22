@@ -8,13 +8,13 @@ Referencia oficial para traspaso de sesion:
 
 Regla: antes de pasar de PC Trabajo a PC Casa (o viceversa), actualizar ese archivo con resumen de la sesion.
 
-Fecha de actualizacion: 2026-04-20
+Fecha de actualizacion: 2026-04-22
 
 Plan activo de implementacion (obligatorio en esta fase):
 
 - `docs/PLAN_FASE_VENDEDOR_HERRERO_V2.md`
 - `docs/PLAN_NPC_EVENTO_BATALLA_CANVAS_DOBLE.md`
-- Orden: 1) Vendedor, 2) Herrero
+- Estado de orden: Vendedor y Herrero cerrados; foco actual en NPC evento batalla.
 
 Siguiente foco de implementacion (ya definido):
 
@@ -31,6 +31,7 @@ Siguiente foco de implementacion (ya definido):
 - ejecutar_gestor_portales_interaccion_v2.bat
 - ejecutar_gestor_portales_interaccion_v2_editor.bat
 - ejecutar_interfaz_npc.bat
+- ejecutar_gestor_npc_evento_batalla_v1.bat
 - iniciar_juego.bat
 - visualizar_recursos.bat
 
@@ -40,6 +41,7 @@ Siguiente foco de implementacion (ya definido):
 - descargar_nes.py
 - descargar_nes_v2.py
 - gestor_interfaz_npc_v1.py
+- gestor_npc_evento_batalla_v1.py
 - gestor_objetos_interaccion_v1.py
 - gestor_portales_interaccion_v2.py
 - iniciar_interfaz_npc.py
@@ -226,7 +228,9 @@ Orden recomendado para no romper nada y avanzar modular:
 - Se ordeno parte del repo archivando respaldos y duplicados.
 - En herrero runtime: compra/venta/mejorar/forjar operativos con validaciones, tope `+5`, recetas por materiales y panel de mejora con scroll/texto envuelto.
 - En dialogos NPC runtime: tecla `Q` vuelve a retroceder lineas en conversacion y al cerrar panel retorna al dialogo base.
-- Proximo foco: cerrar runtime NPC completo; luego pasar a batalla/magias.
+- En editor NPC evento batalla: canvas doble operativo, slots enemigos/heroes, selector de cantidad, asignacion por catalogo y guardado base.
+- Mejora UX clave en edicion: modo `Canvas Batalla XL` para ajustar posiciones con precision y sin vista comprimida.
+- Proximo foco: completar Paso 2 (arrastre NPC en mundo) y luego enlace final a runtime de batalla.
 
 ## 7) Documento de referencia de contexto
 

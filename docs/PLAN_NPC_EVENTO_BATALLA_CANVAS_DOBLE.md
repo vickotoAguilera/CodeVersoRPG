@@ -1,7 +1,7 @@
 # Plan NPC Evento Batalla - Canvas Doble
 
 Fecha: 2026-04-22
-Estado: Plan listo para implementacion
+Estado: En implementacion (Paso 1 completado, Paso 3 funcional)
 
 Seguimiento: Este plan se actualiza desde cualquier PC. Lo completado se marca con `[x]` y se refleja tambien en `docs/PUENTE_SESIONES_PC.md`.
 
@@ -67,6 +67,16 @@ La batalla real se ejecuta en runtime del juego; este editor solo prepara datos 
 - Ctrl + Alt + Click derecho sobre sprite NPC batalla: alternar espejo horizontal.
 - Q para retroceder dialogo/pantalla previa cuando aplique.
 
+Controles implementados en esta iteracion:
+
+- `F`: alterna modo Canvas Batalla XL (agranda area de ajuste de cajas).
+- `+` / `-`: cambia cantidad de enemigos (1..5).
+- `Left/Right`: cambia monstruo actual del catalogo.
+- `Space`: asigna monstruo actual a un slot libre.
+- `Drag` con mouse: mueve cajas de enemigos y heroes en el canvas de batalla.
+- `G`: guarda layout global de la cantidad actual.
+- `Enter`: guarda override por mapa actual.
+
 ## 6) Archivos a crear
 
 1. gestor_npc_evento_batalla_v1.py
@@ -113,12 +123,21 @@ La batalla real se ejecuta en runtime del juego; este editor solo prepara datos 
 
 Checklist rapido de ejecucion (tachar al completar):
 
-- [ ] Paso 1 base completado (py + bat + marco UI + carga mapa izquierdo)
+- [x] Paso 1 base completado (py + bat + marco UI + carga mapa izquierdo)
 - [ ] Paso 2 mundo completado (arrastre NPC + guardado posicion/sprite)
-- [ ] Paso 3 batalla preview completado (slots 1..5 + auto-layout heroes)
+- [x] Paso 3 batalla preview completado (slots 1..5 + auto-layout heroes)
 - [ ] Paso 4 layout global/override completado (global + boss centrado)
 - [ ] Paso 5 enlace/dialogo completado (Pelear ahora / Aun no)
 - [ ] Paso 6 integracion runtime completado (hook evento -> batalla)
+
+Avance implementado hoy:
+
+- Creado `gestor_npc_evento_batalla_v1.py` y `ejecutar_gestor_npc_evento_batalla_v1.bat`.
+- Carga de mapas disponibles y selector navegable.
+- Carga de monstruos desde DB y asignacion a slots.
+- Cajas de enemigos y heroes reacomodables por drag en canvas de batalla.
+- Modo Canvas Batalla XL para ajuste fino de posiciones sin comprimir vista.
+- Guardado global por cantidad y guardado por mapa para override base.
 
 ### Paso 1 (base)
 

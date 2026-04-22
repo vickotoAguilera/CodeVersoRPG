@@ -1,495 +1,375 @@
 # -*- coding: utf-8 -*-
 """
-Gestor NPC Evento Batalla - Editor Canvas Doble
+Gestor NPC Evento Batalla - Canvas Doble (v1)
 
-Proposito:
-- Editor visual para configurar NPC de evento de batalla.
-- Canvas izquierdo: mapa del mundo (NPC fisico).
-- Canvas derecho: preview de batalla (enemigos vs heroes).
-- Guardado/carga de layouts globales y overrides por encuentro.
-
-Funcionalidad Paso 1 (base + sprites):
-- Crear py + bat del editor.
-- Dibujar marco UI con dos canvas y barra inferior.
-- Cargar mapa en canvas izquierdo.
-- Cargar y mostrar sprites de monstruos/heroes.
-- Permitir seleccionar y organizar slots.
+Incluye:
+- Paso 2: selector de mapas.
+- Paso 3: asignacion de enemigos/heroes a slots.
+- Modo Canvas Batalla XL (temporal) para ajustar cajas con precision.
 """
 
-import pygame
 import json
 import os
 import sys
-from pathlib import Path
+import pygame
 
-# Agregar src al path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
-from config import (
-    DATABASE_PATH,
-    HEROES_SPRITES_PATH, MONSTRUOS_SPRITES_PATH
-)
+from config import DATABASE_PATH, MONSTRUOS_SPRITES_PATH
 
-# ============================================================================
-# CONSTANTES EDITOR
-# ============================================================================
-
-# Dimensiones de pantalla
-ANCHO_PANTALLA = 800
-ALTO_PANTALLA = 600
+ANCHO = 1000
+ALTO = 680
 FPS = 60
 
-TITULO_VENTANA = "Gestor NPC Evento Batalla - Editor Canvas Doble (v1)"
+COLOR_FONDO = (20, 22, 30)
+COLOR_PANEL = (35, 38, 48)
+COLOR_BORDE = (90, 100, 120)
+COLOR_TEXTO = (220, 225, 235)
+COLOR_SEL = (255, 230, 90)
+COLOR_SLOT = (58, 64, 78)
+COLOR_SLOT_ACTIVO = (88, 120, 88)
 
-# Colores
-COLOR_FONDO = (20, 20, 30)
-COLOR_CANVAS_BG = (30, 30, 40)
-COLOR_PANEL_BG = (40, 40, 50)
-COLOR_TEXTO = (200, 200, 200)
-COLOR_BORDE = (100, 100, 120)
-COLOR_ACTIVO = (100, 200, 100)
-COLOR_HOVER = (150, 150, 180)
-
-# Tamaños de canvas
-ANCHO_CANVAS = ANCHO_PANTALLA // 2 - 10
-ALTO_CANVAS = ALTO_PANTALLA - 120
-MARGEN = 5
-
-# Posiciones canvas
-CANVAS_IZQ_X = MARGEN
-CANVAS_IZQ_Y = MARGEN
-CANVAS_DER_X = ANCHO_CANVAS + 20
-CANVAS_DER_Y = MARGEN
-
-# Barra inferior
-ALTO_BARRA_INFERIOR = 100
-BARRA_Y = ALTO_PANTALLA - ALTO_BARRA_INFERIOR
-
-# Slots de enemigos/heroes (max 5)
 MAX_SLOTS = 5
 
-# ============================================================================
-# RUTAS DE DATOS
-# ============================================================================
-
-NPC_EVENTO_BATALLA_LAYOUTS_PATH = os.path.join(DATABASE_PATH, 'npc_evento_batalla_layouts.json')
-NPC_EVENTO_BATALLA_POR_MAPA_DIR = os.path.join(DATABASE_PATH, 'npc_evento_batalla_por_mapa')
-
-# Crear directorio si no existe
-os.makedirs(NPC_EVENTO_BATALLA_POR_MAPA_DIR, exist_ok=True)
+RUTA_LAYOUTS = os.path.join(DATABASE_PATH, "npc_evento_batalla_layouts.json")
+RUTA_POR_MAPA = os.path.join(DATABASE_PATH, "npc_evento_batalla_por_mapa")
 
 
-# ============================================================================
-# CLASES
-# ============================================================================
+def _cargar_json(ruta, fallback):
+    if not os.path.exists(ruta):
+        return fallback
+    try:
+        with open(ruta, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return fallback
 
-class EditorCanvasDoble:
-    """Editor principal con canvas izquierdo (mundo) y derecho (batalla preview)."""
-    
+
+def _guardar_json(ruta, data):
+    os.makedirs(os.path.dirname(ruta), exist_ok=True)
+    with open(ruta, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+
+class EditorNPCEventoBatalla:
     def __init__(self):
-        """Inicializar editor."""
         pygame.init()
-        self.pantalla = pygame.display.set_mode((ANCHO_PANTALLA, ALTO_PANTALLA))
-        pygame.display.set_caption(TITULO_VENTANA)
-        self.reloj = pygame.time.Clock()
-        self.fuente = pygame.font.Font(None, 24)
-        self.fuente_pequena = pygame.font.Font(None, 18)
-        
-        self.ejecutando = True
-        self.fps = FPS
-        
-        # Estado editor
-        self.mapa_actual = None
-        self.mapa_surface = None
-        self.mapa_rect = None
-        self.offset_mapa_x = 0
-        self.offset_mapa_y = 0
-        self.zoom_mapa = 1.0
-        
-        # Datos cargados
-        self.mapas_disponibles = self._cargar_mapas_disponibles()
-        self.monstruos_db = self._cargar_json(os.path.join(DATABASE_PATH, 'monstruos_db.json'))
-        self.heroes_db = self._cargar_json(os.path.join(DATABASE_PATH, 'heroes_db.json'))
-        self.layouts_globales = self._cargar_layouts_globales()
-        
-        # Cache de sprites cargados
-        self.sprites_monstruos_cache = {}  # {"nombre": pygame.Surface}
-        self.sprites_heroes_cache = {}     # {"nombre": pygame.Surface}
-        self._cargar_sprites_en_cache()
-        
-        # Slots de enemigos y heroes
-        self.cantidad_enemigos = 1
-        self.enemigos_slots = [{"monstruo_id": None, "sprite_id": None} for _ in range(MAX_SLOTS)]
-        self.heroes_slots = [{"heroe_id": None, "sprite_id": None} for _ in range(MAX_SLOTS)]
-        
-        # Interfaz
-        self.botones = self._crear_botones()
-        self.mapa_seleccionado_idx = 0
-        self.lista_scroll_y = 0
-        
-        # Drag and drop
-        self.slot_siendo_arrastrado = None
-        self.mouse_pos_actual = (0, 0)
-        
-        print(f"[EditorCanvasDoble] Inicializado. Mapas: {len(self.mapas_disponibles)}, Monstruos: {len(self.monstruos_db or {})}, Heroes: {len(self.heroes_db or {})}")
-    
-    def _cargar_json(self, ruta):
-        """Cargar archivo JSON."""
-        if not os.path.exists(ruta):
-            return {}
-        try:
-            with open(ruta, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        except Exception as e:
-            print(f"[ERROR] No se pudo cargar {ruta}: {e}")
-            return {}
-    
-    def _cargar_mapas_disponibles(self):
-        """Cargar lista de mapas JSON disponibles."""
-        mapas = []
-        # Buscar en mapas_unificados primero
-        ruta_unificados = os.path.join(DATABASE_PATH, 'mapas_unificados')
+        self.screen = pygame.display.set_mode((ANCHO, ALTO))
+        pygame.display.set_caption("Gestor NPC Evento Batalla - Canvas Doble")
+        self.clock = pygame.time.Clock()
+        self.font = pygame.font.Font(None, 22)
+        self.font_sm = pygame.font.Font(None, 18)
+
+        self.running = True
+
+        self.monstruos_db = _cargar_json(os.path.join(DATABASE_PATH, "monstruos_db.json"), {})
+        self.layouts_globales = _cargar_json(RUTA_LAYOUTS, {"version": "1.0", "layouts": {}})
+
+        self.mapas = self._listar_mapas()
+        self.idx_mapa = 0
+        self.mapa_actual = self.mapas[0] if self.mapas else None
+
+        self.cantidad = 3
+        self.battle_canvas_xl = False
+
+        self.enemy_slots = []
+        self.hero_slots = []
+        self.drag_target = None  # ("enemy"|"hero", idx)
+        self.drag_offset = (0, 0)
+
+        self.enemy_asignados = [None for _ in range(MAX_SLOTS)]
+        self.hero_asignados = [f"HEROE_{i+1}" for i in range(MAX_SLOTS)]
+
+        self.catalogo_monstruos = list(self.monstruos_db.keys()) if self.monstruos_db else []
+        self.idx_catalogo = 0
+
+        self.sprites_monstruos = {}
+        self._cargar_sprites_monstruos()
+
+        self._cargar_layout_cantidad(self.cantidad)
+
+    def _listar_mapas(self):
+        resultado = []
+        ruta_unificados = os.path.join(DATABASE_PATH, "mapas_unificados")
         if os.path.exists(ruta_unificados):
-            for archivo in os.listdir(ruta_unificados):
-                if archivo.endswith('.json') and 'mapa_' in archivo:
-                    mapa_nombre = archivo.replace('.json', '')
-                    mapas.append(mapa_nombre)
-        
-        if mapas:
-            return sorted(mapas)
-        
-        # Fallback: buscar en mapas/mundo/
-        ruta_mundo = os.path.join(DATABASE_PATH, 'mapas', 'mundo')
-        if os.path.exists(ruta_mundo):
-            for archivo in os.listdir(ruta_mundo):
-                if archivo.endswith('.json'):
-                    mapa_nombre = archivo.replace('.json', '')
-                    mapas.append(mapa_nombre)
-        
-        return sorted(mapas)
-    
-    def _cargar_sprites_en_cache(self):
-        """Pre-cargar todos los sprites en cache para acceso rápido."""
-        if self.monstruos_db:
-            for monstruo_id, datos in self.monstruos_db.items():
-                try:
-                    archivo_sprite = datos.get('sprite_archivo', 'dragon_prueba.png')
-                    ruta_sprite = os.path.join(MONSTRUOS_SPRITES_PATH, archivo_sprite)
-                    if os.path.exists(ruta_sprite):
-                        img = pygame.image.load(ruta_sprite)
-                        escala = datos.get('escala_sprite', 1.0)
-                        nuevo_w = int(img.get_width() * escala * 0.5)
-                        nuevo_h = int(img.get_height() * escala * 0.5)
-                        img_escalada = pygame.transform.scale(img, (nuevo_w, nuevo_h))
-                        self.sprites_monstruos_cache[monstruo_id] = img_escalada
-                except Exception as e:
-                    print(f"[AVISO] No se pudo cargar sprite de {monstruo_id}: {e}")
-        
-        if self.heroes_db:
-            for heroe_id, datos in self.heroes_db.items():
-                try:
-                    # Para heroes usamos una miniatura simple por ahora
-                    # Los sprites reales están en asset_coords_db
-                    # Aquí creamos un placeholder
-                    surf = pygame.Surface((40, 50))
-                    surf.fill((100, 150, 200))
-                    nombre = datos.get('nombre', heroe_id)
-                    texto = pygame.font.Font(None, 12).render(nombre[:3], True, (255, 255, 255))
-                    surf.blit(texto, (5, 20))
-                    self.sprites_heroes_cache[heroe_id] = surf
-                except Exception as e:
-                    print(f"[AVISO] No se pudo crear sprite de heroe {heroe_id}: {e}")
-    
-    def _cargar_layouts_globales(self):
-        """Cargar configuracion global de layouts."""
-        ruta = os.path.join(DATABASE_PATH, 'npc_evento_batalla_layouts.json')
-        if os.path.exists(ruta):
+            for n in os.listdir(ruta_unificados):
+                if n.endswith(".json") and n.startswith("mapa_"):
+                    resultado.append(n[:-5])
+        resultado.sort()
+        return resultado
+
+    def _cargar_sprites_monstruos(self):
+        for mid, data in self.monstruos_db.items():
+            nombre_sprite = data.get("sprite_archivo", "")
+            ruta = os.path.join(MONSTRUOS_SPRITES_PATH, nombre_sprite)
+            if not nombre_sprite or not os.path.exists(ruta):
+                continue
             try:
-                with open(ruta, 'r', encoding='utf-8') as f:
-                    return json.load(f)
-            except Exception as e:
-                print(f"[ERROR] No se pudo cargar layouts: {e}")
-        return self._crear_layouts_por_defecto()
-    
-    def _crear_layouts_por_defecto(self):
-        """Crear estructura por defecto de layouts."""
-        return {
-            "version": "1.0",
-            "layouts": {
-                "1": {"enemigos": [{"x": 400, "y": 200}], "heroes": [{"x": 100, "y": 200}]},
-                "2": {"enemigos": [{"x": 420, "y": 150}, {"x": 420, "y": 250}], "heroes": [{"x": 100, "y": 150}, {"x": 100, "y": 250}]},
-                "3": {"enemigos": [{"x": 420, "y": 100}, {"x": 420, "y": 200}, {"x": 420, "y": 300}], "heroes": [{"x": 100, "y": 100}, {"x": 100, "y": 200}, {"x": 100, "y": 300}]},
-                "4": {"enemigos": [{"x": 380, "y": 100}, {"x": 460, "y": 100}, {"x": 380, "y": 300}, {"x": 460, "y": 300}], "heroes": [{"x": 80, "y": 100}, {"x": 120, "y": 100}, {"x": 80, "y": 300}, {"x": 120, "y": 300}]},
-                "5": {"enemigos": [{"x": 380, "y": 80}, {"x": 460, "y": 80}, {"x": 420, "y": 200}, {"x": 380, "y": 320}, {"x": 460, "y": 320}], "heroes": [{"x": 80, "y": 80}, {"x": 120, "y": 80}, {"x": 100, "y": 200}, {"x": 80, "y": 320}, {"x": 120, "y": 320}]},
-            }
+                img = pygame.image.load(ruta).convert_alpha()
+                s = max(0.15, float(data.get("escala_sprite", 1.0)) * 0.25)
+                w = max(20, int(img.get_width() * s))
+                h = max(20, int(img.get_height() * s))
+                self.sprites_monstruos[mid] = pygame.transform.smoothscale(img, (w, h))
+            except Exception:
+                pass
+
+    def _canvas_rects(self):
+        if self.battle_canvas_xl:
+            world = pygame.Rect(10, 10, 280, ALTO - 140)
+            battle = pygame.Rect(300, 10, ANCHO - 310, ALTO - 140)
+            side = pygame.Rect(ANCHO - 200, 10, 190, ALTO - 140)
+        else:
+            world = pygame.Rect(10, 10, 420, 420)
+            battle = pygame.Rect(440, 10, 420, 420)
+            side = pygame.Rect(870, 10, 120, 420)
+        return world, battle, side
+
+    def _calc_default_positions(self, cantidad, battle_rect):
+        cx_e = battle_rect.x + int(battle_rect.w * 0.72)
+        cx_h = battle_rect.x + int(battle_rect.w * 0.28)
+        top = battle_rect.y + 80
+        h = battle_rect.h - 130
+
+        def ys(n):
+            if n <= 1:
+                return [top + h // 2]
+            step = h // (n - 1)
+            return [top + i * step for i in range(n)]
+
+        yvals = ys(cantidad)
+        e = [{"x": cx_e, "y": y} for y in yvals]
+        hslots = [{"x": cx_h, "y": y} for y in yvals]
+        return e, hslots
+
+    def _cargar_layout_cantidad(self, cantidad):
+        world, battle, _ = self._canvas_rects()
+        _ = world
+        data = self.layouts_globales.get("layouts", {}).get(str(cantidad), {})
+        e = data.get("enemigos")
+        h = data.get("heroes")
+        if not e or not h:
+            e, h = self._calc_default_positions(cantidad, battle)
+        self.enemy_slots = [{"x": int(p["x"]), "y": int(p["y"])} for p in e[:cantidad]]
+        self.hero_slots = [{"x": int(p["x"]), "y": int(p["y"])} for p in h[:cantidad]]
+
+    def _guardar_layout_global_actual(self):
+        if "layouts" not in self.layouts_globales:
+            self.layouts_globales["layouts"] = {}
+        self.layouts_globales["layouts"][str(self.cantidad)] = {
+            "enemigos": self.enemy_slots,
+            "heroes": self.hero_slots,
         }
-    
-    def _crear_botones(self):
-        """Crear botones de interfaz."""
-        botones = {
-            "cargar_mapa": pygame.Rect(10, BARRA_Y + 10, 120, 30),
-            "guardar": pygame.Rect(140, BARRA_Y + 10, 100, 30),
-            "cargar": pygame.Rect(250, BARRA_Y + 10, 100, 30),
-            "resetear": pygame.Rect(360, BARRA_Y + 10, 120, 30),
-            "cantidad_menos": pygame.Rect(10, BARRA_Y + 50, 30, 25),
-            "cantidad_mas": pygame.Rect(50, BARRA_Y + 50, 30, 25),
-            "salir": pygame.Rect(ANCHO_PANTALLA - 110, BARRA_Y + 10, 100, 30),
-        }
-        return botones
-    
-    def _cargar_mapa(self, nombre_mapa):
-        """Cargar archivo JSON de mapa y preparar surface."""
-        # Intentar cargar desde mapas_unificados primero
-        ruta_mapa = os.path.join(DATABASE_PATH, 'mapas_unificados', f"{nombre_mapa}.json")
-        if not os.path.exists(ruta_mapa):
-            # Fallback a mapas/mundo/
-            ruta_mapa = os.path.join(DATABASE_PATH, 'mapas', 'mundo', f"{nombre_mapa}.json")
-        
-        if not os.path.exists(ruta_mapa):
-            print(f"[ERROR] Mapa no encontrado: {ruta_mapa}")
-            return False
-        
-        try:
-            with open(ruta_mapa, 'r', encoding='utf-8') as f:
-                datos_mapa = json.load(f)
-            
-            self.mapa_actual = datos_mapa
-            ancho = datos_mapa.get('ancho', 320)
-            alto = datos_mapa.get('alto', 180)
-            
-            # Crear surface del mapa con fondo simple por ahora
-            self.mapa_surface = pygame.Surface((ancho, alto))
-            self.mapa_surface.fill(COLOR_CANVAS_BG)
-            
-            # TODO: Dibujar tilemap real desde capas
-            
-            print(f"[EditorCanvasDoble] Mapa cargado: {nombre_mapa} ({ancho}x{alto})")
-            self.mapa_rect = self.mapa_surface.get_rect()
-            return True
-        except Exception as e:
-            print(f"[ERROR] No se pudo cargar mapa: {e}")
-            return False
-    
-    def _guardar_config_actual(self):
-        """Guardar configuracion actual a JSON por mapa."""
+        _guardar_json(RUTA_LAYOUTS, self.layouts_globales)
+
+    def _guardar_por_mapa(self):
         if not self.mapa_actual:
-            print("[AVISO] No hay mapa cargado, no se puede guardar.")
             return
-        
-        mapa_nombre = self.mapa_actual.get('nombre', 'mapa_sin_nombre')
-        ruta_destino = os.path.join(NPC_EVENTO_BATALLA_POR_MAPA_DIR, f"{mapa_nombre}.json")
-        
-        config = {
+        ruta = os.path.join(RUTA_POR_MAPA, f"{self.mapa_actual}.json")
+        out = {
             "version": "1.0",
-            "mapa": mapa_nombre,
-            "cantidad_enemigos": self.cantidad_enemigos,
-            "enemigos_slots": self.enemigos_slots[:self.cantidad_enemigos],
-            "heroes_slots": self.heroes_slots[:self.cantidad_enemigos],
+            "mapa": self.mapa_actual,
+            "cantidad_enemigos": self.cantidad,
+            "override_layout": {
+                "enemigos": self.enemy_slots,
+                "heroes": self.hero_slots,
+            },
+            "enemigos_asignados": self.enemy_asignados[: self.cantidad],
+            "heroes_asignados": self.hero_asignados[: self.cantidad],
         }
-        
-        try:
-            with open(ruta_destino, 'w', encoding='utf-8') as f:
-                json.dump(config, f, indent=2, ensure_ascii=False)
-            print(f"[EditorCanvasDoble] Guardado: {ruta_destino}")
-        except Exception as e:
-            print(f"[ERROR] No se pudo guardar: {e}")
-    
-    def procesar_eventos(self):
-        """Procesar eventos del teclado y mouse."""
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                self.ejecutando = False
-            
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE or event.key == pygame.K_q:
-                    self.ejecutando = False
-            
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                self._procesar_click(event.pos, event.button)
-            
-            elif event.type == pygame.MOUSEMOTION:
-                self.mouse_pos_actual = event.pos
-    
-    def _procesar_click(self, pos, boton):
-        """Procesar click del mouse."""
-        # Botones principales
-        for boton_id, rect in self.botones.items():
-            if rect.collidepoint(pos):
-                self._ejecutar_accion_boton(boton_id)
+        _guardar_json(ruta, out)
+
+    def _slot_rect(self, p):
+        return pygame.Rect(int(p["x"] - 24), int(p["y"] - 24), 48, 48)
+
+    def _pick_drag(self, mx, my):
+        for i, p in enumerate(self.enemy_slots):
+            r = self._slot_rect(p)
+            if r.collidepoint(mx, my):
+                self.drag_target = ("enemy", i)
+                self.drag_offset = (mx - p["x"], my - p["y"])
+                return True
+        for i, p in enumerate(self.hero_slots):
+            r = self._slot_rect(p)
+            if r.collidepoint(mx, my):
+                self.drag_target = ("hero", i)
+                self.drag_offset = (mx - p["x"], my - p["y"])
+                return True
+        return False
+
+    def _clamp_point_to_rect(self, x, y, rect):
+        cx = max(rect.x + 24, min(rect.right - 24, x))
+        cy = max(rect.y + 24, min(rect.bottom - 24, y))
+        return cx, cy
+
+    def _handle_mouse_motion(self, mx, my):
+        if not self.drag_target:
+            return
+        _, battle_rect, _ = self._canvas_rects()
+        nx = mx - self.drag_offset[0]
+        ny = my - self.drag_offset[1]
+        nx, ny = self._clamp_point_to_rect(nx, ny, battle_rect)
+        lado, idx = self.drag_target
+        if lado == "enemy":
+            self.enemy_slots[idx]["x"] = nx
+            self.enemy_slots[idx]["y"] = ny
+        else:
+            self.hero_slots[idx]["x"] = nx
+            self.hero_slots[idx]["y"] = ny
+
+    def _toggle_xl(self):
+        self.battle_canvas_xl = not self.battle_canvas_xl
+        # Recalcular defaults solo si no hay cambios manuales persistidos
+        self._cargar_layout_cantidad(self.cantidad)
+
+    def _asignar_actual_a_slot_libre(self):
+        if not self.catalogo_monstruos:
+            return
+        mid = self.catalogo_monstruos[self.idx_catalogo]
+        for i in range(self.cantidad):
+            if self.enemy_asignados[i] is None:
+                self.enemy_asignados[i] = mid
                 return
-    
-    def _ejecutar_accion_boton(self, boton_id):
-        """Ejecutar accion segun boton clickeado."""
-        if boton_id == "cargar_mapa":
-            if self.mapas_disponibles:
-                self._cargar_mapa(self.mapas_disponibles[self.mapa_seleccionado_idx])
-        
-        elif boton_id == "guardar":
-            self._guardar_config_actual()
-        
-        elif boton_id == "cantidad_menos":
-            if self.cantidad_enemigos > 1:
-                self.cantidad_enemigos -= 1
-        
-        elif boton_id == "cantidad_mas":
-            if self.cantidad_enemigos < MAX_SLOTS:
-                self.cantidad_enemigos += 1
-        
-        elif boton_id == "salir":
-            self.ejecutando = False
-    
-    def actualizar(self):
-        """Actualizar logica del editor."""
-        pass
-    
-    def dibujar(self):
-        """Dibujar todo el editor."""
-        self.pantalla.fill(COLOR_FONDO)
-        
-        # Dibujar canvas izquierdo (mundo)
-        self._dibujar_canvas_izquierdo()
-        
-        # Dibujar canvas derecho (batalla)
-        self._dibujar_canvas_derecho()
-        
-        # Dibujar barra inferior
-        self._dibujar_barra_inferior()
-        
+        self.enemy_asignados[0] = mid
+
+    def handle_input(self):
+        for ev in pygame.event.get():
+            if ev.type == pygame.QUIT:
+                self.running = False
+
+            elif ev.type == pygame.KEYDOWN:
+                if ev.key in (pygame.K_ESCAPE, pygame.K_q):
+                    self.running = False
+                elif ev.key == pygame.K_f:
+                    self._toggle_xl()
+                elif ev.key in (pygame.K_UP, pygame.K_w):
+                    if self.mapas:
+                        self.idx_mapa = max(0, self.idx_mapa - 1)
+                        self.mapa_actual = self.mapas[self.idx_mapa]
+                elif ev.key in (pygame.K_DOWN, pygame.K_s):
+                    if self.mapas:
+                        self.idx_mapa = min(len(self.mapas) - 1, self.idx_mapa + 1)
+                        self.mapa_actual = self.mapas[self.idx_mapa]
+                elif ev.key in (pygame.K_MINUS, pygame.K_KP_MINUS):
+                    self.cantidad = max(1, self.cantidad - 1)
+                    self._cargar_layout_cantidad(self.cantidad)
+                elif ev.key in (pygame.K_EQUALS, pygame.K_PLUS, pygame.K_KP_PLUS):
+                    self.cantidad = min(MAX_SLOTS, self.cantidad + 1)
+                    self._cargar_layout_cantidad(self.cantidad)
+                elif ev.key == pygame.K_LEFT:
+                    if self.catalogo_monstruos:
+                        self.idx_catalogo = (self.idx_catalogo - 1) % len(self.catalogo_monstruos)
+                elif ev.key == pygame.K_RIGHT:
+                    if self.catalogo_monstruos:
+                        self.idx_catalogo = (self.idx_catalogo + 1) % len(self.catalogo_monstruos)
+                elif ev.key == pygame.K_SPACE:
+                    self._asignar_actual_a_slot_libre()
+                elif ev.key == pygame.K_g:
+                    self._guardar_layout_global_actual()
+                elif ev.key == pygame.K_RETURN:
+                    self._guardar_por_mapa()
+                elif ev.key == pygame.K_BACKSPACE:
+                    self.enemy_asignados = [None for _ in range(MAX_SLOTS)]
+
+            elif ev.type == pygame.MOUSEBUTTONDOWN and ev.button == 1:
+                self._pick_drag(*ev.pos)
+
+            elif ev.type == pygame.MOUSEBUTTONUP and ev.button == 1:
+                self.drag_target = None
+
+            elif ev.type == pygame.MOUSEMOTION:
+                self._handle_mouse_motion(*ev.pos)
+
+    def _draw_world_panel(self, rect):
+        pygame.draw.rect(self.screen, COLOR_PANEL, rect)
+        pygame.draw.rect(self.screen, COLOR_BORDE, rect, 2)
+        self.screen.blit(self.font.render("Canvas Mundo", True, COLOR_TEXTO), (rect.x + 8, rect.y + 8))
+
+        self.screen.blit(self.font_sm.render("Mapas (W/S o Flechas)", True, COLOR_TEXTO), (rect.x + 8, rect.y + 38))
+        y = rect.y + 62
+        start = max(0, self.idx_mapa - 6)
+        end = min(len(self.mapas), start + 12)
+        for i in range(start, end):
+            col = COLOR_SEL if i == self.idx_mapa else COLOR_TEXTO
+            txt = self.mapas[i]
+            self.screen.blit(self.font_sm.render(txt, True, col), (rect.x + 10, y))
+            y += 18
+
+    def _draw_battle_panel(self, rect):
+        pygame.draw.rect(self.screen, COLOR_PANEL, rect)
+        pygame.draw.rect(self.screen, COLOR_BORDE, rect, 2)
+
+        modo = "XL" if self.battle_canvas_xl else "Normal"
+        titulo = f"Canvas Batalla ({modo}) - Cantidad: {self.cantidad}"
+        self.screen.blit(self.font.render(titulo, True, COLOR_TEXTO), (rect.x + 8, rect.y + 8))
+
+        self.screen.blit(self.font_sm.render("Arrastra cajas para posicionar", True, COLOR_TEXTO), (rect.x + 8, rect.y + 34))
+
+        for i in range(self.cantidad):
+            p = self.enemy_slots[i]
+            r = self._slot_rect(p)
+            pygame.draw.rect(self.screen, COLOR_SLOT_ACTIVO if self.enemy_asignados[i] else COLOR_SLOT, r)
+            pygame.draw.rect(self.screen, COLOR_BORDE, r, 2)
+            self.screen.blit(self.font_sm.render(f"E{i+1}", True, COLOR_TEXTO), (r.x + 14, r.y + 16))
+
+            asignado = self.enemy_asignados[i]
+            if asignado and asignado in self.sprites_monstruos:
+                spr = self.sprites_monstruos[asignado]
+                self.screen.blit(spr, (r.x + 52, r.y - 2))
+
+        for i in range(self.cantidad):
+            p = self.hero_slots[i]
+            r = self._slot_rect(p)
+            pygame.draw.rect(self.screen, COLOR_SLOT_ACTIVO, r)
+            pygame.draw.rect(self.screen, COLOR_BORDE, r, 2)
+            self.screen.blit(self.font_sm.render(f"H{i+1}", True, COLOR_TEXTO), (r.x + 14, r.y + 16))
+
+    def _draw_side_panel(self, rect):
+        pygame.draw.rect(self.screen, COLOR_PANEL, rect)
+        pygame.draw.rect(self.screen, COLOR_BORDE, rect, 2)
+
+        self.screen.blit(self.font.render("Catalogo", True, COLOR_TEXTO), (rect.x + 8, rect.y + 8))
+        if self.catalogo_monstruos:
+            mid = self.catalogo_monstruos[self.idx_catalogo]
+            self.screen.blit(self.font_sm.render("Monstruo actual:", True, COLOR_TEXTO), (rect.x + 8, rect.y + 36))
+            self.screen.blit(self.font_sm.render(mid, True, COLOR_SEL), (rect.x + 8, rect.y + 54))
+        else:
+            self.screen.blit(self.font_sm.render("Sin monstruos", True, COLOR_TEXTO), (rect.x + 8, rect.y + 38))
+
+    def _draw_bottom_bar(self):
+        r = pygame.Rect(0, ALTO - 120, ANCHO, 120)
+        pygame.draw.rect(self.screen, (30, 33, 42), r)
+        pygame.draw.line(self.screen, COLOR_BORDE, (0, ALTO - 120), (ANCHO, ALTO - 120), 2)
+
+        hints = [
+            "F: Canvas Batalla XL ON/OFF",
+            "W/S o Flechas: cambiar mapa",
+            "+/-: cantidad enemigos (1-5)",
+            "Left/Right: cambiar monstruo catalogo",
+            "Space: asignar monstruo actual a slot libre",
+            "Drag mouse: mover cajas E/H",
+            "G: guardar layout global | Enter: guardar por mapa",
+        ]
+        y = ALTO - 112
+        for t in hints:
+            self.screen.blit(self.font_sm.render(t, True, COLOR_TEXTO), (10, y))
+            y += 15
+
+    def draw(self):
+        self.screen.fill(COLOR_FONDO)
+        world, battle, side = self._canvas_rects()
+        self._draw_world_panel(world)
+        self._draw_battle_panel(battle)
+        self._draw_side_panel(side)
+        self._draw_bottom_bar()
         pygame.display.flip()
-    
-    def _dibujar_canvas_izquierdo(self):
-        """Dibujar canvas del mapa del mundo."""
-        rect_canvas = pygame.Rect(CANVAS_IZQ_X, CANVAS_IZQ_Y, ANCHO_CANVAS, ALTO_CANVAS)
-        pygame.draw.rect(self.pantalla, COLOR_CANVAS_BG, rect_canvas)
-        pygame.draw.rect(self.pantalla, COLOR_BORDE, rect_canvas, 2)
-        
-        # Dibujar titulo
-        titulo = self.fuente_pequena.render("Canvas Mundo (Izq)", True, COLOR_TEXTO)
-        self.pantalla.blit(titulo, (CANVAS_IZQ_X + 5, CANVAS_IZQ_Y + 5))
-        
-        # Dibujar mapa si esta cargado
-        if self.mapa_surface:
-            self.pantalla.blit(self.mapa_surface, (CANVAS_IZQ_X + 10, CANVAS_IZQ_Y + 30))
-        
-        # Texto auxiliar
-        if not self.mapa_actual:
-            texto_carga = self.fuente_pequena.render("Presiona 'Cargar Mapa' para comenzar", True, COLOR_TEXTO)
-            self.pantalla.blit(texto_carga, (CANVAS_IZQ_X + 10, CANVAS_IZQ_Y + 100))
-    
-    def _dibujar_canvas_derecho(self):
-        """Dibujar canvas de preview de batalla."""
-        rect_canvas = pygame.Rect(CANVAS_DER_X, CANVAS_DER_Y, ANCHO_CANVAS, ALTO_CANVAS)
-        pygame.draw.rect(self.pantalla, COLOR_CANVAS_BG, rect_canvas)
-        pygame.draw.rect(self.pantalla, COLOR_BORDE, rect_canvas, 2)
-        
-        # Dibujar titulo
-        titulo = self.fuente_pequena.render(f"Canvas Batalla - {self.cantidad_enemigos} Enemigos (Der)", True, COLOR_TEXTO)
-        self.pantalla.blit(titulo, (CANVAS_DER_X + 5, CANVAS_DER_Y + 5))
-        
-        # Dibujar slots de enemigos y heroes
-        self._dibujar_slots_batalla(rect_canvas)
-    
-    def _dibujar_slots_batalla(self, rect_canvas):
-        """Dibujar slots de batalla con sprites."""
-        x_enemigos = CANVAS_DER_X + 20
-        x_heroes = CANVAS_DER_X + ANCHO_CANVAS - 100
-        y_base = CANVAS_DER_Y + 35
-        y_spacing = 65
-        
-        # Label enemigos
-        label_enemigos = self.fuente_pequena.render("Enemigos:", True, COLOR_TEXTO)
-        self.pantalla.blit(label_enemigos, (x_enemigos, y_base - 25))
-        
-        # Dibujar slots de enemigos
-        for i in range(self.cantidad_enemigos):
-            slot_rect = pygame.Rect(x_enemigos, y_base + i * y_spacing, 70, 55)
-            pygame.draw.rect(self.pantalla, COLOR_PANEL_BG, slot_rect)
-            pygame.draw.rect(self.pantalla, COLOR_BORDE, slot_rect, 2)
-            
-            # Dibujar sprite o placeholder
-            slot_data = self.enemigos_slots[i]
-            if slot_data.get('monstruo_id'):
-                if slot_data['monstruo_id'] in self.sprites_monstruos_cache:
-                    sprite = self.sprites_monstruos_cache[slot_data['monstruo_id']]
-                    self.pantalla.blit(sprite, (x_enemigos + 5, y_base + 5 + i * y_spacing))
-                texto = self.fuente_pequena.render(f"E{i+1}: {slot_data['monstruo_id'][:8]}", True, COLOR_TEXTO)
-            else:
-                texto = self.fuente_pequena.render(f"E{i+1}: vacio", True, COLOR_TEXTO)
-            
-            self.pantalla.blit(texto, (x_enemigos + 5, y_base + 40 + i * y_spacing))
-        
-        # Label heroes
-        label_heroes = self.fuente_pequena.render("Heroes:", True, COLOR_TEXTO)
-        self.pantalla.blit(label_heroes, (x_heroes, y_base - 25))
-        
-        # Dibujar slots de heroes
-        for i in range(self.cantidad_enemigos):
-            slot_rect = pygame.Rect(x_heroes, y_base + i * y_spacing, 70, 55)
-            pygame.draw.rect(self.pantalla, COLOR_PANEL_BG, slot_rect)
-            pygame.draw.rect(self.pantalla, COLOR_BORDE, slot_rect, 2)
-            
-            # Dibujar sprite o placeholder
-            slot_data = self.heroes_slots[i]
-            if slot_data.get('heroe_id'):
-                if slot_data['heroe_id'] in self.sprites_heroes_cache:
-                    sprite = self.sprites_heroes_cache[slot_data['heroe_id']]
-                    self.pantalla.blit(sprite, (x_heroes + 5, y_base + 5 + i * y_spacing))
-                texto = self.fuente_pequena.render(f"H{i+1}: {slot_data['heroe_id'][:8]}", True, COLOR_TEXTO)
-            else:
-                texto = self.fuente_pequena.render(f"H{i+1}: vacio", True, COLOR_TEXTO)
-            
-            self.pantalla.blit(texto, (x_heroes + 5, y_base + 40 + i * y_spacing))
-    
-    def _dibujar_barra_inferior(self):
-        """Dibujar barra de botones inferior."""
-        rect_barra = pygame.Rect(0, BARRA_Y, ANCHO_PANTALLA, ALTO_BARRA_INFERIOR)
-        pygame.draw.rect(self.pantalla, COLOR_PANEL_BG, rect_barra)
-        pygame.draw.line(self.pantalla, COLOR_BORDE, (0, BARRA_Y), (ANCHO_PANTALLA, BARRA_Y), 2)
-        
-        # Dibujar botones
-        self._dibujar_boton(self.botones["cargar_mapa"], "Cargar Mapa")
-        self._dibujar_boton(self.botones["guardar"], "Guardar")
-        self._dibujar_boton(self.botones["cargar"], "Cargar")
-        self._dibujar_boton(self.botones["resetear"], "Resetear")
-        self._dibujar_boton(self.botones["salir"], "Salir")
-        
-        # Mostrar cantidad de enemigos
-        texto_cantidad = self.fuente_pequena.render(f"Cant: {self.cantidad_enemigos}", True, COLOR_TEXTO)
-        self.pantalla.blit(texto_cantidad, (ANCHO_PANTALLA // 2 - 30, BARRA_Y + 15))
-        
-        self._dibujar_boton(self.botones["cantidad_menos"], "-")
-        self._dibujar_boton(self.botones["cantidad_mas"], "+")
-    
-    def _dibujar_boton(self, rect, texto):
-        """Dibujar un boton."""
-        pygame.draw.rect(self.pantalla, COLOR_ACTIVO, rect)
-        pygame.draw.rect(self.pantalla, COLOR_BORDE, rect, 2)
-        
-        label = self.fuente_pequena.render(texto, True, COLOR_FONDO)
-        label_rect = label.get_rect(center=rect.center)
-        self.pantalla.blit(label, label_rect)
-    
-    def ejecutar(self):
-        """Bucle principal del editor."""
-        while self.ejecutando:
-            self.procesar_eventos()
-            self.actualizar()
-            self.dibujar()
-            self.reloj.tick(self.fps)
-        
+
+    def run(self):
+        while self.running:
+            self.handle_input()
+            self.draw()
+            self.clock.tick(FPS)
         pygame.quit()
-        print("[EditorCanvasDoble] Editor cerrado.")
 
-
-# ============================================================================
-# MAIN
-# ============================================================================
 
 if __name__ == "__main__":
-    try:
-        editor = EditorCanvasDoble()
-        editor.ejecutar()
-    except Exception as e:
-        print(f"[ERROR FATAL] {e}")
-        import traceback
-        traceback.print_exc()
+    EditorNPCEventoBatalla().run()
