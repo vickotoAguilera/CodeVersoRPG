@@ -1,0 +1,42 @@
+{
+  "version": "1.0",
+  "mapa": "nombre_mapa_aqui",
+  "descripcion": "Overrides de posicionamiento para NPC evento batalla en mapas especificos. Si no existe entrada aqui, se usa el layout global.",
+  "npc_eventos": [
+    {
+      "id": "npc_evento_1",
+      "label": "Jefe Boss",
+      "descripcion": "Encuentro contra boss unico, centrado especialmente",
+      "cantidad_enemigos": 1,
+      "override_layout": {
+        "enemigos": [
+          {
+            "slot": 0,
+            "x": 420,
+            "y": 200,
+            "nombre": "Jefe Especial"
+          }
+        ],
+        "heroes": [
+          {
+            "slot": 0,
+            "x": 100,
+            "y": 200,
+            "nombre": "Heroe Principal"
+          }
+        ]
+      },
+      "sprites": {
+        "enemigos": [
+          {
+            "slot": 0,
+            "sprite_id": "JEFE_BOSS_1",
+            "ancho": 60,
+            "alto": 80
+          }
+        ]
+      }
+    }
+  ],
+  "notas": "Copiar este template y renombrarlo con el nombre del mapa. Rellenar id, label y overrides segun necesites. Los campos no especificados usaran valores globales."
+}

@@ -37,12 +37,15 @@ Regla de uso obligatorio:
 
 ## 2) Estado tecnico real verificado en codigo
 
-- Fase activa: cierre NPC runtime (venta/herrero) y preparacion de evento/batalla.
-- Runtime en mapa SI abre dialogo/panel NPC y bloquea movimiento del heroe mientras panel/dialogo esta activo.
-- `src/npc_comercio_herrero.py` SI existe y esta conectado, con primera version funcional de compra/venta/mejorar/forjar.
-- `src/npc_eventos_batalla.py` SI existe y esta conectado como hook base, aun sin flujo completo de batalla NPC.
-- `src/mapa.py` devuelve `npc_id` y `npc_modo` desde `interactuar_objetos_interactivos()`.
-- `main.py` usa esa respuesta para abrir panel segun modo (`venta` / `herrero`) o dialogo normal.
+- Fase activa: **NPC evento batalla con canvas doble** (recién iniciada 2026-04-22).
+- Archivos nuevos creados:
+  - `gestor_npc_evento_batalla_v1.py` → Editor canvas doble con carga de sprites.
+  - `ejecutar_gestor_npc_evento_batalla_v1.bat` → Lanzador.
+  - `src/database/npc_evento_batalla_layouts.json` → Layouts globales por cantidad (1-5).
+  - `src/database/npc_evento_batalla_por_mapa/` → Directorio para overrides por mapa.
+  - `src/database/npc_evento_batalla_por_mapa/TEMPLATE_EJEMPLO.json` → Template de referencia.
+- Paso 1 completado: marco UI, carga de mapas, carga de sprites de monstruos/heroes, dibujo de slots, guardado de config por mapa.
+- Fase anterior (Vendedor/Herrero): cerrada y validada en sesion previa.
 
 Arreglo reciente (2026-04-20):
 

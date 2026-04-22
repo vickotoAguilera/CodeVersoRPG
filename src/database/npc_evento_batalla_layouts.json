@@ -1,0 +1,222 @@
+{
+  "version": "1.0",
+  "descripcion": "Layouts globales de posicionamiento para NPC evento batalla. Definen posiciones por cantidad de enemigos (1-5), aplicable a ambos lados (enemigos y heroes).",
+  "layouts": {
+    "1": {
+      "descripcion": "1 enemigo (centrado vertical)",
+      "enemigos": [
+        {
+          "slot": 0,
+          "x": 400,
+          "y": 200,
+          "nombre": "Jefe Unico"
+        }
+      ],
+      "heroes": [
+        {
+          "slot": 0,
+          "x": 100,
+          "y": 200,
+          "nombre": "Heroe 1"
+        }
+      ]
+    },
+    "2": {
+      "descripcion": "2 enemigos (uno arriba, uno abajo)",
+      "enemigos": [
+        {
+          "slot": 0,
+          "x": 420,
+          "y": 120,
+          "nombre": "Enemigo 1"
+        },
+        {
+          "slot": 1,
+          "x": 420,
+          "y": 280,
+          "nombre": "Enemigo 2"
+        }
+      ],
+      "heroes": [
+        {
+          "slot": 0,
+          "x": 100,
+          "y": 120,
+          "nombre": "Heroe 1"
+        },
+        {
+          "slot": 1,
+          "x": 100,
+          "y": 280,
+          "nombre": "Heroe 2"
+        }
+      ]
+    },
+    "3": {
+      "descripcion": "3 enemigos (distribucion vertical)",
+      "enemigos": [
+        {
+          "slot": 0,
+          "x": 420,
+          "y": 80,
+          "nombre": "Enemigo 1"
+        },
+        {
+          "slot": 1,
+          "x": 420,
+          "y": 200,
+          "nombre": "Enemigo 2"
+        },
+        {
+          "slot": 2,
+          "x": 420,
+          "y": 320,
+          "nombre": "Enemigo 3"
+        }
+      ],
+      "heroes": [
+        {
+          "slot": 0,
+          "x": 100,
+          "y": 80,
+          "nombre": "Heroe 1"
+        },
+        {
+          "slot": 1,
+          "x": 100,
+          "y": 200,
+          "nombre": "Heroe 2"
+        },
+        {
+          "slot": 2,
+          "x": 100,
+          "y": 320,
+          "nombre": "Heroe 3"
+        }
+      ]
+    },
+    "4": {
+      "descripcion": "4 enemigos (2x2 grid)",
+      "enemigos": [
+        {
+          "slot": 0,
+          "x": 380,
+          "y": 100,
+          "nombre": "Enemigo 1"
+        },
+        {
+          "slot": 1,
+          "x": 460,
+          "y": 100,
+          "nombre": "Enemigo 2"
+        },
+        {
+          "slot": 2,
+          "x": 380,
+          "y": 300,
+          "nombre": "Enemigo 3"
+        },
+        {
+          "slot": 3,
+          "x": 460,
+          "y": 300,
+          "nombre": "Enemigo 4"
+        }
+      ],
+      "heroes": [
+        {
+          "slot": 0,
+          "x": 80,
+          "y": 100,
+          "nombre": "Heroe 1"
+        },
+        {
+          "slot": 1,
+          "x": 120,
+          "y": 100,
+          "nombre": "Heroe 2"
+        },
+        {
+          "slot": 2,
+          "x": 80,
+          "y": 300,
+          "nombre": "Heroe 3"
+        },
+        {
+          "slot": 3,
+          "x": 120,
+          "y": 300,
+          "nombre": "Heroe 4"
+        }
+      ]
+    },
+    "5": {
+      "descripcion": "5 enemigos (distribucion piramidal)",
+      "enemigos": [
+        {
+          "slot": 0,
+          "x": 380,
+          "y": 60,
+          "nombre": "Enemigo 1"
+        },
+        {
+          "slot": 1,
+          "x": 460,
+          "y": 60,
+          "nombre": "Enemigo 2"
+        },
+        {
+          "slot": 2,
+          "x": 420,
+          "y": 180,
+          "nombre": "Enemigo 3"
+        },
+        {
+          "slot": 3,
+          "x": 380,
+          "y": 300,
+          "nombre": "Enemigo 4"
+        },
+        {
+          "slot": 4,
+          "x": 460,
+          "y": 300,
+          "nombre": "Enemigo 5"
+        }
+      ],
+      "heroes": [
+        {
+          "slot": 0,
+          "x": 80,
+          "y": 60,
+          "nombre": "Heroe 1"
+        },
+        {
+          "slot": 1,
+          "x": 120,
+          "y": 60,
+          "nombre": "Heroe 2"
+        },
+        {
+          "slot": 2,
+          "x": 100,
+          "y": 180,
+          "nombre": "Heroe 3"
+        },
+        {
+          "slot": 3,
+          "x": 80,
+          "y": 300,
+          "nombre": "Heroe 4"
+        },
+        {
+          "slot": 4,
+          "x": 120,
+          "y": 300,
+          "nombre": "Heroe 5"
+        }
+      ]
+    }
+  },
+  "notas": "Estos layouts se usan por defecto. Pueden sobrescribirse por encuentro en los JSONs de npc_evento_batalla_por_mapa/<mapa>.json. El slot debe coincidir con el indice en enemigos/heroes."
+}
