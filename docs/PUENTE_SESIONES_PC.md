@@ -47,9 +47,17 @@ Regla de uso obligatorio:
 - Paso 1 completado: marco UI, carga de mapas, carga de sprites de monstruos/heroes, dibujo de slots, guardado de config por mapa.
 - Paso 3 funcional: slots 1..5, asignacion de enemigos a slots y reacomodo por drag de cajas en canvas batalla.
 - Mejora UX aplicada: modo `Canvas Batalla XL` para ampliar area de posicionamiento y evitar vista comprimida.
+- Flujo completo habilitado: seleccion en listas inferiores -> spawn en canvas mundo -> enlace por click derecho a slots del canvas batalla.
+- Soporte dual de asignacion: flujo completo mundo->batalla y flujo rapido por teclas (`Space` enemigo, `H` heroe).
 - Fix aplicado: corregido `ImportError` por constantes de pantalla no presentes en `src/config.py` (definicion local en el editor).
 - Fix aplicado: corregidas rutas de carga de mapas (uso de `src/database/mapas_unificados` con fallback).
 - Fase anterior (Vendedor/Herrero): cerrada y validada en sesion previa.
+
+Decision de arquitectura para fondos de pelea:
+
+- Batallas normales: fondo determinado por mapa/zona.
+- Batallas de evento NPC: fondo especial desacoplado del mapa.
+- Prioridad objetivo en runtime: `fondo_evento_npc -> fondo_por_mapa -> fallback global`.
 
 Arreglo reciente (2026-04-20):
 
@@ -254,6 +262,7 @@ Nota importante:
 - Comercio vendedor: cerrado y validado.
 - Herrero: cerrado y validado.
 - NPC evento batalla: Paso 1 completado + Paso 3 funcional + modo Canvas Batalla XL aplicado.
+- Flujo de enlace operativo: mundo (izq) a batalla (der) con validacion por tipo (`enemigo->E`, `heroe->H`).
 - Siguiente foco sugerido: completar Paso 2 y cierre de Paso 4.
 
 8. Orden sugerido de arranque para la nueva fase:

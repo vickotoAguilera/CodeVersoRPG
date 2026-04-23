@@ -77,6 +77,32 @@ Controles implementados en esta iteracion:
 - `G`: guarda layout global de la cantidad actual.
 - `Enter`: guarda override por mapa actual.
 
+Flujo operativo actual (mundo -> batalla):
+
+1. Elegir mapa desde la lista inferior (`W/S` o click).
+2. Elegir enemigo o heroe desde buscadores inferiores.
+3. Click en canvas izquierdo para crear objeto en mundo (spawn).
+4. Arrastrar objeto en canvas izquierdo para ajustar posicion.
+5. Seleccionar objeto del mundo y hacer click derecho sobre slot del canvas derecho para enlazar.
+6. Guardar con `G` (layout global) o `Enter` (override por mapa).
+
+Flujo rapido (sin pasar por mundo):
+
+- `Space`: asigna enemigo actual al primer slot enemigo libre.
+- `H`: asigna heroe actual al primer slot heroe libre.
+
+Reglas de enlace:
+
+- Objeto tipo enemigo solo enlaza a slots `E`.
+- Objeto tipo heroe solo enlaza a slots `H`.
+- Si el tipo no coincide, no se aplica enlace.
+
+Estrategia de fondos de pelea (acordada):
+
+1. Fondo por mapa para batallas normales.
+2. Fondo por evento NPC para peleas especiales no ligadas al mapa.
+3. Prioridad recomendada en runtime: `fondo_evento_npc -> fondo_por_mapa -> fallback`.
+
 ## 6) Archivos a crear
 
 1. gestor_npc_evento_batalla_v1.py

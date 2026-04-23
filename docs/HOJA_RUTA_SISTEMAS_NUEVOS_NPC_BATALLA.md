@@ -20,6 +20,12 @@ Siguiente foco de implementacion (ya definido):
 
 - NPC evento batalla con editor de canvas doble (mundo + preview batalla), layouts globales y override para boss centrado.
 
+Regla acordada para pantallas/fondos de pelea:
+
+- Todas las zonas tendran fondo de batalla asociado por mapa.
+- Excepcion: eventos NPC especiales pueden usar fondo propio no ligado al mapa.
+- Prioridad de carga en runtime: fondo de evento NPC, luego fondo por mapa, luego fallback.
+
 ## 1) Archivos nuevos de esta semana (.bat y .py)
 
 ### .bat nuevos
@@ -230,6 +236,7 @@ Orden recomendado para no romper nada y avanzar modular:
 - En dialogos NPC runtime: tecla `Q` vuelve a retroceder lineas en conversacion y al cerrar panel retorna al dialogo base.
 - En editor NPC evento batalla: canvas doble operativo, slots enemigos/heroes, selector de cantidad, asignacion por catalogo y guardado base.
 - Mejora UX clave en edicion: modo `Canvas Batalla XL` para ajustar posiciones con precision y sin vista comprimida.
+- Flujo actual de edicion: seleccion en buscadores inferiores, spawn en canvas mundo, arrastre y enlace a slots de batalla por click derecho.
 - Proximo foco: completar Paso 2 (arrastre NPC en mundo) y luego enlace final a runtime de batalla.
 
 ## 7) Documento de referencia de contexto
